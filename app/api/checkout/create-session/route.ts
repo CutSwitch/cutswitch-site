@@ -3,6 +3,7 @@ import { getBaseUrl } from "@/lib/env";
 import { getCheckoutPlan, findPromotionCodeId } from "@/lib/billing";
 import { stripe } from "@/lib/stripe";
 import type { PlanKey } from "@/lib/site";
+import type Stripe from "stripe";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,10 @@ export async function POST(req: Request) {
     }
 
     if (!body.acknowledgedNoRefunds) {
-      return NextResponse.json({ error: "No-refunds acknowledgement is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No-refunds acknowledgement is required." },
+        { status: 400 }
+      );
     }
 
     const baseUrl = getBaseUrl();
@@ -43,7 +47,8 @@ export async function POST(req: Request) {
     };
     if (referral) sessionMetadata.referral = referral;
 
-    const common: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+    // IMPORTANT: Explicit Stripe params type to avoid TS mis-inferring RequestOptions
+    const common: Stripe.Checkout.SessionCreateParams = {
       mode: plan.mode,
       line_items: [{ price: plan.priceId, quantity: 1 }],
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -103,6 +108,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
     console.error("create-session error", err);
-    return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Server error" },
+      { status: 500 }
+    );
   }
 }

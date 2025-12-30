@@ -12,7 +12,7 @@ export function Comparison() {
     "Repeatable automation for the boring parts.",
     "Stay in the timeline, stay in your head.",
     "Consistent output across edits and teams.",
-    "Guardrails that reduce "oops" exports.",
+    "Guardrails that reduce 'oops' exports.",
   ];
 
   return (

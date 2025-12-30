@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg: #0E1020;
+  --brand: #655DFF;
+  --highlight: #B9C0FF;
+  --shadow: #8F9BFF;
+  --edge: #4B3CFF;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px circle at 20% 0%, rgba(101, 93, 255, 0.18), transparent 60%),
+    radial-gradient(900px circle at 70% 20%, rgba(185, 192, 255, 0.12), transparent 55%),
+    radial-gradient(700px circle at 50% 85%, rgba(75, 60, 255, 0.10), transparent 55%),
+    var(--bg);
+  color: rgba(255, 255, 255, 0.92);
+  text-rendering: geometricPrecision;
+}
+
+::selection {
+  background: rgba(101, 93, 255, 0.35);
+}
+
+@layer components {
+  .container-edge {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .glass {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 30px 120px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .card {
+    @apply glass rounded-2xl;
+  }
+
+  .ring-brand {
+    box-shadow: 0 0 0 1px rgba(101, 93, 255, 0.35), 0 20px 70px rgba(75, 60, 255, 0.20);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition;
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, rgba(101, 93, 255, 1), rgba(75, 60, 255, 1));
+    box-shadow: 0 0 0 1px rgba(185, 192, 255, 0.25), 0 18px 70px rgba(75, 60, 255, 0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(185, 192, 255, 0.35), 0 22px 80px rgba(75, 60, 255, 0.45);
+  }
+
+  .btn-secondary {
+    @apply border border-white/10 bg-white/5 hover:bg-white/10;
+  }
+
+  .btn-ghost {
+    @apply border border-white/10 bg-transparent hover:bg-white/5;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80;
+  }
+
+  .gradient-line {
+    background: linear-gradient(90deg, rgba(101, 93, 255, 0), rgba(101, 93, 255, 0.6), rgba(185, 192, 255, 0.25), rgba(101, 93, 255, 0));
+    height: 1px;
+  }
+
+  .link {
+    @apply text-white/80 hover:text-white transition;
+  }
+
+  .prose-invert a {
+    color: rgba(185, 192, 255, 0.95);
+  }
+
+  .prose-invert a:hover {
+    color: rgba(255, 255, 255, 0.95);
+  }
+}

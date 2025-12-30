@@ -16,9 +16,9 @@ type Plan = {
   cta: string;
 };
 
-const MONTHLY_PRICE = 14.49;
-const YEARLY_PRICE = 100;
-const LIFETIME_PRICE = 200;
+const MONTHLY_PRICE = 19.99;
+const YEARLY_PRICE = 169;
+const LIFETIME_PRICE = 249;
 
 function computeYearlySavePercent(): number {
   const annualMonthly = MONTHLY_PRICE * 12;
@@ -158,7 +158,8 @@ export function PricingTable() {
               <label htmlFor="ack" className="leading-relaxed">
                 I understand CutSwitch purchases are{" "}
                 <span className="text-white/90 font-semibold">final</span> and we{" "}
-                <span className="text-white/90 font-semibold">do not offer refunds</span>. If I have issues, I will contact{" "}
+                <span className="text-white/90 font-semibold">do not offer refunds</span>. If I have issues, I will
+                contact{" "}
                 <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
                   Support
                 </Link>
@@ -246,8 +247,8 @@ export function PricingTable() {
       <div className="card p-6">
         <div className="text-sm font-semibold text-white/90">Questions before you buy?</div>
         <p className="mt-2 text-sm text-white/65">
-          We do not do refunds, but we do fix problems fast. If something feels off, reach out and we will help you
-          get running.
+          We do not do refunds, but we do fix problems fast. If something feels off, reach out and we will help you get
+          running.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Link className="btn btn-secondary" href="/support">

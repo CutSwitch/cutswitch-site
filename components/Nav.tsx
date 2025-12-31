@@ -13,8 +13,7 @@ const NAV: NavItem[] = [
   { href: "/download", label: "Download" },
   { href: "/support", label: "Support", glow: true },
   { href: "/affiliates", label: "Affiliates" },
-  { href: "/changelog", label: "Changelog" },
-];
+  ];
 
 export function Nav() {
   const pathname = usePathname();

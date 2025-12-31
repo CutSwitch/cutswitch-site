@@ -35,7 +35,6 @@ export const supportLinks = {
   terms: "/terms",
   privacy: "/privacy",
   refunds: "/refunds",
-  changelog: "/changelog",
   press: "/press",
   account: "/account",
 } as const;

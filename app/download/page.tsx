@@ -36,10 +36,7 @@ export default function DownloadPage() {
                 Download for macOS
               </button>
             )}
-            <Link className="btn btn-secondary" href="/changelog">
-              Release notes
-            </Link>
-          </div>
+            </div>
 
           <div className="mt-6 gradient-line" />
 

@@ -17,19 +17,12 @@ type Plan = {
 };
 
 const MONTHLY_PRICE = 19.99;
-const YEARLY_PRICE = 169;
-const LIFETIME_PRICE = 249;
+const YEARLY_PRICE = 199;
+const LIFETIME_PRICE = 299;
 
-function computeYearlySavePercent(): number {
-  const annualMonthly = MONTHLY_PRICE * 12;
-  const save = 1 - YEARLY_PRICE / annualMonthly;
-  return Math.round(save * 100);
-}
 
 export function PricingTable() {
   const referral = useRewardfulReferral();
-
-  const savePct = useMemo(() => computeYearlySavePercent(), []);
 
   const plans: Plan[] = useMemo(
     () => [
@@ -49,12 +42,10 @@ export function PricingTable() {
       },
       {
         key: "yearly",
-        name: "Yearly",
+        name: "Annual",
         priceLabel: `${formatUsd(YEARLY_PRICE)}`,
         priceNote: "per year, billed annually",
-        highlights: [
-          `Save ${savePct}% vs monthly`,
-          "7-day free trial (card required)",
+        highlights: [          "7-day free trial (card required)",
           "All core features",
           "License for 2 Macs",
           "Priority support",
@@ -77,10 +68,8 @@ export function PricingTable() {
         cta: "Buy lifetime",
       },
     ],
-    [savePct]
+    []
   );
-
-  const [coupon, setCoupon] = useState("");
   const [ack, setAck] = useState(false);
   const [loading, setLoading] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +89,6 @@ export function PricingTable() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          couponCode: coupon || undefined,
           referral: referral || undefined,
           acknowledgedNoRefunds: true,
         }),
@@ -125,7 +113,7 @@ export function PricingTable() {
       <div className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="text-sm font-semibold text-white/90">Coupon or affiliate code</div>
+            <div className="text-sm font-semibold text-white/90">Coupon code</div>
             <p className="mt-1 text-xs text-white/60">
               Codes are optional. You can also enter a promotion code inside Stripe Checkout.
             </p>

@@ -10,7 +10,8 @@ const nav1 = [
   { href: "/press", label: "Press" },
 ];
 
-const nav2 = [  { href: "/account", label: "Account" },
+const nav2 = [
+  { href: "/account", label: "Account" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
   { href: "/refunds", label: "Refunds" },

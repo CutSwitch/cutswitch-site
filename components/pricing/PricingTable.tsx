@@ -132,7 +132,7 @@ export function PricingTable() {
 
   return (
     <div className="w-full">
-      <div className="py-10">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight">Pricing</h1>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
@@ -144,9 +144,11 @@ export function PricingTable() {
           </p>
         </div>
 
-        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6">
+          <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
+          <div className="relative">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm font-medium">Coupon code</div>
+            <div className="text-sm font-medium">Coupon or affiliate code</div>
             <Link
               href="/affiliates"
               className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
@@ -195,6 +197,7 @@ export function PricingTable() {
               {error}
             </div>
           ) : null}
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -202,14 +205,14 @@ export function PricingTable() {
             <div
               key={p.key}
               className={cn(
-                "rounded-2xl border bg-white p-6 shadow-sm dark:bg-neutral-950",
-                p.featured
-                  ? "border-indigo-200 ring-1 ring-indigo-200 dark:border-indigo-900/50 dark:ring-indigo-900/50"
-                  : "border-neutral-200 dark:border-neutral-800"
+                "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 transition hover:-translate-y-0.5 hover:border-white/20",
+                p.featured ? "border-brand/40 ring-brand" : ""
               )}
             >
+              <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
+              <div className="relative">
               {p.featured ? (
-                <div className="mb-3 inline-flex rounded-full bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-white/80">
                   Best value
                 </div>
               ) : null}
@@ -218,14 +221,14 @@ export function PricingTable() {
               <div className="mt-2 text-4xl font-semibold tracking-tight">
                 {p.priceLabel}
               </div>
-              <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+              <div className="mt-1 text-sm text-white/65">
                 {p.priceNote}
               </div>
 
-              <ul className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-200">
+              <ul className="mt-4 space-y-2 text-sm text-white/70">
                 {p.highlights.map((h) => (
                   <li key={h} className="flex gap-2">
-                    <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-neutral-100 dark:bg-neutral-900" />
+                    <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
                     <span>{h}</span>
                   </li>
                 ))}
@@ -237,14 +240,14 @@ export function PricingTable() {
                 className={cn(
                   "mt-6 w-full rounded-xl px-4 py-2 text-sm font-medium",
                   p.featured
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
-                    : "bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-60 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                    ? "btn btn-primary"
+                    : "btn btn-secondary"
                 )}
               >
                 {loading === p.key ? "Starting…" : p.cta}
               </button>
 
-              <div className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+              <div className="mt-3 text-xs text-white/55">
                 By purchasing, you agree to our{" "}
                 <Link className="underline" href="/terms">
                   Terms
@@ -255,29 +258,33 @@ export function PricingTable() {
                 </Link>
                 .
               </div>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-10 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="relative mt-10 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6">
+          <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
+          <div className="relative">
           <div className="text-lg font-semibold">Questions before you buy?</div>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <p className="mt-2 text-sm text-white/65">
             We do not do refunds, but we do fix problems fast. If something feels
             off, reach out and we will help you get running.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/support"
-              className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+              className="btn btn-secondary"
             >
               Contact Support
             </Link>
             <Link
               href="/refunds"
-              className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
+              className="btn btn-ghost"
             >
               No-refunds policy
             </Link>
+          </div>
           </div>
         </div>
       </div>

@@ -35,8 +35,7 @@ export default function AffiliatesPage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="text-sm font-semibold text-white/90">Commission</div>
                 <p className="mt-2 text-sm text-white/65">
-                  A strong default is <span className="text-white/90 font-semibold">30% commission</span>. You can tune
-                  this per partner inside Rewardful.
+                  A strong default is <span className="text-white/90 font-semibold">20% commission</span>. You can tune this per partner inside Rewardful.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">

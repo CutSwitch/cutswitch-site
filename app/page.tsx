@@ -128,13 +128,16 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero */}
+      {/* Hero (Frame.io-inspired split) */}
       <section className="container-edge">
         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 px-6 py-12 sm:px-10 sm:py-16">
+          {/* background depth */}
           <div className="pointer-events-none absolute inset-0 bg-hero-radial opacity-90" />
+          <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-highlight/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-28 top-24 h-80 w-80 rounded-full bg-[#655DFF]/15 blur-3xl" />
 
-          <div className="relative grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div>
+          <div className="relative grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div className="max-w-xl">
               <div className="flex flex-wrap gap-2">
                 <span className="chip">
                   <span className="text-brand-highlight">Mac app</span>
@@ -144,19 +147,19 @@ export default function HomePage() {
                 <span className="chip">Stripe Tax</span>
               </div>
 
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
+              <h1 className="mt-7 text-5xl font-semibold tracking-tight sm:text-6xl">
                 Multicam in seconds. <span className="text-brand-highlight">Save hours.</span>
               </h1>
 
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-white/70">
+              <p className="mt-5 text-base leading-relaxed text-white/70 sm:text-lg">
                 CutSwitch is a premium Mac utility for FCPX. From mono audio to multicam switches, in seconds.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link className="btn btn-primary" href="/pricing">
                   Get CutSwitch <span className="text-white/80">→</span>
                 </Link>
-                <Link className="btn btn-secondary" href="#demo">
+                <Link className="btn btn-secondary" href="/demo">
                   Watch demo
                 </Link>
               </div>
@@ -170,23 +173,35 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Video on the right (Frame.io-ish hover + click-to-expand) */}
+            {/* Hero video (looping preview) */}
             <div className="relative">
-              <VideoDemo className="aspect-video shadow-soft" />
+              <div className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_40%_30%,rgba(101,93,255,0.22),transparent_60%)] blur-xl" />
+              <VideoDemo className="aspect-[16/10] shadow-soft" chrome />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Demo */}
-      <section id="demo" className="container-edge mt-14">
+      {/* Demo (preview + route to full walkthrough) */}
+      <section className="container-edge mt-14">
         <SectionHeading
           eyebrow="Demo"
-          title="Watch CutSwitch switch."
-          subtitle="A quick loop of mono audio becoming clean multicam switches inside Final Cut Pro."
+          title="A quick preview of the workflow."
+          subtitle="This is a looping preview. For the full walkthrough with sound, jump into the demo page."
         />
         <div className="mt-6">
-          <VideoDemo className="shadow-soft" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-xs text-white/50">
+              Tip: click the video to expand. Want audio?{" "}
+              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/demo">
+                Open the full demo
+              </Link>
+              .
+            </div>
+          </div>
+          <div className="mt-3">
+            <VideoDemo className="shadow-soft" chrome />
+          </div>
         </div>
       </section>
 

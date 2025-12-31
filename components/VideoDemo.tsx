@@ -7,9 +7,11 @@ type VideoDemoProps = {
   className?: string;
   /** Frame.io-ish: hover glow + subtle parallax + click to expand */
   interactive?: boolean;
+  /** Adds a subtle macOS-style window frame around the video (best for hero). */
+  chrome?: boolean;
 };
 
-export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
+export function VideoDemo({ className, interactive = true, chrome = true }: VideoDemoProps) {
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
@@ -17,9 +19,9 @@ export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
 
   const transformStyle = useMemo(() => {
     if (!interactive) return undefined;
-    // keep it subtle: a gentle "card" tilt on hover
     return {
       transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateZ(0)`,
+      willChange: "transform",
     } as const;
   }, [interactive, tilt.rx, tilt.ry]);
 
@@ -32,14 +34,14 @@ export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  const onMove = (e: any) => {
+  const onMove = (e: React.MouseEvent) => {
     if (!interactive) return;
     const el = wrapRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width; // 0..1
-    const py = (e.clientY - r.top) / r.height; // 0..1
-    const ry = (px - 0.5) * 5; // degrees
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const ry = (px - 0.5) * 5; // subtle
     const rx = (0.5 - py) * 3.5;
     setTilt({ rx, ry });
   };
@@ -48,6 +50,35 @@ export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
     if (!interactive) return;
     setTilt({ rx: 0, ry: 0 });
   };
+
+  const CardInner = (
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+      {!broken ? (
+        <video
+          className="h-full w-full object-cover"
+          src="/videos/demo.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <div className="grid min-h-[260px] place-items-center p-10 text-center">
+          <div>
+            <div className="text-sm font-semibold text-white/85">Demo video not found</div>
+            <div className="mt-1 text-xs text-white/55">
+              Add <span className="font-mono">/public/videos/demo.mp4</span> to enable the on-page demo.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* sheen */}
+      <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
+    </div>
+  );
 
   return (
     <>
@@ -63,44 +94,53 @@ export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
           if (e.key === "Enter" || e.key === " ") setOpen(true);
         }}
         className={cn(
-          "group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5",
+          "group relative",
           interactive && !broken ? "cursor-zoom-in" : "",
           className
         )}
         style={transformStyle}
       >
-        {!broken ? (
-          <video
-            className="h-full w-full object-cover"
-            src="/videos/demo.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            onError={() => setBroken(true)}
-          />
-        ) : (
-          <div className="grid min-h-[260px] place-items-center p-10 text-center">
-            <div>
-              <div className="text-sm font-semibold text-white/85">Demo video not found</div>
-              <div className="mt-1 text-xs text-white/55">
-                Add <span className="font-mono">/public/videos/demo.mp4</span> to enable the on-page demo.
-              </div>
-            </div>
-          </div>
+        {/* hero glow behind */}
+        {interactive && !broken && (
+          <div className="pointer-events-none absolute -inset-24 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.40),transparent_55%)]" />
         )}
 
-        {/* Frame.io-ish glow + glass sheen */}
-        <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
-        {interactive && !broken && (
-          <>
-            <div className="pointer-events-none absolute -inset-24 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.35),transparent_55%)]" />
-            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),transparent_40%)]" />
-            <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              Click to expand
+        {/* macOS-ish frame */}
+        {chrome ? (
+          <div className="relative overflow-hidden rounded-[22px] border border-white/12 bg-black/35 shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-white/10 bg-black/30 px-4 py-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
+              <div className="ml-3 text-[11px] font-semibold text-white/55">CutSwitch demo</div>
+              <div className="ml-auto text-[11px] text-white/35">loop</div>
             </div>
+
+            <div className="p-3 sm:p-4">
+              {CardInner}
+            </div>
+
+            {/* hover instruction */}
+            {interactive && !broken && (
+              <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/35 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                Click to expand
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {CardInner}
+            {interactive && !broken && (
+              <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                Click to expand
+              </div>
+            )}
           </>
+        )}
+
+        {/* glass highlight */}
+        {interactive && !broken && (
+          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_40%)]" />
         )}
       </div>
 
@@ -109,7 +149,6 @@ export function VideoDemo({ className, interactive = true }: VideoDemoProps) {
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
           onMouseDown={(e) => {
-            // close only if you click the backdrop
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >

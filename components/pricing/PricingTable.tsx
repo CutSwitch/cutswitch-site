@@ -20,7 +20,15 @@ const MONTHLY_PRICE = 19.99;
 const YEARLY_PRICE = 199;
 const LIFETIME_PRICE = 299;
 
-export default function PricingTable() {
+/**
+ * NOTE:
+ * We intentionally export BOTH:
+ *  - named export: { PricingTable }
+ *  - default export: PricingTable
+ * so existing imports like `import { PricingTable } from ...` keep working,
+ * and default imports also work.
+ */
+export function PricingTable() {
   const plans = useMemo<Plan[]>(
     () => [
       {
@@ -109,7 +117,9 @@ export default function PricingTable() {
       const data = (await res.json()) as { url?: string; error?: string };
 
       if (!res.ok || !data.url) {
-        throw new Error(data.error || "Unable to start checkout. Please try again.");
+        throw new Error(
+          data.error || "Unable to start checkout. Please try again."
+        );
       }
 
       window.location.href = data.url;
@@ -129,8 +139,8 @@ export default function PricingTable() {
             Simple plans. Serious speed.
           </p>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-            Subscriptions include a 7-day free trial. Taxes are calculated automatically with Stripe Tax.
-            All purchases are final: no refunds.
+            Subscriptions include a 7-day free trial. Taxes are calculated
+            automatically with Stripe Tax. All purchases are final: no refunds.
           </p>
         </div>
 
@@ -146,7 +156,8 @@ export default function PricingTable() {
           </div>
 
           <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-            Codes are optional. You can also enter a promotion code inside Stripe Checkout.
+            Codes are optional. You can also enter a promotion code inside Stripe
+            Checkout.
           </p>
 
           <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
@@ -164,14 +175,19 @@ export default function PricingTable() {
                 className="mt-1 h-4 w-4 rounded border-neutral-300 text-indigo-600 focus:ring-indigo-600 dark:border-neutral-700"
               />
               <span>
-                I understand CutSwitch purchases are final and we do not offer refunds. If I have issues,
-                I will contact <Link className="underline" href="/support">Support</Link>.
+                I understand CutSwitch purchases are final and we do not offer
+                refunds. If I have issues, I will contact{" "}
+                <Link className="underline" href="/support">
+                  Support
+                </Link>
+                .
               </span>
             </label>
           </div>
 
           <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-            Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean chain.
+            Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean
+            chain.
           </div>
 
           {error ? (
@@ -246,7 +262,8 @@ export default function PricingTable() {
         <div className="mt-10 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
           <div className="text-lg font-semibold">Questions before you buy?</div>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-            We do not do refunds, but we do fix problems fast. If something feels off, reach out and we will help you get running.
+            We do not do refunds, but we do fix problems fast. If something feels
+            off, reach out and we will help you get running.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -267,3 +284,5 @@ export default function PricingTable() {
     </div>
   );
 }
+
+export default PricingTable;

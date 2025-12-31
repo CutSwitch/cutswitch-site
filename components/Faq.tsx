@@ -5,23 +5,43 @@ export type FaqItem = {
   a: string;
 };
 
-export function Faq({ items, className }: { items: FaqItem[]; className?: string }) {
+export type FaqProps = {
+  title?: string;
+  subtitle?: string;
+  items: FaqItem[];
+  className?: string;
+};
+
+export function Faq({ title, subtitle, items, className }: FaqProps) {
   return (
-    <div className={cn("grid gap-3", className)}>
-      {items.map((item) => (
-        <details
-          key={item.q}
-          className="group rounded-2xl border border-white/10 bg-white/5 px-5 py-4 transition hover:border-white/20"
-        >
-          <summary className="cursor-pointer list-none text-sm font-semibold text-white/90">
-            <div className="flex items-center justify-between gap-3">
-              <span>{item.q}</span>
-              <span className="text-white/40 transition group-open:rotate-45">+</span>
-            </div>
-          </summary>
-          <p className="mt-3 text-sm leading-relaxed text-white/65">{item.a}</p>
-        </details>
-      ))}
-    </div>
+    <section className={cn("space-y-6", className)}>
+      {(title || subtitle) && (
+        <header className="space-y-2">
+          {title ? (
+            <h2 className="text-2xl font-semibold tracking-tight text-white/90">{title}</h2>
+          ) : null}
+          {subtitle ? (
+            <p className="text-sm leading-relaxed text-white/65">{subtitle}</p>
+          ) : null}
+        </header>
+      )}
+
+      <div className="grid gap-3">
+        {items.map((item) => (
+          <details
+            key={item.q}
+            className="group rounded-2xl border border-white/10 bg-white/5 px-5 py-4 transition hover:border-white/20"
+          >
+            <summary className="cursor-pointer list-none text-sm font-semibold text-white/90">
+              <div className="flex items-center justify-between gap-3">
+                <span>{item.q}</span>
+                <span className="text-white/40 transition group-open:rotate-45">+</span>
+              </div>
+            </summary>
+            <p className="mt-3 text-sm leading-relaxed text-white/65">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }

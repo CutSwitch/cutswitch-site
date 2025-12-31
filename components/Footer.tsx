@@ -11,7 +11,6 @@ const nav1 = [
 ];
 
 const nav2 = [
-  { href: "/changelog", label: "Changelog" },
   { href: "/account", label: "Account" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },

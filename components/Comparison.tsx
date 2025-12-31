@@ -21,9 +21,7 @@ export function Comparison({ title, subtitle, rows, className }: ComparisonProps
           {title ? (
             <h2 className="text-2xl font-semibold tracking-tight text-white/90">{title}</h2>
           ) : null}
-          {subtitle ? (
-            <p className="text-sm leading-relaxed text-white/65">{subtitle}</p>
-          ) : null}
+          {subtitle ? <p className="text-sm leading-relaxed text-white/65">{subtitle}</p> : null}
         </header>
       )}
 

@@ -22,7 +22,7 @@ export default function PricingPage() {
         <PricingTable />
       </div>
 
-      <div className="mt-12 rounded-2xl border border-line bg-surface-2 p-6">
+      <div className="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6">
         <div className="text-sm font-semibold text-white/90">No refunds, by design</div>
         <p className="mt-2 text-sm leading-relaxed text-white/65">
           We keep pricing straightforward and the policy clear: all purchases are final. This reduces support loops,

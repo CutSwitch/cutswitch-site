@@ -56,11 +56,11 @@ export function Nav() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          <Link className="btn btn-ghost" href="/download">
-            Download
+          <Link className="btn btn-ghost" href="/demo">
+            Watch demo
           </Link>
-          <Link className="btn btn-primary" href="/pricing">
-            Get CutSwitch
+          <Link className="btn btn-primary" href="/download">
+            Download beta
             <span className="text-white/80">→</span>
           </Link>
         </div>
@@ -96,11 +96,11 @@ export function Nav() {
                 );
               })}
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <Link className="btn btn-ghost w-full" href="/download">
-                  Download
+                <Link className="btn btn-ghost w-full" href="/demo">
+                  Watch demo
                 </Link>
-                <Link className="btn btn-primary w-full" href="/pricing">
-                  Get CutSwitch
+                <Link className="btn btn-primary w-full" href="/download">
+                  Download beta
                 </Link>
               </div>
             </div>

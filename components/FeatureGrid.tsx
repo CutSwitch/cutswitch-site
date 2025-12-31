@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 export type Feature = {
+  icon?: ReactNode;
   title: string;
   description: string;
 };
@@ -21,6 +23,11 @@ export function FeatureGrid({
         >
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
           <div className="relative">
+            {f.icon ? (
+              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
+                <span className="text-brand">{f.icon}</span>
+              </div>
+            ) : null}
             <div className="text-sm font-semibold text-white/90">{f.title}</div>
             <p className="mt-2 text-sm leading-relaxed text-white/65">{f.description}</p>
           </div>

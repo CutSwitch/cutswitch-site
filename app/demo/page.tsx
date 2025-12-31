@@ -37,16 +37,21 @@ export default function DemoPage() {
           </div>
 
           <div className="mt-4 flex flex-col gap-2 text-sm text-white/65">
-            <div>
-              • If the video is silent, export a version with audio and replace{" "}
-              <span className="font-mono text-white/80">/public/videos/demo.mp4</span>.
-            </div>
-            <div>
-              • Want to go back?{" "}
-              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/">
+            <div className="font-semibold text-white/80">What you’ll see</div>
+            <div>• Import a Final Cut XML with a real multicam clip.</div>
+            <div>• Add one audio file per speaker, then map speakers to camera angles.</div>
+            <div>• Pick a cut rhythm + group shots, then run and import the result back into Final Cut.</div>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Link className="btn btn-primary" href="/download">
+                Download beta
+              </Link>
+              <Link className="btn btn-ghost" href="/pricing">
+                View pricing
+              </Link>
+              <Link className="btn btn-ghost" href="/">
                 Return home
               </Link>
-              .
             </div>
           </div>
         </div>

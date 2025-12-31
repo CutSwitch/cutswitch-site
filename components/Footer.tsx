@@ -28,8 +28,8 @@ export function Footer() {
           <div className="md:col-span-2">
             <Logo className="-ml-2" />
             <p className="mt-4 max-w-md text-sm text-white/65">
-              CutSwitch is built for editors who care about speed, consistency, and staying in the creative groove.
-              Download, try it, and upgrade when you feel the time savings in your hands.
+              CutSwitch auto-switches Final Cut Pro multicam edits by who’s speaking.
+              It’s local-first, fast, and designed to give you a clean first cut you can refine in Final Cut.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export function Footer() {
           </div>
 
           <div className="text-xs text-white/50">
-            Built on macOS. Sold worldwide. No drama, just cuts.
+            Built for editors. Local-first. Fast by design.
           </div>
         </div>
       </div>

@@ -1,265 +1,268 @@
 import Link from "next/link";
-import { Metadata } from "next";
+import type { Metadata } from "next";
+
 import { siteConfig } from "@/lib/site";
-import { SectionHeading } from "@/components/SectionHeading";
 import { VideoDemo } from "@/components/VideoDemo";
-import { HowItWorks } from "@/components/HowItWorks";
 import { FeatureGrid } from "@/components/FeatureGrid";
+import { HowItWorks } from "@/components/HowItWorks";
 import { Comparison } from "@/components/Comparison";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { Faq } from "@/components/Faq";
+import { PricingTable } from "@/components/pricing/PricingTable";
 import { FinalCTA } from "@/components/FinalCTA";
+import {
+  IconCamera,
+  IconExport,
+  IconLock,
+  IconScissors,
+  IconSpark,
+  IconUsers,
+  IconWaveform,
+} from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "CutSwitch",
+  title: `${siteConfig.name} | ${siteConfig.tagline}`,
   description: siteConfig.description,
 };
 
+const features = [
+  {
+    icon: <IconWaveform className="h-5 w-5" />,
+    title: "Voice-driven multicam switching",
+    description:
+      "Drop one audio file per speaker and CutSwitch switches angles based on who's actually talking, moment by moment.",
+  },
+  {
+    icon: <IconScissors className="h-5 w-5" />,
+    title: "Cut styles that feel edited",
+    description:
+      "Choose Calm, Normal, or Punchy. Or turn on Custom to tune sensitivity, minimum shot length, and smoothing.",
+  },
+  {
+    icon: <IconUsers className="h-5 w-5" />,
+    title: "Tasteful group shots",
+    description:
+      "Set how often we cut to wide or two-shot. Presets for speed, Custom controls for pros who want the knobs.",
+  },
+  {
+    icon: <IconCamera className="h-5 w-5" />,
+    title: "Simple speaker-to-camera mapping",
+    description:
+      "Match each speaker to a camera angle. Multiple speakers can share one angle, so two-shots and shared cams just work.",
+  },
+  {
+    icon: <IconExport className="h-5 w-5" />,
+    title: "Export right back into Final Cut",
+    description:
+      "CutSwitch outputs a fresh .fcpxmld bundle. Import it into Final Cut Pro and keep editing like normal.",
+  },
+  {
+    icon: <IconLock className="h-5 w-5" />,
+    title: "Local-first by design",
+    description:
+      "Runs on your Mac. Your media stays local. No uploads, no cloud processing, no weird surprises.",
+  },
+];
+
+const steps = [
+  {
+    icon: <IconExport className="h-5 w-5" />,
+    title: "Import your Final Cut project",
+    description: "Drop a .fcpxml or .fcpxmld with a real multicam clip.",
+  },
+  {
+    icon: <IconWaveform className="h-5 w-5" />,
+    title: "Add one audio file per speaker",
+    description:
+      "Each file becomes that speaker's “voice meter” so CutSwitch can detect who's talking.",
+  },
+  {
+    icon: <IconCamera className="h-5 w-5" />,
+    title: "Map speakers to camera angles",
+    description:
+      "Choose which angle shows each person. Share angles when two people are on the same camera.",
+  },
+  {
+    icon: <IconSpark className="h-5 w-5" />,
+    title: "Pick the rhythm",
+    description:
+      "Set Group frequency and Cut Style. Flip on Custom if you want the fine-tuning controls.",
+  },
+  {
+    icon: <IconScissors className="h-5 w-5" />,
+    title: "Run CutSwitch",
+    description:
+      "Generate the finished timeline and import it into Final Cut Pro. The edit is yours to polish.",
+  },
+];
+
+const comparisons = [
+  {
+    feature: "What you do",
+    manual: "Listen, scrub, switch, undo, repeat",
+    cutswitch: "Set it once, export, refine",
+  },
+  {
+    feature: "Dialogue switching",
+    manual: "Manual angle hunting and keyframes",
+    cutswitch: "Automatic based on speech",
+  },
+  {
+    feature: "Consistency",
+    manual: "Depends on how tired you are",
+    cutswitch: "Repeatable presets + Custom",
+  },
+  {
+    feature: "Wide shots",
+    manual: "You remember to add them",
+    cutswitch: "Built-in group shot cadence",
+  },
+  {
+    feature: "Privacy",
+    manual: "Local (you)",
+    cutswitch: "Local-first (always)",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "CutSwitch gets me 80% of the way there in minutes. I spend my time on story beats instead of babysitting the multicam.",
+    name: "Early Beta Editor",
+    title: "Podcasts + Interviews",
+  },
+  {
+    quote:
+      "The rhythm presets are shockingly useful. Punchy nails the “yeah / mm-hmm” moments without me chasing angles all day.",
+    name: "Post Producer",
+    title: "YouTube / Social",
+  },
+  {
+    quote:
+      "Custom mode is the pro move. I can tune the sensitivity and minimum shot length and the edit suddenly feels intentional.",
+    name: "Multicam Editor",
+    title: "Longform Conversations",
+  },
+];
+
+const faq = [
+  {
+    q: "Does CutSwitch upload my media?",
+    a: "No. CutSwitch is local-first. It analyzes the audio files you provide and generates a Final Cut timeline bundle on your Mac.",
+  },
+  {
+    q: "What do I need to run it?",
+    a: "A Final Cut Pro multicam project export (.fcpxml or .fcpxmld) and one audio file per speaker. Then map speakers to camera angles.",
+  },
+  {
+    q: "What does it export?",
+    a: "A new .fcpxmld bundle you can import directly into Final Cut Pro. The result is fully editable.",
+  },
+  {
+    q: "Does Custom override presets?",
+    a: "Yes. When Custom is on, your advanced settings become the source of truth. Clicking a preset re-seeds all custom values and keeps Custom on.",
+  },
+  {
+    q: "Is there a beta / trial?",
+    a: "Yes. We’re in beta right now. Download the build and send feedback. The app includes a built-in “Help → Report Bug” diagnostics export.",
+  },
+];
+
 export default function HomePage() {
-  const steps = [
-    {
-      title: "Install in minutes",
-      description:
-        "Download CutSwitch, drop it into Applications, and you're live. No drama. No installer maze.",
-    },
-    {
-      title: "Set your shortcuts",
-      description:
-        "Pick the actions you want, map them to keys, and let muscle memory do the rest.",
-    },
-    {
-      title: "Edit with guardrails",
-      description:
-        "CutSwitch automates the repetitive micro-work, so you stay focused on story and pacing.",
-    },
-  ];
-
-  const features = [
-    {
-      title: "Keyboard-first speed",
-      description:
-        "The best tools disappear. CutSwitch makes common actions feel instant and predictable.",
-    },
-    {
-      title: "Non-destructive workflow",
-      description:
-        "Designed to stay out of your way. Everything is reversible and built for confidence under deadlines.",
-    },
-    {
-      title: "Precision, not complexity",
-      description:
-        "Minimal UI, maximum clarity. You get results, not a new part-time job learning menus.",
-    },
-    {
-      title: "Built for macOS",
-      description:
-        "Native-feeling performance with a premium dark interface that doesn't fight your eyes.",
-    },
-    {
-      title: "License for 2 Macs",
-      description:
-        "One license covers your main machine and your travel rig. Swap devices when needed.",
-    },
-    {
-      title: "Trial that respects you",
-      description:
-        "Start a 7-day trial on subscription plans. Cancel before it renews. No refund games.",
-    },
-    {
-      title: "Affiliate-friendly checkout",
-      description:
-        "Rewardful tracking plus promo codes. Partners get credit even when buyers use codes.",
-    },
-    {
-      title: "Stripe Tax enabled",
-      description:
-        "Taxes and VAT are calculated automatically at checkout based on buyer location and tax IDs.",
-    },
-    {
-      title: "Support that shows up",
-      description:
-        "Real humans, fast answers. If something is broken, we'll help you get it working fast.",
-    },
-  ];
-
-  const testimonials = [
-    {
-      quote:
-        "CutSwitch shaved minutes off every scene. It sounds small until you realize you do it hundreds of times per week.",
-      name: "Ari M.",
-      title: "Editor, documentary + branded",
-    },
-    {
-      quote:
-        "Premium vibe, zero fluff. It feels like it was designed by someone who actually edits under deadlines.",
-      name: "Sam K.",
-      title: "Post supervisor",
-    },
-    {
-      quote:
-        "My favorite part is the consistency. No more random UI detours that break concentration.",
-      name: "Jules R.",
-      title: "Filmmaker / creator",
-    },
-  ];
-
-  const faq = [
-    {
-      q: "Is there a free trial?",
-      a: "Yes. Subscription plans include a 7-day free trial. Stripe Checkout collects a card to prevent abuse, but you won't be charged until the trial ends.",
-    },
-    {
-      q: "Do you offer refunds?",
-      a: "No. All sales are final. We put the policy everywhere on purpose. If something is broken or confusing, Support will help you get it working fast.",
-    },
-    {
-      q: "How many Macs can I use?",
-      a: "2 active devices per license. This is enforced via Keygen activation limits and validated by the app.",
-    },
-    {
-      q: "How do affiliates get credit?",
-      a: "We use Rewardful for tracking. Referrals are credited via link tracking and can also work with promo codes at checkout.",
-    },
-    {
-      q: "Can I cancel my subscription?",
-      a: "Yes. You can cancel any time. If you cancel during the trial, you won't be charged. We'll include instructions in your purchase email and on the Account page.",
-    },
-  ];
-
   return (
-    <div>
-      {/* Hero (Frame.io-inspired split) */}
-      <section className="container-edge">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 px-6 py-12 sm:px-10 sm:py-16">
-          {/* background depth */}
-          <div className="pointer-events-none absolute inset-0 bg-hero-radial opacity-90" />
-          <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-highlight/20 blur-3xl" />
-          <div className="pointer-events-none absolute -right-28 top-24 h-80 w-80 rounded-full bg-[#655DFF]/15 blur-3xl" />
+    <main>
+      <header className="relative overflow-hidden">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <div className="max-w-3xl">
+            <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
-          <div className="relative grid gap-12 lg:grid-cols-2 lg:items-center">
-            <div className="max-w-xl">
-              <div className="flex flex-wrap gap-2">
-                <span className="chip">
-                  <span className="text-brand-highlight">Mac app</span>
-                </span>
-                <span className="chip">7-day trial</span>
-                <span className="chip">2-device license</span>
-                <span className="chip">Stripe Tax</span>
-              </div>
+            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
+              Auto-switch your multicam by who’s speaking.
+            </h1>
 
-              <h1 className="mt-7 text-5xl font-semibold tracking-tight sm:text-6xl">
-                Multicam in seconds. <span className="text-brand-highlight">Save hours.</span>
-              </h1>
+            <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
+              Import a Final Cut XML, attach one audio file per speaker, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the conversation.
+            </p>
 
-              <p className="mt-5 text-base leading-relaxed text-white/70 sm:text-lg">
-                CutSwitch is a premium Mac utility for FCPX. From mono audio to multicam switches, in seconds.
-              </p>
-
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link className="btn btn-primary" href="/pricing">
-                  Get CutSwitch <span className="text-white/80">→</span>
-                </Link>
-                <Link className="btn btn-secondary" href="/demo">
-                  Watch demo
-                </Link>
-              </div>
-
-              <p className="mt-4 text-xs text-white/50">
-                Need help before buying?{" "}
-                <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
-                  Support is prominent on purpose
-                </Link>
-                .
-              </p>
-            </div>
-
-            {/* Hero video (looping preview) */}
-            <div className="relative lg:animate-floaty">
-              <div className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_40%_30%,rgba(101,93,255,0.22),transparent_60%)] blur-xl" />
-              <VideoDemo className="aspect-[16/10] shadow-soft" chrome />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo (preview + route to full walkthrough) */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="Demo"
-          title="A quick preview of the workflow."
-          subtitle="This is a looping preview. For the full walkthrough with sound, jump into the demo page."
-        />
-        <div className="mt-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-xs text-white/50">
-              Tip: click the video to expand. Want audio?{" "}
-              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/demo">
-                Open the full demo
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/download" className="btn btn-primary">
+                Download beta
               </Link>
-              .
+              <Link href="/demo" className="btn btn-secondary">
+                Watch the demo
+              </Link>
+              <Link href="/pricing" className="btn btn-tertiary">
+                See pricing
+              </Link>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2 text-xs text-white/70">
+              <span className="chip">Apple Silicon + Intel</span>
+              <span className="chip">Local-first</span>
+              <span className="chip">Exports .fcpxmld</span>
+              <span className="chip">Podcast / interview ready</span>
             </div>
           </div>
-          <div className="mt-3">
-            <VideoDemo className="shadow-soft" chrome />
+
+          <VideoDemo />
+
+          <p className="mt-3 text-xs text-white/60">
+            Real pipeline, real output. Import the result into Final Cut Pro and refine.
+          </p>
+        </div>
+
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.15),transparent_60%),radial-gradient(circle_at_80%_60%,rgba(101,93,255,0.10),transparent_60%)]" />
+      </header>
+
+      <FeatureGrid
+        title="Built for conversation edits"
+        subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
+        features={features}
+      />
+
+      <HowItWorks
+        title="How it works"
+        subtitle="A fast setup. A clean export. Then you’re back in Final Cut where you belong."
+        steps={steps}
+      />
+
+      <Comparison
+        title="Manual switching vs CutSwitch"
+        subtitle="Same end goal. Very different path to get there."
+        rows={comparisons}
+      />
+
+      <TestimonialGrid
+        title="What early editors are saying"
+        subtitle="Beta feedback has been consistent: less clicking, more control, better rhythm."
+        items={testimonials}
+      />
+
+      <section className="py-16">
+        <div className="mx-auto max-w-6xl px-5">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-white">Affiliate program</h3>
+                <p className="mt-2 text-sm text-white/70">
+                  Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring commissions.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Link href="/affiliates" className="btn btn-secondary">
+                  Become an affiliate
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="How it works"
-          title="Three steps from install to 'why didn't I have this earlier?'"
-        />
-        <HowItWorks steps={steps} className="mt-6" />
-      </section>
+      <PricingTable />
 
-      {/* Features */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="Features"
-          title="Premium feel, practical wins."
-          subtitle="Everything here is tuned for speed, confidence, and less friction between you and the edit."
-        />
-        <FeatureGrid features={features} className="mt-6" />
-      </section>
+      <Faq title="FAQ" subtitle="Quick answers so you can decide fast." items={faq} />
 
-      {/* Comparison */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="Why CutSwitch"
-          title="Manual editing vs CutSwitch"
-          subtitle="The difference is not magic. It's fewer interruptions. Less context switching. More time where it counts."
-        />
-        <div className="mt-6">
-          <Comparison />
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="Testimonials"
-          title="Editors talk. We listen."
-          subtitle="Replace these with real quotes when you have them. The layout is already built for premium social proof."
-        />
-        <TestimonialGrid items={testimonials} className="mt-6" />
-      </section>
-
-      {/* FAQ */}
-      <section className="container-edge mt-14">
-        <SectionHeading
-          eyebrow="FAQ"
-          title="The honest answers."
-          subtitle="If a question reduces chargebacks and confusion, it belongs here."
-        />
-        <Faq items={faq} className="mt-6" />
-      </section>
-
-      {/* Final CTA */}
-      <section className="container-edge mt-14">
-        <FinalCTA />
-      </section>
-    </div>
+      <FinalCTA />
+    </main>
   );
 }

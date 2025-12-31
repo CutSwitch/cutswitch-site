@@ -49,7 +49,7 @@ export default function TwitterImage() {
           </div>
           <div style={{ fontSize: 26, opacity: 0.85, marginTop: 16 }}>{siteConfig.tagline}</div>
           <div style={{ fontSize: 18, opacity: 0.7, marginTop: 16, maxWidth: 900 }}>
-            Fast, minimal, premium. Stripe checkout. Rewardful affiliates.
+            Voice-driven multicam edits for Final Cut Pro. Import XML, add per-speaker audio, export a new timeline.
           </div>
         </div>
       </div>

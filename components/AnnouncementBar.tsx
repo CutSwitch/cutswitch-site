@@ -16,7 +16,7 @@ export function AnnouncementBar() {
           <span className="chip">
             Affiliates:{" "}
             <Link className="underline decoration-white/20 hover:decoration-white/60" href="/affiliates">
-              earn commissions with Rewardful
+              apply to earn recurring commissions
             </Link>
           </span>
         </div>

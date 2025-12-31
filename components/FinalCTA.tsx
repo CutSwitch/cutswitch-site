@@ -7,21 +7,21 @@ export function FinalCTA() {
       <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Cut less. Create more.
+            Get to the first cut, fast.
           </div>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">
-            Download CutSwitch, start your trial, and feel the difference inside your own workflow. When it clicks,
-            upgrade in a couple of taps.
+            Download the CutSwitch beta for macOS. Import a Final Cut XML, add one audio file per speaker, and export a clean
+            multicam cut plan back into Final Cut Pro.
           </p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Link className="btn btn-primary" href="/pricing">
-            Get CutSwitch
+          <Link className="btn btn-primary" href="/download">
+            Download beta
             <span className="text-white/80">→</span>
           </Link>
-          <Link className="btn btn-secondary" href="/download">
-            Download for macOS
+          <Link className="btn btn-secondary" href="/pricing">
+            See pricing
           </Link>
         </div>
       </div>

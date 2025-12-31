@@ -15,7 +15,7 @@ export default function DownloadPage() {
       <SectionHeading
         eyebrow="Download"
         title="CutSwitch for macOS"
-        subtitle="Fast install, clean UI, and a workflow that feels like you leveled up your hands."
+        subtitle="Download the latest beta build. CutSwitch runs locally on your Mac and exports a new Final Cut timeline you can refine."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -46,15 +46,23 @@ export default function DownloadPage() {
           <div className="mt-6 grid gap-2 text-sm text-white/70">
             <div className="flex items-center justify-between">
               <span className="text-white/55">Platform</span>
-              <span>macOS</span>
+              <span>macOS (universal)</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/55">License</span>
-              <span>2 Macs per license</span>
+              <span className="text-white/55">Chips</span>
+              <span>Apple Silicon + Intel</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/55">Trial</span>
-              <span>7 days (subscriptions)</span>
+              <span className="text-white/55">Input</span>
+              <span>.fcpxml / .fcpxmld</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/55">Output</span>
+              <span>.fcpxmld bundle</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/55">Privacy</span>
+              <span>Local-first (no uploads)</span>
             </div>
           </div>
         </div>
@@ -63,15 +71,20 @@ export default function DownloadPage() {
           <div className="text-sm font-semibold text-white/90">Next steps</div>
           <ol className="mt-3 space-y-2 text-sm text-white/70">
             <li>1) Install CutSwitch</li>
-            <li>2) Open the app and start your trial or enter your license key</li>
+            <li>2) In Final Cut Pro, export an XML from a project that contains a real multicam clip</li>
             <li>
-              3) If you purchased, check your email for your license and device instructions (or contact Support)
+              3) In CutSwitch, add one audio file per speaker, map speakers to cameras, then choose Group + Cut Style (or flip
+              on Custom)
             </li>
+            <li>4) Run CutSwitch, then import the generated .fcpxmld back into Final Cut Pro</li>
           </ol>
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <Link className="btn btn-secondary" href="/pricing">
               View pricing
+            </Link>
+            <Link className="btn btn-ghost" href="/demo">
+              Watch the demo
             </Link>
             <Link className="btn btn-ghost" href="/support">
               Get help

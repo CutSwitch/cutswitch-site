@@ -19,7 +19,7 @@ export default function AffiliatesPage() {
       <SectionHeading
         eyebrow="Affiliates"
         title="Make money promoting CutSwitch"
-        subtitle="Affiliate marketing is our main growth channel. We built the checkout and attribution pipeline to be clean, accurate, and code-friendly."
+        subtitle="Recommend CutSwitch to editors who cut interviews, podcasts, and talking-head content. Earn recurring commissions with clean Rewardful tracking."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -27,9 +27,17 @@ export default function AffiliatesPage() {
           <div className="card p-6">
             <div className="text-sm font-semibold text-white/90">Program overview</div>
             <p className="mt-2 text-sm leading-relaxed text-white/65">
-              We run affiliates through Rewardful and Stripe. That means fast payouts, reliable tracking, and the
-              ability to attribute sales using links and promo codes.
+              We run affiliates through Rewardful and Stripe. That means reliable tracking, code-friendly attribution, and
+              payouts you can actually trust.
             </p>
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-5">
+              <div className="text-sm font-semibold text-white/90">What CutSwitch does (your 10-second pitch)</div>
+              <p className="mt-2 text-sm text-white/65">
+                CutSwitch auto-switches a Final Cut Pro multicam based on who&rsquo;s speaking, then exports a new .fcpxmld timeline you can refine.
+                It&rsquo;s the fastest way to get to a clean first cut on conversation edits.
+              </p>
+            </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -62,6 +70,27 @@ export default function AffiliatesPage() {
 
             <div className="mt-6 gradient-line" />
 
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="text-sm font-semibold text-white/90">Who it&rsquo;s perfect for</div>
+                <ul className="mt-2 space-y-1 text-sm text-white/65">
+                  <li>• Podcast &amp; interview editors</li>
+                  <li>• YouTube talkers &amp; educators</li>
+                  <li>• Agencies cutting weekly content</li>
+                  <li>• Anyone tired of angle chasing</li>
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="text-sm font-semibold text-white/90">What converts</div>
+                <ul className="mt-2 space-y-1 text-sm text-white/65">
+                  <li>• Show the before/after cut rhythm</li>
+                  <li>• Mention Custom tuning (pro control)</li>
+                  <li>• Emphasize local-first workflow</li>
+                  <li>• Point to the 60s demo on the homepage</li>
+                </ul>
+              </div>
+            </div>
+
             <div className="mt-6">
               <div className="text-sm font-semibold text-white/90">How attribution works (in practice)</div>
               <ol className="mt-3 space-y-2 text-sm text-white/70">
@@ -71,9 +100,23 @@ export default function AffiliatesPage() {
                 <li>4) Rewardful ties the Stripe customer + purchase back to you.</li>
               </ol>
               <p className="mt-3 text-sm text-white/65">
-                Promo codes are supported in checkout. If you prefer code-based attribution, ask us and we will help
-                you set it up.
+                Promo codes are supported in checkout. If you prefer code-only attribution for a campaign, email us and we&rsquo;ll set it up.
               </p>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="text-sm font-semibold text-white/90">Copy-paste promo ideas</div>
+              <div className="mt-3 space-y-3 text-sm text-white/70">
+                <p>
+                  <span className="text-white/85 font-semibold">Short tweet:</span> “CutSwitch auto-switches Final Cut multicam by who&rsquo;s talking. Export XML in, clean cut plan out. Huge time saver.”
+                </p>
+                <p>
+                  <span className="text-white/85 font-semibold">YouTube mention:</span> “If you cut interviews in Final Cut, CutSwitch gets you to a clean first pass in minutes. You still finish the edit. It just deletes the boring part.”
+                </p>
+                <p>
+                  <span className="text-white/85 font-semibold">CTA line:</span> “Grab it here and use my link for tracking.”
+                </p>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
@@ -116,8 +159,11 @@ export default function AffiliatesPage() {
               Pro tip
             </div>
             <p className="mt-2 text-sm text-white/65">
-              Send buyers to <Link className="underline decoration-white/20 hover:decoration-white/60" href="/pricing">/pricing</Link>. 
-              It has the cleanest conversion flow and supports promo codes.
+              Link to the homepage demo first, then send buyers to{" "}
+              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/pricing">
+                /pricing
+              </Link>
+              . The demo explains the product in under a minute and pricing closes the loop.
             </p>
           </div>
         </div>

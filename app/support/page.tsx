@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Get help fast. Email support or send feedback. No refunds, but we fix issues quickly.",
+  description: "Get help fast. Email support or send feedback. If you're in beta, include diagnostics from Help → Report Bug.",
 };
 
 export default function SupportPage() {
@@ -15,14 +15,14 @@ export default function SupportPage() {
       <SectionHeading
         eyebrow="Support"
         title="Support that actually helps"
-        subtitle="We do not offer refunds. We do offer fast, competent help. If something is broken, confusing, or blocking you, tell us."
+        subtitle="If something is broken, confusing, or blocking you, tell us. In the app you can also send a diagnostics zip (Help → Report Bug) so we can fix it faster."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="card p-6">
           <div className="text-sm font-semibold text-white/90">Email</div>
           <p className="mt-2 text-sm text-white/65">
-            Prefer email? Great. It's often the fastest way to fix licensing and device issues.
+            Prefer email? Great. It’s usually the fastest way to troubleshoot weird XMLs, missing angle mappings, or audio that doesn’t line up.
           </p>
 
           <div className="mt-4 grid gap-2 text-sm">
@@ -43,13 +43,15 @@ export default function SupportPage() {
               <li>App version</li>
               <li>What you expected vs what happened</li>
               <li>Any error message screenshots</li>
-              <li>License email (if billing related)</li>
+              <li>
+                Diagnostics zip from <span className="text-white/80">Help → Report Bug</span> (best)
+              </li>
             </ul>
           </div>
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <Link className="btn btn-ghost" href="/refunds">
-              No-refunds policy
+              Refund policy
             </Link>
             <Link className="btn btn-ghost" href="/terms">
               Terms
@@ -63,8 +65,7 @@ export default function SupportPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="text-sm font-semibold text-white/90">Contact form</div>
           <p className="mt-2 text-sm text-white/65">
-            This form posts to <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">/api/support</code>. It logs
-            locally and is ready to wire to Resend/Postmark later.
+            Don’t want to switch to Mail? Drop a note here and we’ll reply ASAP. (Beta testers: including a diagnostics zip helps us move fast.)
           </p>
 
           <div className="mt-5">

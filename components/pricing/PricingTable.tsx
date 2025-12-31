@@ -20,8 +20,7 @@ const MONTHLY_PRICE = 19.99;
 const YEARLY_PRICE = 199;
 const LIFETIME_PRICE = 299;
 
-
-export function PricingTable() {
+export function PricingTable({ className }: { className?: string }) {
   const referral = useRewardfulReferral();
 
   const plans: Plan[] = useMemo(
@@ -45,7 +44,8 @@ export function PricingTable() {
         name: "Annual",
         priceLabel: `${formatUsd(YEARLY_PRICE)}`,
         priceNote: "per year, billed annually",
-        highlights: [          "7-day free trial (card required)",
+        highlights: [
+          "7-day free trial (card required)",
           "All core features",
           "License for 2 Macs",
           "Priority support",
@@ -70,27 +70,30 @@ export function PricingTable() {
     ],
     []
   );
+
   const [ack, setAck] = useState(false);
+  const [coupon, setCoupon] = useState(""); // ✅ FIX: define coupon state
   const [loading, setLoading] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function startCheckout(plan: PlanKey) {
-    setError(null);
-
     if (!ack) {
-      setError("Please acknowledge the no-refunds policy to continue.");
+      setError("Please acknowledge the no-refunds policy before continuing.");
       return;
     }
 
+    setError(null);
+    setLoading(plan);
+
     try {
-      setLoading(plan);
-      const res = await fetch("/api/checkout/create-session", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          referral: referral || undefined,
-          acknowledgedNoRefunds: true,
+          // Keep coupon captured for later wiring; currently optional UI-only.
+          coupon: coupon?.trim() || undefined,
+          referralId: referral?.id || undefined,
         }),
       });
 
@@ -109,7 +112,7 @@ export function PricingTable() {
   }
 
   return (
-    <div className="grid gap-8">
+    <div className={cn("grid gap-8", className)}>
       <div className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -141,37 +144,21 @@ export function PricingTable() {
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/10 text-brand focus:ring-brand/60"
+                className="mt-0.5"
               />
               <label htmlFor="ack" className="leading-relaxed">
-                I understand CutSwitch purchases are{" "}
-                <span className="text-white/90 font-semibold">final</span> and we{" "}
-                <span className="text-white/90 font-semibold">do not offer refunds</span>. If I have issues, I will
-                contact{" "}
-                <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
-                  Support
-                </Link>
-                .
+                I understand CutSwitch purchases are final and we do not offer refunds. If I have
+                issues, I will contact <Link className="underline" href="/support">Support</Link>.
               </label>
             </div>
 
-            {referral ? (
-              <div className="text-xs text-brand-highlight">
-                Affiliate attribution detected. Your referral will be credited.
+            {error ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                {error}
               </div>
-            ) : (
-              <div className="text-xs text-white/45">
-                Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean chain.
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
-
-        {error && (
-          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -179,51 +166,44 @@ export function PricingTable() {
           <div
             key={p.key}
             className={cn(
-              "relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6",
-              p.featured ? "ring-brand" : "",
-              "transition hover:-translate-y-0.5 hover:border-white/20"
+              "card p-6",
+              p.featured ? "ring-1 ring-brand/40" : undefined
             )}
           >
-            {p.featured && (
-              <div className="absolute right-4 top-4 chip">
+            {p.featured ? (
+              <div className="chip w-fit">
                 <span className="text-brand-highlight">Best value</span>
               </div>
-            )}
+            ) : null}
 
-            <div className="text-sm font-semibold text-white/90">{p.name}</div>
-            <div className="mt-3 flex items-end gap-2">
-              <div className="text-4xl font-semibold tracking-tight">{p.priceLabel}</div>
-              <div className="pb-1 text-xs text-white/55">{p.priceNote}</div>
-            </div>
+            <div className="mt-3 text-sm font-semibold text-white/90">{p.name}</div>
+            <div className="mt-2 text-4xl font-semibold text-white">{p.priceLabel}</div>
+            <div className="mt-2 text-sm text-white/65">{p.priceNote}</div>
 
-            <ul className="mt-5 space-y-2 text-sm text-white/70">
+            <ul className="mt-6 space-y-2 text-sm text-white/70">
               {p.highlights.map((h) => (
-                <li key={h} className="flex items-start gap-2">
-                  <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-brand/80" />
+                <li key={h} className="flex gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-white/35" />
                   <span>{h}</span>
                 </li>
               ))}
             </ul>
 
             <button
-              className={cn(
-                "mt-6 w-full btn",
-                p.featured ? "btn-primary" : "btn-secondary",
-                loading === p.key ? "opacity-70 cursor-not-allowed" : ""
-              )}
+              className={cn("btn mt-6 w-full", p.featured ? "btn-primary" : "btn-secondary")}
               onClick={() => startCheckout(p.key)}
               disabled={loading !== null}
             >
-              {loading === p.key ? "Opening checkout…" : p.cta}
+              {loading === p.key ? "Starting…" : p.cta}
             </button>
 
-            <p className="mt-3 text-xs text-white/50">
+            <p className="mt-4 text-xs text-white/55">
               By purchasing, you agree to our{" "}
-              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/terms">
+              <Link className="underline" href="/terms">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/privacy">
+              <Link className="underline" href="/privacy">
                 Privacy Policy
               </Link>
               .
@@ -235,10 +215,11 @@ export function PricingTable() {
       <div className="card p-6">
         <div className="text-sm font-semibold text-white/90">Questions before you buy?</div>
         <p className="mt-2 text-sm text-white/65">
-          We do not do refunds, but we do fix problems fast. If something feels off, reach out and we will help you get
-          running.
+          We do not do refunds, but we do fix problems fast. If something feels off, reach out and we
+          will help you get running.
         </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+
+        <div className="mt-5 flex flex-wrap gap-2">
           <Link className="btn btn-secondary" href="/support">
             Contact Support
           </Link>

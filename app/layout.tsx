@@ -3,7 +3,6 @@ import Script from "next/script";
 import "./globals.css";
 import { getBaseUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site";
-import { AnnouncementBar } from "@/components/AnnouncementBar";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
@@ -57,7 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         ) : null}
 
-        <AnnouncementBar />
         <Nav />
 
         <main className="py-10">{children}</main>

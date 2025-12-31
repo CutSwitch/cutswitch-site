@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="container-edge">
+      <div className="pl-1 sm:pl-2">
       <SectionHeading
         eyebrow="Pricing"
         title="Simple plans. Serious speed."

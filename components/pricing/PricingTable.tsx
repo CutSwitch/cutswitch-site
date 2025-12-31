@@ -148,7 +148,7 @@ export function PricingTable() {
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
           <div className="relative">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm font-medium">Coupon or affiliate code</div>
+            <div className="text-sm font-medium">Coupon code</div>
             <Link
               href="/affiliates"
               className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"

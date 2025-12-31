@@ -269,8 +269,11 @@ export default function HomePage() {
       <section className="py-14 sm:py-16">
         <PricingTable />
       </section>
-
-      <Faq title="FAQ" subtitle="Quick answers so you can decide fast." items={faq} />
+      <section className="py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <Faq title="FAQ" subtitle="Quick answers so you can decide fast." items={faq} />
+        </div>
+      </section>
       <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <FinalCTA />

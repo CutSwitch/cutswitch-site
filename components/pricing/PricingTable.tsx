@@ -20,10 +20,8 @@ const MONTHLY_PRICE = 19.99;
 const YEARLY_PRICE = 199;
 const LIFETIME_PRICE = 299;
 
-export function PricingTable({ className }: { className?: string }) {
-  const referral = useRewardfulReferral();
-
-  const plans: Plan[] = useMemo(
+export default function PricingTable() {
+  const plans = useMemo<Plan[]>(
     () => [
       {
         key: "monthly",
@@ -41,10 +39,11 @@ export function PricingTable({ className }: { className?: string }) {
       },
       {
         key: "yearly",
-        name: "Annual",
+        name: "Yearly",
         priceLabel: `${formatUsd(YEARLY_PRICE)}`,
         priceNote: "per year, billed annually",
         highlights: [
+          "Save vs monthly",
           "7-day free trial (card required)",
           "All core features",
           "License for 2 Macs",
@@ -71,8 +70,9 @@ export function PricingTable({ className }: { className?: string }) {
     []
   );
 
-  const [ack, setAck] = useState(false);
-  const [coupon, setCoupon] = useState(""); // ✅ FIX: define coupon state
+  const referral = useRewardfulReferral();
+  const [coupon, setCoupon] = useState("");
+  const [ack, setAck] = useState(true);
   const [loading, setLoading] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +85,15 @@ export function PricingTable({ className }: { className?: string }) {
     setError(null);
     setLoading(plan);
 
+    // Rewardful referral can be either a string (common) or an object with an `id`.
+    // Normalize it to a clean string or undefined.
+    const referralIdRaw =
+      typeof referral === "string" ? referral : (referral as any)?.id;
+    const referralId =
+      typeof referralIdRaw === "string"
+        ? referralIdRaw.trim() || undefined
+        : undefined;
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -93,7 +102,7 @@ export function PricingTable({ className }: { className?: string }) {
           plan,
           // Keep coupon captured for later wiring; currently optional UI-only.
           coupon: coupon?.trim() || undefined,
-          referralId: referral?.id || undefined,
+          referralId,
         }),
       });
 
@@ -112,120 +121,147 @@ export function PricingTable({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("grid gap-8", className)}>
-      <div className="card p-5 sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-white/90">Coupon code</div>
-            <p className="mt-1 text-xs text-white/60">
-              Codes are optional. You can also enter a promotion code inside Stripe Checkout.
-            </p>
+    <div className="w-full">
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold tracking-tight">Pricing</h1>
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+            Simple plans. Serious speed.
+          </p>
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+            Subscriptions include a 7-day free trial. Taxes are calculated automatically with Stripe Tax.
+            All purchases are final: no refunds.
+          </p>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm font-medium">Coupon or affiliate code</div>
+            <Link
+              href="/affiliates"
+              className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+            >
+              Become an affiliate
+            </Link>
           </div>
 
-          <div className="flex w-full flex-col gap-2 md:w-[420px]">
-            <div className="flex gap-2">
-              <input
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                placeholder="Enter code (optional)"
-                className={cn(
-                  "w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90",
-                  "placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-brand/50"
-                )}
-              />
-              <Link className="btn btn-secondary shrink-0" href="/affiliates">
-                Become an affiliate
-              </Link>
-            </div>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+            Codes are optional. You can also enter a promotion code inside Stripe Checkout.
+          </p>
 
-            <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-white/70">
+          <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
+            <input
+              value={coupon}
+              onChange={(e) => setCoupon(e.target.value)}
+              placeholder="Enter code"
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none ring-0 focus:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:focus:border-neutral-700 md:max-w-sm"
+            />
+            <label className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-200">
               <input
-                id="ack"
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
-                className="mt-0.5"
+                className="mt-1 h-4 w-4 rounded border-neutral-300 text-indigo-600 focus:ring-indigo-600 dark:border-neutral-700"
               />
-              <label htmlFor="ack" className="leading-relaxed">
-                I understand CutSwitch purchases are final and we do not offer refunds. If I have
-                issues, I will contact <Link className="underline" href="/support">Support</Link>.
-              </label>
+              <span>
+                I understand CutSwitch purchases are final and we do not offer refunds. If I have issues,
+                I will contact <Link className="underline" href="/support">Support</Link>.
+              </span>
+            </label>
+          </div>
+
+          <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+            Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean chain.
+          </div>
+
+          {error ? (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+              {error}
             </div>
-
-            {error ? (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                {error}
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </div>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {plans.map((p) => (
-          <div
-            key={p.key}
-            className={cn(
-              "card p-6",
-              p.featured ? "ring-1 ring-brand/40" : undefined
-            )}
-          >
-            {p.featured ? (
-              <div className="chip w-fit">
-                <span className="text-brand-highlight">Best value</span>
-              </div>
-            ) : null}
-
-            <div className="mt-3 text-sm font-semibold text-white/90">{p.name}</div>
-            <div className="mt-2 text-4xl font-semibold text-white">{p.priceLabel}</div>
-            <div className="mt-2 text-sm text-white/65">{p.priceNote}</div>
-
-            <ul className="mt-6 space-y-2 text-sm text-white/70">
-              {p.highlights.map((h) => (
-                <li key={h} className="flex gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-white/35" />
-                  <span>{h}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              className={cn("btn mt-6 w-full", p.featured ? "btn-primary" : "btn-secondary")}
-              onClick={() => startCheckout(p.key)}
-              disabled={loading !== null}
+        <div className="grid gap-4 md:grid-cols-3">
+          {plans.map((p) => (
+            <div
+              key={p.key}
+              className={cn(
+                "rounded-2xl border bg-white p-6 shadow-sm dark:bg-neutral-950",
+                p.featured
+                  ? "border-indigo-200 ring-1 ring-indigo-200 dark:border-indigo-900/50 dark:ring-indigo-900/50"
+                  : "border-neutral-200 dark:border-neutral-800"
+              )}
             >
-              {loading === p.key ? "Starting…" : p.cta}
-            </button>
+              {p.featured ? (
+                <div className="mb-3 inline-flex rounded-full bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                  Best value
+                </div>
+              ) : null}
 
-            <p className="mt-4 text-xs text-white/55">
-              By purchasing, you agree to our{" "}
-              <Link className="underline" href="/terms">
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link className="underline" href="/privacy">
-                Privacy Policy
-              </Link>
-              .
-            </p>
+              <div className="text-lg font-semibold">{p.name}</div>
+              <div className="mt-2 text-4xl font-semibold tracking-tight">
+                {p.priceLabel}
+              </div>
+              <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+                {p.priceNote}
+              </div>
+
+              <ul className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-200">
+                {p.highlights.map((h) => (
+                  <li key={h} className="flex gap-2">
+                    <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-neutral-100 dark:bg-neutral-900" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => startCheckout(p.key)}
+                disabled={loading !== null}
+                className={cn(
+                  "mt-6 w-full rounded-xl px-4 py-2 text-sm font-medium",
+                  p.featured
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-60 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                )}
+              >
+                {loading === p.key ? "Starting…" : p.cta}
+              </button>
+
+              <div className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+                By purchasing, you agree to our{" "}
+                <Link className="underline" href="/terms">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link className="underline" href="/privacy">
+                  Privacy Policy
+                </Link>
+                .
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="text-lg font-semibold">Questions before you buy?</div>
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+            We do not do refunds, but we do fix problems fast. If something feels off, reach out and we will help you get running.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/support"
+              className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            >
+              Contact Support
+            </Link>
+            <Link
+              href="/refunds"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
+            >
+              No-refunds policy
+            </Link>
           </div>
-        ))}
-      </div>
-
-      <div className="card p-6">
-        <div className="text-sm font-semibold text-white/90">Questions before you buy?</div>
-        <p className="mt-2 text-sm text-white/65">
-          We do not do refunds, but we do fix problems fast. If something feels off, reach out and we
-          will help you get running.
-        </p>
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link className="btn btn-secondary" href="/support">
-            Contact Support
-          </Link>
-          <Link className="btn btn-ghost" href="/refunds">
-            No-refunds policy
-          </Link>
         </div>
       </div>
     </div>

@@ -3,7 +3,6 @@ import { Metadata } from "next";
 import { siteConfig } from "@/lib/site";
 import { SectionHeading } from "@/components/SectionHeading";
 import { VideoDemo } from "@/components/VideoDemo";
-import { SmartImage } from "@/components/SmartImage";
 import { HowItWorks } from "@/components/HowItWorks";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { Comparison } from "@/components/Comparison";
@@ -79,7 +78,7 @@ export default function HomePage() {
     {
       title: "Support that shows up",
       description:
-        "Real humans, fast answers. If something is broken, we'll help you fix it quickly.",
+        "Real humans, fast answers. If something is broken, we'll help you get it working fast.",
     },
   ];
 
@@ -146,12 +145,11 @@ export default function HomePage() {
               </div>
 
               <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-                Switch cuts. <span className="text-brand-highlight">Stay in flow.</span>
+                Multicam in seconds. <span className="text-brand-highlight">Save hours.</span>
               </h1>
 
               <p className="mt-4 max-w-xl text-base leading-relaxed text-white/70">
-                CutSwitch is a premium Mac utility that automates repetitive editorial micro-work.
-                It keeps your hands on the keys, your eyes on the timeline, and your brain on the story.
+                CutSwitch is a premium Mac utility for FCPX. From mono audio to multicam switches, in seconds.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -172,27 +170,9 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SmartImage
-                src="/images/screen1.png"
-                alt="CutSwitch screenshot 1"
-                className="h-[220px] w-full object-cover sm:h-[260px]"
-                fallbackLabel="Screenshot 1"
-              />
-              <SmartImage
-                src="/images/screen2.png"
-                alt="CutSwitch screenshot 2"
-                className="h-[220px] w-full object-cover sm:h-[260px] sm:translate-y-6 sm:animate-floaty"
-                fallbackLabel="Screenshot 2"
-              />
-              <div className="sm:col-span-2">
-                <SmartImage
-                  src="/images/screen3.png"
-                  alt="CutSwitch screenshot 3"
-                  className="h-[220px] w-full object-cover sm:h-[240px]"
-                  fallbackLabel="Screenshot 3"
-                />
-              </div>
+            {/* Video on the right (Frame.io-ish hover + click-to-expand) */}
+            <div className="relative">
+              <VideoDemo className="aspect-video shadow-soft" />
             </div>
           </div>
         </div>
@@ -202,30 +182,11 @@ export default function HomePage() {
       <section id="demo" className="container-edge mt-14">
         <SectionHeading
           eyebrow="Demo"
-          title="See the vibe. Hear the speed."
-          subtitle="Drop in your own MP4 at /public/videos/demo.mp4. This section is built to feel like a premium product page, not a noisy carnival."
+          title="Watch CutSwitch switch."
+          subtitle="A quick loop of mono audio becoming clean multicam switches inside Final Cut Pro."
         />
         <div className="mt-6">
           <VideoDemo className="shadow-soft" />
-        </div>
-      </section>
-
-      {/* Social proof */}
-      <section className="container-edge mt-14">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/50">
-            Trusted by editors at places that care about deadlines
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {["Studio A", "PostCo", "FrameHouse", "Signal", "NorthCut", "Tape&Tea"].map((name) => (
-              <div
-                key={name}
-                className="grid place-items-center rounded-xl border border-white/10 bg-white/5 py-3 text-xs text-white/55"
-              >
-                {name}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 

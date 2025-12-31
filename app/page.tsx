@@ -174,7 +174,7 @@ export default function HomePage() {
             </div>
 
             {/* Hero video (looping preview) */}
-            <div className="relative">
+            <div className="relative lg:animate-floaty">
               <div className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(circle_at_40%_30%,rgba(101,93,255,0.22),transparent_60%)] blur-xl" />
               <VideoDemo className="aspect-[16/10] shadow-soft" chrome />
             </div>

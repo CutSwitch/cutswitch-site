@@ -6,28 +6,51 @@ export type Testimonial = {
   title: string;
 };
 
-export function TestimonialGrid({
-  items,
-  className,
-}: {
+export type TestimonialGridProps = {
+  title?: string;
+  subtitle?: string;
   items: Testimonial[];
   className?: string;
-}) {
+};
+
+export function TestimonialGrid({
+  title,
+  subtitle,
+  items,
+  className,
+}: TestimonialGridProps) {
   return (
-    <div className={cn("grid gap-4 md:grid-cols-3", className)}>
-      {items.map((t) => (
-        <div
-          key={t.name}
-          className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-0.5 hover:border-white/20"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
-          <div className="relative">
-            <p className="text-sm leading-relaxed text-white/75">“{t.quote}”</p>
-            <div className="mt-5 text-sm font-semibold text-white/90">{t.name}</div>
-            <div className="text-xs text-white/55">{t.title}</div>
-          </div>
-        </div>
-      ))}
-    </div>
+    <section className={cn("space-y-6", className)}>
+      {(title || subtitle) && (
+        <header className="space-y-2">
+          {title ? (
+            <h2 className="text-2xl font-semibold tracking-tight text-white/90">
+              {title}
+            </h2>
+          ) : null}
+          {subtitle ? (
+            <p className="text-sm leading-relaxed text-white/65">{subtitle}</p>
+          ) : null}
+        </header>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {items.map((t) => (
+          <figure
+            key={`${t.name}-${t.title}`}
+            className="rounded-2xl border border-white/10 bg-white/5 p-6"
+          >
+            <blockquote className="text-sm leading-relaxed text-white/80">
+              “{t.quote}”
+            </blockquote>
+
+            <figcaption className="mt-4 text-sm">
+              <div className="font-semibold text-white/90">{t.name}</div>
+              <div className="text-white/60">{t.title}</div>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   );
 }

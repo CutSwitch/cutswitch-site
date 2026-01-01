@@ -103,31 +103,22 @@ export function PricingTable() {
         : undefined;
 
     try {
-      const res = await fetch("/api/checkout/create-session", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          couponCode: coupon?.trim() || undefined,
-          referral: referralId,
-          acknowledgedNoRefunds: ack,
+          // Keep coupon captured for later wiring; currently optional UI-only.
+          coupon: coupon?.trim() || undefined,
+          referralId,
         }),
       });
 
-      // Robust parsing: API should return JSON, but on misroutes or errors
-      // it may return empty/HTML. Handle gracefully so UI shows a real error.
-      const raw = await res.text();
-      let data: { url?: string; error?: string } = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch {
-        data = {};
-      }
+      const data = (await res.json()) as { url?: string; error?: string };
 
       if (!res.ok || !data.url) {
         throw new Error(
-          data.error ||
-            (raw?.slice(0, 140) ? `Checkout error: ${raw.slice(0, 140)}` : "Unable to start checkout.")
+          data.error || "Unable to start checkout. Please try again."
         );
       }
 

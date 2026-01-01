@@ -171,53 +171,65 @@ const faq = [
 export default function HomePage() {
   return (
     <main>
-      <header className="relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
-            <div className="max-w-2xl">
-              <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
+      <header className="relative isolate overflow-hidden">
+  {/* Background layers (kept behind content to avoid “overlay” artifacts) */}
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-radial opacity-90" />
+  <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(101,93,255,0.25),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(101,93,255,0.10),transparent_60%)]" />
+  {/* Bottom fade to blend into the page background (reduces hard seams between sections) */}
+  <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-28 bg-gradient-to-b from-transparent to-ink" />
 
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-                Auto-switch your multicam by who’s speaking.
-              </h1>
+  <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+    <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
+      <div className="max-w-2xl lg:col-span-5">
+        <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
-              <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML, attach one audio file per speaker, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the conversation.
-              </p>
+        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
+          Auto-switch your multicam by who’s speaking.
+        </h1>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/download" className="btn btn-primary">
-                  Download beta
-                  <span aria-hidden>→</span>
-                </Link>
-                <Link href="/demo" className="btn btn-secondary">
-                  Watch the demo
-                </Link>
-                <Link href="/pricing" className="btn btn-ghost">
-                  See pricing
-                </Link>
-              </div>
+        <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
+          Import a Final Cut XML, attach one audio file per speaker, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the conversation.
+        </p>
 
-              <div className="mt-6 flex flex-wrap gap-2 sm:gap-3 text-xs text-white/70">
-                <span className="chip">Apple Silicon + Intel</span>
-                <span className="chip">Local-first</span>
-                <span className="chip">Exports .fcpxmld</span>
-                <span className="chip">Podcast / interview ready</span>
-              </div>
-            </div>
-
-            <div className="lg:pt-2">
-              <VideoDemo className="mx-auto w-full max-w-xl lg:max-w-none" />
-              <p className="mt-3 text-xs text-white/60">
-                Real pipeline, real output. Import the result into Final Cut Pro and refine.
-              </p>
-            </div>
-          </div>
+        {/* Mobile: place the demo loop directly under the explainer paragraph */}
+        <div className="mt-8 lg:hidden">
+          <VideoDemo className="mx-auto w-full" />
+          <p className="mt-3 text-xs text-white/60">
+            Real pipeline, real output. Import the result into Final Cut Pro and refine.
+          </p>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-hero-radial opacity-90" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(101,93,255,0.25),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(101,93,255,0.10),transparent_60%)]" />
-      </header>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link href="/download" className="btn btn-primary">
+            Download
+            <span aria-hidden>→</span>
+          </Link>
+          <Link href="/demo" className="btn btn-secondary">
+            Watch the demo
+          </Link>
+          <Link href="/pricing" className="btn btn-ghost">
+            See pricing
+          </Link>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2 sm:gap-3 text-xs text-white/70">
+          <span className="chip">Apple Silicon + Intel</span>
+          <span className="chip">Local-first</span>
+          <span className="chip">Exports .fcpxmld</span>
+          <span className="chip">Podcast / interview ready</span>
+        </div>
+      </div>
+
+      {/* Desktop: larger Frame.io-style demo block */}
+      <div className="hidden lg:block lg:col-span-7 lg:pt-2">
+        <VideoDemo className="mx-auto w-full" />
+        <p className="mt-3 text-xs text-white/60">
+          Real pipeline, real output. Import the result into Final Cut Pro and refine.
+        </p>
+      </div>
+    </div>
+  </div>
+</header>
 
       <FeatureGrid
         title="Built for conversation edits"

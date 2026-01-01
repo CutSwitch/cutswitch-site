@@ -44,7 +44,7 @@ export default function DemoPage() {
 
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Link className="btn btn-primary" href="/download">
-                Download
+                Download beta
               </Link>
               <Link className="btn btn-ghost" href="/pricing">
                 View pricing

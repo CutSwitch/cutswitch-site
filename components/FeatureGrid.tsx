@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 
 export type Feature = {
   icon?: ReactNode;
+  /** Optional visual media shown above the title (e.g. animated preview). */
+  mediaSrc?: string;
+  mediaAlt?: string;
   title: string;
   description: string;
 };
@@ -45,9 +48,20 @@ export function FeatureGrid({
           >
             <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
             <div className="relative">
-              {f.icon ? (
-                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
-                  <span className="text-brand">{f.icon}</span>
+              {f.mediaSrc ? (
+                <div className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                  <div className="aspect-[16/9]">
+                    <img
+                      src={f.mediaSrc}
+                      alt={f.mediaAlt ?? f.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : f.icon ? (
+                <div className="mb-4 flex h-[110px] items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                  <span className="text-brand [&_svg]:h-9 [&_svg]:w-9">{f.icon}</span>
                 </div>
               ) : null}
               <div className="text-sm font-semibold text-white/90">

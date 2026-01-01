@@ -17,7 +17,7 @@ export function FinalCTA() {
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link className="btn btn-primary" href="/download">
-            Download
+            Download beta
             <span className="text-white/80">→</span>
           </Link>
           <Link className="btn btn-secondary" href="/pricing">

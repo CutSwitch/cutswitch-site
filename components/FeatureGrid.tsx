@@ -40,7 +40,11 @@ export function FeatureGrid({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/*
+        Desktop previews felt a little cramped at 3-up.
+        Keep the grid 2-up on larger screens so the media tiles stay big and readable.
+      */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
         {features.map((f) => (
           <div
             key={f.title}

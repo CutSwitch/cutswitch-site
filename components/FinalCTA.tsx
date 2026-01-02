@@ -10,8 +10,8 @@ export function FinalCTA() {
             Get to the first cut, fast.
           </div>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">
-            Download the CutSwitch beta for macOS. Import a Final Cut XML, add one audio file per speaker, and export a clean
-            multicam cut plan back into Final Cut Pro.
+            Download the CutSwitch beta for macOS. Import a Final Cut XML, add isolated, single-speaker audio files (one
+            file per speaker) with minimal bleed/crosstalk, and export a clean multicam cut plan back into Final Cut Pro.
           </p>
         </div>
 

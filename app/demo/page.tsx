@@ -39,7 +39,10 @@ export default function DemoPage() {
           <div className="mt-4 flex flex-col gap-2 text-sm text-white/65">
             <div className="font-semibold text-white/80">What you’ll see</div>
             <div>• Import a Final Cut XML with a real multicam clip.</div>
-            <div>• Add one audio file per speaker, then map speakers to camera angles.</div>
+            <div>
+              • Add isolated, single-speaker audio files (one file per speaker) with minimal bleed/crosstalk, then map
+              speakers to camera angles.
+            </div>
             <div>• Pick a cut rhythm + group shots, then run and import the result back into Final Cut.</div>
 
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">

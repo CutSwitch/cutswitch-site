@@ -21,8 +21,9 @@ export default function PressPage() {
           <div className="text-sm font-semibold text-white/90">Product blurb</div>
           <p className="mt-2 text-sm text-white/65">
             CutSwitch is a macOS app for Final Cut Pro editors that automatically switches multicam angles based on
-            who’s speaking. Export an XML, drop one audio file per speaker, map speakers to cameras, choose a rhythm,
-            and CutSwitch exports a new .fcpxmld bundle you can import back into Final Cut and refine.
+            who’s speaking. Export an XML, drop isolated, single-speaker audio files (one file per speaker) with
+            minimal bleed/crosstalk, map speakers to cameras, choose a rhythm, and CutSwitch exports a new .fcpxmld
+            bundle you can import back into Final Cut and refine.
           </p>
           <div className="mt-4 text-sm text-white/70">
             <div className="text-white/55">One-liner</div>

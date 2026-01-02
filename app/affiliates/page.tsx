@@ -31,6 +31,20 @@ export default function AffiliatesPage() {
               payouts you can actually trust.
             </p>
 
+            <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+              <div className="aspect-[16/9]">
+                <img
+                  src="/illust/affiliate-earnings.gif"
+                  alt="Affiliate earnings calculator preview"
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-white/55">
+              Earnings vary by plan mix and churn, but the idea is simple: refer editors, earn recurring commissions.
+            </p>
+
             <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-5">
               <div className="text-sm font-semibold text-white/90">What CutSwitch does (your 10-second pitch)</div>
               <p className="mt-2 text-sm text-white/65">
@@ -127,6 +141,14 @@ export default function AffiliatesPage() {
                 See pricing
               </Link>
             </div>
+
+            <p className="mt-3 text-xs text-white/55">
+              By applying, you agree to our{" "}
+              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/affiliate-terms">
+                Affiliate Program Terms
+              </Link>
+              .
+            </p>
           </div>
         </div>
 

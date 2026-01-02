@@ -122,7 +122,7 @@ export default function DownloadPage() {
             />
             <StepCard
               title="Add audio + map speakers"
-              caption="Drop one audio file per speaker, map each speaker to a camera angle, then pick your rhythm."
+              caption="Drop isolated, single-speaker audio files (one file per speaker) with minimal bleed/crosstalk, map each speaker to a camera angle, then pick your rhythm."
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z" stroke="currentColor" strokeWidth="2" />

@@ -4,8 +4,6 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site";
 import { VideoDemo } from "@/components/VideoDemo";
 import { FeatureGrid } from "@/components/FeatureGrid";
-import { HowItWorks } from "@/components/HowItWorks";
-import { Comparison } from "@/components/Comparison";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { Faq } from "@/components/Faq";
 import { PricingTable } from "@/components/pricing/PricingTable";
@@ -15,7 +13,6 @@ import {
   IconExport,
   IconLock,
   IconScissors,
-  IconSpark,
   IconUsers,
   IconWaveform,
 } from "@/components/icons";
@@ -32,7 +29,7 @@ const features = [
     mediaAlt: "Voice-driven multicam switching preview",
     title: "Voice-driven multicam switching",
     description:
-      "Drop one audio file per speaker and CutSwitch switches angles based on who's actually talking, moment by moment.",
+      "Use isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. CutSwitch switches angles based on who’s actually talking.",
   },
   {
     icon: <IconScissors className="h-5 w-5" />,
@@ -68,69 +65,11 @@ const features = [
   },
   {
     icon: <IconLock className="h-5 w-5" />,
+    mediaSrc: "/illust/local-first.gif",
+    mediaAlt: "Local-first by design preview",
     title: "Local-first by design",
     description:
       "Runs on your Mac. Your media stays local. No uploads, no cloud processing, no weird surprises.",
-  },
-];
-
-const steps = [
-  {
-    icon: <IconExport className="h-5 w-5" />,
-    title: "Import your Final Cut project",
-    description: "Drop a .fcpxml or .fcpxmld with a real multicam clip.",
-  },
-  {
-    icon: <IconWaveform className="h-5 w-5" />,
-    title: "Add one audio file per speaker",
-    description:
-      "Each file becomes that speaker's “voice meter” so CutSwitch can detect who's talking.",
-  },
-  {
-    icon: <IconCamera className="h-5 w-5" />,
-    title: "Map speakers to camera angles",
-    description:
-      "Choose which angle shows each person. Share angles when two people are on the same camera.",
-  },
-  {
-    icon: <IconSpark className="h-5 w-5" />,
-    title: "Pick the rhythm",
-    description:
-      "Set Group frequency and Cut Style. Flip on Custom if you want the fine-tuning controls.",
-  },
-  {
-    icon: <IconScissors className="h-5 w-5" />,
-    title: "Run CutSwitch",
-    description:
-      "Generate the finished timeline and import it into Final Cut Pro. The edit is yours to polish.",
-  },
-];
-
-const comparisons = [
-  {
-    feature: "What you do",
-    manual: "Listen, scrub, switch, undo, repeat",
-    cutswitch: "Set it once, export, refine",
-  },
-  {
-    feature: "Dialogue switching",
-    manual: "Manual angle hunting and keyframes",
-    cutswitch: "Automatic based on speech",
-  },
-  {
-    feature: "Consistency",
-    manual: "Depends on how tired you are",
-    cutswitch: "Repeatable presets + Custom",
-  },
-  {
-    feature: "Wide shots",
-    manual: "You remember to add them",
-    cutswitch: "Built-in group shot cadence",
-  },
-  {
-    feature: "Privacy",
-    manual: "Local (you)",
-    cutswitch: "Local-first (always)",
   },
 ];
 
@@ -162,7 +101,11 @@ const faq = [
   },
   {
     q: "What do I need to run it?",
-    a: "A Final Cut Pro multicam project export (.fcpxml or .fcpxmld) and one audio file per speaker. Then map speakers to camera angles.",
+    a: "A Final Cut Pro multicam project export (.fcpxml or .fcpxmld) and isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. Then map speakers to camera angles.",
+  },
+  {
+    q: "Do the per-speaker audio files need to be clean?",
+    a: "Yes. CutSwitch works best with isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. More bleed usually means less accurate switching.",
   },
   {
     q: "What does it export?",
@@ -192,7 +135,9 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML, attach one audio file per speaker, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the conversation.
+                Import a Final Cut XML, attach isolated, single-speaker audio files (one file per speaker) with minimal
+                bleed/crosstalk, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the
+                conversation.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -236,20 +181,6 @@ export default function HomePage() {
         className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16"
       />
 
-      <HowItWorks
-        title="How it works"
-        subtitle="A fast setup. A clean export. Then you’re back in Final Cut where you belong."
-        steps={steps}
-        className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16"
-      />
-
-      <Comparison
-        title="Manual switching vs CutSwitch"
-        subtitle="Same end goal. Very different path to get there."
-        rows={comparisons}
-        className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16"
-      />
-
       <TestimonialGrid
         title="What early editors are saying"
         subtitle="Beta feedback has been consistent: less clicking, more control, better rhythm."
@@ -260,17 +191,28 @@ export default function HomePage() {
       <section className="py-16">
         <div className="mx-auto max-w-6xl px-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
                 <h3 className="text-xl font-semibold text-white">Affiliate program</h3>
                 <p className="mt-2 text-sm text-white/70">
                   Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring commissions.
                 </p>
+                <div className="mt-5 flex gap-3">
+                  <Link href="/affiliates" className="btn btn-secondary">
+                    Become an affiliate
+                  </Link>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <Link href="/affiliates" className="btn btn-secondary">
-                  Become an affiliate
-                </Link>
+
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                <div className="aspect-[16/9]">
+                  <img
+                    src="/illust/affiliate-earnings.gif"
+                    alt="Affiliate earnings preview"
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               </div>
             </div>
           </div>

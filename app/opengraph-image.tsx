@@ -49,7 +49,7 @@ export default function OpenGraphImage() {
           </div>
           <div style={{ fontSize: 28, opacity: 0.85, marginTop: 18 }}>{siteConfig.tagline}</div>
           <div style={{ fontSize: 18, opacity: 0.7, marginTop: 18, maxWidth: 900 }}>
-            Voice-driven multicam edits for Final Cut Pro. Import XML, add per-speaker audio, and export a clean timeline.
+            Voice-driven multicam edits for Final Cut Pro. Import XML, add isolated per-speaker audio, and export a clean timeline.
           </div>
         </div>
       </div>

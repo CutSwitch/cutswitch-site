@@ -28,7 +28,7 @@ const legal: NavItem[] = [
 ];
 
 const getStarted: NavItem[] = [
-  { href: "/download", label: "Download beta" },
+  { href: "/download", label: "Download" },
   { href: "/pricing", label: "Choose a plan" },
   { href: "/account", label: "Manage subscription" },
   { href: "/support", label: "Contact support" },
@@ -40,7 +40,7 @@ function FooterLinks({ items }: { items: NavItem[] }) {
       {items.map((l) => (
         <li key={l.href}>
           <Link
-            className="link opacity-100 group-hover/footer-nav:opacity-40 hover:opacity-100 focus-visible:opacity-100"
+            className="link opacity-100 transition-opacity group-hover/footer-nav:opacity-20 hover:!opacity-100 hover:!text-white focus-visible:!opacity-100 focus-visible:!text-white hover:drop-shadow-[0_0_16px_rgba(185,192,255,0.55)]"
             href={l.href}
           >
             {l.label}

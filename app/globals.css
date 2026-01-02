@@ -16,6 +16,32 @@ body {
   height: 100%;
 }
 
+/* --- Home CTA wave animation --- */
+
+@keyframes ctaWaveScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.cta-wave-svg {
+  animation: ctaWaveScroll 26s linear infinite;
+  will-change: transform;
+}
+
+.cta-wave-svg-slow {
+  animation-duration: 42s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-wave-svg {
+    animation: none;
+  }
+}
+
 body {
   background: radial-gradient(1200px circle at 20% 0%, rgba(101, 93, 255, 0.18), transparent 60%),
     radial-gradient(900px circle at 70% 20%, rgba(185, 192, 255, 0.12), transparent 55%),

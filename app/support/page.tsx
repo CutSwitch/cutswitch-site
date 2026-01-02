@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Get help fast. Email support or send feedback. If you're in beta, include diagnostics from Help → Report Bug.",
+  description: "Get help fast. Email support or send feedback. Include diagnostics from Help → Report Bug so we can troubleshoot faster.",
 };
 
 export default function SupportPage() {
@@ -65,7 +65,7 @@ export default function SupportPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="text-sm font-semibold text-white/90">Contact form</div>
           <p className="mt-2 text-sm text-white/65">
-            Don’t want to switch to Mail? Drop a note here and we’ll reply ASAP. (Beta testers: including a diagnostics zip helps us move fast.)
+            Don’t want to switch to Mail? Drop a note here and we’ll reply ASAP. Including a diagnostics zip helps us move fast.
           </p>
 
           <div className="mt-5">

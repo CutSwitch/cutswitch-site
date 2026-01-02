@@ -59,7 +59,7 @@ export function Nav() {
             Watch demo
           </Link>
           <Link className="btn btn-primary" href="/download">
-            Download beta
+            Download
             <span className="text-white/80">→</span>
           </Link>
         </div>
@@ -99,7 +99,7 @@ export function Nav() {
                   Watch demo
                 </Link>
                 <Link className="btn btn-primary w-full" href="/download">
-                  Download beta
+                  Download
                 </Link>
               </div>
             </div>

@@ -16,8 +16,15 @@ export type KeygenLicense = {
 };
 
 function getKeygenConfig() {
+  const apiKey = process.env.KEYGEN_API_TOKEN || process.env.KEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Missing env var KEYGEN_API_TOKEN (or KEYGEN_API_KEY). This is your Keygen admin API token."
+    );
+  }
+
   return {
-    apiKey: requireEnv("KEYGEN_API_KEY"),
+    apiKey,
     accountId: requireEnv("KEYGEN_ACCOUNT_ID"),
     policyId: requireEnv("KEYGEN_POLICY_ID"),
     version: process.env.KEYGEN_VERSION || "1.1",

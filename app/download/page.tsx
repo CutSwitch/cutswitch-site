@@ -41,7 +41,7 @@ export default function DownloadPage() {
       <SectionHeading
         eyebrow="Download"
         title="CutSwitch for macOS"
-        subtitle="Download the latest beta build. CutSwitch runs locally on your Mac and exports a new Final Cut timeline you can refine."
+        subtitle="Download the latest build. CutSwitch runs locally on your Mac and exports a new Final Cut timeline you can refine."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">

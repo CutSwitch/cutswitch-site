@@ -77,7 +77,7 @@ const testimonials = [
   {
     quote:
       "CutSwitch gets me 80% of the way there in minutes. I spend my time on story beats instead of babysitting the multicam.",
-    name: "Early Beta Editor",
+    name: "Early Editor",
     title: "Podcasts + Interviews",
   },
   {
@@ -116,8 +116,8 @@ const faq = [
     a: "Yes. When Custom is on, your advanced settings become the source of truth. Clicking a preset re-seeds all custom values and keeps Custom on.",
   },
   {
-    q: "Is there a beta / trial?",
-    a: "Yes. We’re in beta right now. Download the build and send feedback. The app includes a built-in “Help → Report Bug” diagnostics export.",
+    q: "Is there a free trial?",
+    a: "Yes. Monthly and yearly plans include a 7-day free trial (card required). You can cancel anytime in your account.",
   },
 ];
 
@@ -142,7 +142,7 @@ export default function HomePage() {
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link href="/download" className="btn btn-primary">
-                  Download beta
+                  Download
                   <span aria-hidden>→</span>
                 </Link>
                 <Link href="/demo" className="btn btn-secondary">
@@ -174,22 +174,37 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(101,93,255,0.25),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(101,93,255,0.10),transparent_60%)]" />
       </header>
 
-      <FeatureGrid
-        title="Built for conversation edits"
-        subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
-        features={features}
-        className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16"
-      />
+      {/* Feature previews */}
+      <section className="relative overflow-hidden bg-white/[0.02]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(101,93,255,0.18),transparent_55%),radial-gradient(circle_at_85%_65%,rgba(185,192,255,0.10),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+          <FeatureGrid
+            title="Built for conversation edits"
+            subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
+            features={features}
+          />
+        </div>
+      </section>
 
-      <TestimonialGrid
-        title="What early editors are saying"
-        subtitle="Beta feedback has been consistent: less clicking, more control, better rhythm."
-        items={testimonials}
-        className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16"
-      />
+      {/* Social proof */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(101,93,255,0.14),transparent_55%),radial-gradient(circle_at_15%_70%,rgba(185,192,255,0.08),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+          <TestimonialGrid
+            title="What early editors are saying"
+            subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
+            items={testimonials}
+          />
+        </div>
+      </section>
 
-      <section className="py-16">
-        <div className="mx-auto max-w-6xl px-5">
+      {/* Affiliates */}
+      <section className="relative overflow-hidden bg-white/[0.02] py-16">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(101,93,255,0.16),transparent_60%),radial-gradient(circle_at_85%_20%,rgba(185,192,255,0.08),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
             <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
@@ -218,19 +233,25 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <section className="py-14 sm:py-16">
+
+      {/* Pricing */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(101,93,255,0.10),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(75,60,255,0.08),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
         <PricingTable />
       </section>
-      <section className="py-14 sm:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+
+      {/* FAQ */}
+      <section className="relative overflow-hidden bg-white/[0.02] py-14 sm:py-16">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(101,93,255,0.14),transparent_55%),radial-gradient(circle_at_20%_80%,rgba(185,192,255,0.08),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Faq title="FAQ" subtitle="Quick answers so you can decide fast." items={faq} />
         </div>
       </section>
-      <section className="py-14 sm:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <FinalCTA />
-        </div>
-      </section>
+
+      {/* End CTA */}
+      <FinalCTA />
     </main>
   );
 }

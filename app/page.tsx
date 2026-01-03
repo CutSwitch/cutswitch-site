@@ -5,7 +5,6 @@ import { siteConfig } from "@/lib/site";
 import { VideoDemo } from "@/components/VideoDemo";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
-import { Faq } from "@/components/Faq";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import { FinalCTA } from "@/components/FinalCTA";
 import {
@@ -91,33 +90,6 @@ const testimonials = [
       "Custom mode is the pro move. I can tune the sensitivity and minimum shot length and the edit suddenly feels intentional.",
     name: "Multicam Editor",
     title: "Longform Conversations",
-  },
-];
-
-const faq = [
-  {
-    q: "Does CutSwitch upload my media?",
-    a: "No. CutSwitch is local-first. It analyzes the audio files you provide and generates a Final Cut timeline bundle on your Mac.",
-  },
-  {
-    q: "What do I need to run it?",
-    a: "A Final Cut Pro multicam project export (.fcpxml or .fcpxmld) and isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. Then map speakers to camera angles.",
-  },
-  {
-    q: "Do the per-speaker audio files need to be clean?",
-    a: "Yes. CutSwitch works best with isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. More bleed usually means less accurate switching.",
-  },
-  {
-    q: "What does it export?",
-    a: "A new .fcpxmld bundle you can import directly into Final Cut Pro. The result is fully editable.",
-  },
-  {
-    q: "Does Custom override presets?",
-    a: "Yes. When Custom is on, your advanced settings become the source of truth. Clicking a preset re-seeds all custom values and keeps Custom on.",
-  },
-  {
-    q: "Is there a free trial?",
-    a: "Yes. Monthly and yearly plans include a 7-day free trial (card required). You can cancel anytime in your account.",
   },
 ];
 
@@ -239,15 +211,6 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(101,93,255,0.10),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(75,60,255,0.08),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
         <PricingTable />
-      </section>
-
-      {/* FAQ */}
-      <section className="relative overflow-hidden bg-white/[0.02] py-14 sm:py-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(101,93,255,0.14),transparent_55%),radial-gradient(circle_at_20%_80%,rgba(185,192,255,0.08),transparent_60%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <Faq title="FAQ" subtitle="Quick answers so you can decide fast." items={faq} />
-        </div>
       </section>
 
       {/* End CTA */}

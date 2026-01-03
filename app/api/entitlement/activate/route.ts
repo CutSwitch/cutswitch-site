@@ -33,7 +33,9 @@ function allowlistKeys(): string[] {
 
 async function validateLicenseKey(licenseKey: string, deviceId: string): Promise<{ valid: boolean; message?: string }> {
   const keygenAccount = process.env.KEYGEN_ACCOUNT_ID
-  const keygenToken = process.env.KEYGEN_API_TOKEN
+  // NOTE: validate-key is a public Keygen endpoint, so you don't *need* an admin token.
+  // If you *do* provide one, accept either KEYGEN_API_TOKEN or KEYGEN_API_KEY for convenience.
+  const keygenToken = process.env.KEYGEN_API_TOKEN || process.env.KEYGEN_API_KEY
 
   // If Keygen account is configured, use it.
   if (keygenAccount) {

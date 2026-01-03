@@ -4,13 +4,13 @@ export function FinalCTA() {
   return (
     <section className="relative overflow-hidden py-20 sm:py-24">
       {/* Background glow */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(101,93,255,0.22),transparent_60%),radial-gradient(circle_at_20%_35%,rgba(185,192,255,0.12),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(75,60,255,0.12),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_0%,rgba(101,93,255,0.22),transparent_60%),radial-gradient(circle_at_20%_35%,rgba(185,192,255,0.12),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(75,60,255,0.12),transparent_60%)]" />
 
       {/* Section divider */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-0 gradient-line opacity-80" />
 
       {/* CTA content */}
-      <div className="container-edge relative">
+      <div className="container-edge relative z-10">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white/95 sm:text-4xl">
             Start using CutSwitch
@@ -29,7 +29,7 @@ export function FinalCTA() {
       </div>
 
       {/* Animated waves (Frame.io-ish, CutSwitch colored) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-56 overflow-hidden cta-wave-mask">
         {/* back layer */}
         <svg
           aria-hidden="true"
@@ -107,9 +107,6 @@ export function FinalCTA() {
           <use href="#csWaveSetFront" x="0" />
           <use href="#csWaveSetFront" x="1200" />
         </svg>
-
-        {/* subtle fade so waves don't slice into the content */}
-        <div className="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(to_top,rgba(14,16,32,0.0),rgba(14,16,32,0.95))]" />
       </div>
     </section>
   );

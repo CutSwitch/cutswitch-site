@@ -27,9 +27,6 @@ function getKeygenConfig() {
     apiKey,
     accountId: requireEnv("KEYGEN_ACCOUNT_ID"),
     policyId: requireEnv("KEYGEN_POLICY_ID"),
-    // Optional for backward compatibility. If set, we'll explicitly attach
-    // the license to a product (recommended).
-    productId: process.env.KEYGEN_PRODUCT_ID,
     version: process.env.KEYGEN_VERSION || "1.1",
   };
 }
@@ -78,7 +75,7 @@ export async function createLicense(params: {
   maxMachinesOverride?: number;
   name?: string;
 }): Promise<KeygenLicense> {
-  const { accountId, policyId, productId } = getKeygenConfig();
+  const { accountId, policyId } = getKeygenConfig();
 
   const payload: any = {
     data: {
@@ -87,13 +84,6 @@ export async function createLicense(params: {
         metadata: params.metadata,
       },
       relationships: {
-        ...(productId
-          ? {
-              product: {
-                data: { type: "products", id: productId },
-              },
-            }
-          : {}),
         policy: {
           data: { type: "policies", id: policyId },
         },

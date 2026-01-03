@@ -36,6 +36,29 @@ body {
   animation-duration: 42s;
 }
 
+/*
+  Fade the wave SVGs out as they approach the top of the CTA
+  without darkening the entire section (prevents the "black band" effect).
+*/
+.cta-wave-mask {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cta-wave-svg {
     animation: none;

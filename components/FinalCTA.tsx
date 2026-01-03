@@ -1,13 +1,26 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export function FinalCTA() {
+type FinalCTAProps = {
+  /** When true, removes the top divider and tightens padding so it can flow from the previous section. */
+  embedded?: boolean;
+};
+
+export function FinalCTA({ embedded = false }: FinalCTAProps) {
   return (
-    <section className="relative overflow-hidden py-20 sm:py-24">
+    <section
+      className={cn(
+        "relative overflow-hidden",
+        embedded ? "pt-10 pb-20 sm:pt-12 sm:pb-24" : "py-20 sm:py-24"
+      )}
+    >
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_0%,rgba(101,93,255,0.22),transparent_60%),radial-gradient(circle_at_20%_35%,rgba(185,192,255,0.12),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(75,60,255,0.12),transparent_60%)]" />
 
-      {/* Section divider */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-0 gradient-line opacity-80" />
+      {/* Section divider (only when this CTA is its own scene) */}
+      {!embedded ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 gradient-line opacity-80" />
+      ) : null}
 
       {/* CTA content */}
       <div className="container-edge relative z-10">

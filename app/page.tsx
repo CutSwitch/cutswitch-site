@@ -7,6 +7,7 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import { FinalCTA } from "@/components/FinalCTA";
+import { HeroSmokeBackdrop } from "@/components/HeroSmokeBackdrop";
 import {
   IconCamera,
   IconExport,
@@ -96,10 +97,15 @@ const testimonials = [
 export default function HomePage() {
   return (
     <main>
-      <header className="relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
-            <div className="max-w-2xl">
+      {/* Hero */}
+      <header className="relative overflow-hidden -mt-10">
+        {/* Cinematic, interactive smoke */}
+        <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
+
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:items-start">
+            {/* Copy */}
+            <div className="max-w-2xl lg:col-start-1 lg:row-start-1">
               <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
               <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
@@ -111,46 +117,52 @@ export default function HomePage() {
                 bleed/crosstalk, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the
                 conversation.
               </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/download" className="btn btn-primary">
-                  Download
-                  <span aria-hidden>→</span>
-                </Link>
-                <Link href="/demo" className="btn btn-secondary">
-                  Watch the demo
-                </Link>
-                <Link href="/pricing" className="btn btn-ghost">
-                  See pricing
-                </Link>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2 sm:gap-3 text-xs text-white/70">
-                <span className="chip">Apple Silicon + Intel</span>
-                <span className="chip">Local-first</span>
-                <span className="chip">Exports .fcpxmld</span>
-                <span className="chip">Podcast / interview ready</span>
-              </div>
             </div>
 
-            <div className="lg:pt-2">
+            {/* Video (mobile: directly under paragraph) */}
+            <div className="lg:col-start-2 lg:row-span-2 lg:pt-2">
               <VideoDemo className="mx-auto w-full max-w-xl lg:max-w-none" />
               <p className="mt-3 text-xs text-white/60">
                 Real pipeline, real output. Import the result into Final Cut Pro and refine.
               </p>
             </div>
+
+            {/* Actions (mobile: below video) */}
+            <div className="lg:col-start-1 lg:row-start-2">
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link href="/download" className="btn btn-primary">
+                    Download
+                    <span aria-hidden>→</span>
+                  </Link>
+                  <Link href="/demo" className="btn btn-secondary">
+                    Watch the demo
+                  </Link>
+                  <Link href="/pricing" className="btn btn-ghost">
+                    See pricing
+                  </Link>
+                </div>
+
+                <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-white/70">
+                  <span className="chip">Apple Silicon + Intel</span>
+                  <span className="chip">Local-first</span>
+                  <span className="chip">Exports .fcpxmld</span>
+                  <span className="chip hidden sm:inline-flex">Podcast / interview ready</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-hero-radial opacity-90" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(101,93,255,0.25),transparent_55%),radial-gradient(circle_at_80%_60%,rgba(101,93,255,0.10),transparent_60%)]" />
+        {/* Bottom fade so the next scene reads clean */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
 
       {/* Feature previews */}
-      <section className="relative overflow-hidden bg-white/[0.02]">
+      <section className="relative overflow-hidden bg-white/[0.02] py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(101,93,255,0.18),transparent_55%),radial-gradient(circle_at_85%_65%,rgba(185,192,255,0.10),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+        <div className="container-edge relative">
           <FeatureGrid
             title="Built for conversation edits"
             subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
@@ -160,10 +172,10 @@ export default function HomePage() {
       </section>
 
       {/* Social proof */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(101,93,255,0.14),transparent_55%),radial-gradient(circle_at_15%_70%,rgba(185,192,255,0.08),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+        <div className="container-edge relative">
           <TestimonialGrid
             title="What early editors are saying"
             subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
@@ -173,16 +185,17 @@ export default function HomePage() {
       </section>
 
       {/* Affiliates */}
-      <section className="relative overflow-hidden bg-white/[0.02] py-16">
+      <section className="relative overflow-hidden bg-white/[0.02] py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(101,93,255,0.16),transparent_60%),radial-gradient(circle_at_85%_20%,rgba(185,192,255,0.08),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="container-edge relative">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
             <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
                 <h3 className="text-xl font-semibold text-white">Affiliate program</h3>
                 <p className="mt-2 text-sm text-white/70">
-                  Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring commissions.
+                  Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring
+                  commissions.
                 </p>
                 <div className="mt-5 flex gap-3">
                   <Link href="/affiliates" className="btn btn-secondary">
@@ -206,15 +219,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(101,93,255,0.10),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(75,60,255,0.08),transparent_60%)]" />
+      {/* Final act: Pricing flows into CTA */}
+      <section className="relative overflow-hidden bg-white/[0.02]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(101,93,255,0.12),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(75,60,255,0.10),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <PricingTable />
+        <div className="relative">
+          <PricingTable embedded />
+          <FinalCTA embedded />
+        </div>
       </section>
-
-      {/* End CTA */}
-      <FinalCTA />
     </main>
   );
 }

@@ -28,7 +28,12 @@ const LIFETIME_PRICE = 299;
  * so existing imports like `import { PricingTable } from ...` keep working,
  * and default imports also work.
  */
-export function PricingTable() {
+type PricingTableProps = {
+  /** Use tighter spacing when PricingTable is embedded inside another section (e.g. home page final act). */
+  embedded?: boolean;
+};
+
+export function PricingTable({ embedded = false }: PricingTableProps) {
   const plans = useMemo<Plan[]>(
     () => [
       {
@@ -77,6 +82,8 @@ export function PricingTable() {
     ],
     []
   );
+
+  const Heading = embedded ? "h2" : "h1";
 
   const referral = useRewardfulReferral();
   const [coupon, setCoupon] = useState("");
@@ -141,9 +148,14 @@ export function PricingTable() {
 
   return (
     <div className="w-full">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight">Pricing</h1>
+      <div
+        className={cn(
+          "mx-auto max-w-6xl px-4",
+          embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10"
+        )}
+      >
+        <div className={cn(embedded ? "mb-7" : "mb-8")}>
+          <Heading className="text-3xl font-semibold tracking-tight">Pricing</Heading>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
             Simple plans. Serious speed.
           </p>
@@ -272,7 +284,12 @@ export function PricingTable() {
           ))}
         </div>
 
-        <div className="relative mt-10 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6">
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6",
+            embedded ? "mt-8" : "mt-10"
+          )}
+        >
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
           <div className="relative">
           <div className="text-lg font-semibold">Questions before you buy?</div>

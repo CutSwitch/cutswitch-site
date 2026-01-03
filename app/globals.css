@@ -68,36 +68,67 @@ body {
   inset: 0;
   overflow: hidden;
 
+  /* keep blend modes contained (helps Safari + makes the smoke actually visible) */
+  isolation: isolate;
+
+  /* vars are driven by pointer + inertia in HeroSmokeBackdrop */
+  --px: 0px;
+  --py: 0px;
+  --mx: 55%;
+  --my: 35%;
+
   /* Base glow field */
   background:
-    radial-gradient(900px circle at 20% 10%, rgba(101, 93, 255, 0.22), transparent 55%),
-    radial-gradient(700px circle at 70% 30%, rgba(185, 192, 255, 0.14), transparent 55%),
-    radial-gradient(700px circle at 55% 90%, rgba(75, 60, 255, 0.10), transparent 55%);
+    radial-gradient(1100px circle at 18% 10%, rgba(101, 93, 255, 0.30), transparent 60%),
+    radial-gradient(900px circle at 72% 26%, rgba(185, 192, 255, 0.18), transparent 60%),
+    radial-gradient(900px circle at 55% 92%, rgba(75, 60, 255, 0.16), transparent 62%),
+    var(--bg);
+
+  filter: saturate(1.18) contrast(1.06);
+}
+
+.hero-smoke-cursor {
+  position: absolute;
+  inset: -35%;
+  background:
+    radial-gradient(
+      900px circle at var(--mx, 55%) var(--my, 35%),
+      rgba(101, 93, 255, 0.40),
+      transparent 62%
+    );
+  filter: blur(32px);
+  opacity: 0.78;
+  mix-blend-mode: screen;
+  transform: translate3d(calc(var(--smoke-x1, 0px) * 0.22), calc(var(--smoke-y1, 0px) * 0.22), 0);
+  will-change: transform;
 }
 
 .hero-smoke-blob {
   position: absolute;
-  inset: -35%;
-  filter: blur(70px);
+  inset: -40%;
+  filter: blur(90px);
   mix-blend-mode: screen;
   will-change: transform;
 }
 
 .hero-smoke-blob-a {
-  background: radial-gradient(circle at 30% 35%, rgba(101, 93, 255, 0.55), transparent 60%);
-  opacity: 0.55;
+  background: radial-gradient(circle at 30% 35%, rgba(101, 93, 255, 0.85), transparent 65%);
+  opacity: 0.70;
+  transform: translate3d(var(--smoke-x1, 0px), var(--smoke-y1, 0px), 0) scale(1);
   animation: heroSmokeA 18s ease-in-out infinite;
 }
 
 .hero-smoke-blob-b {
-  background: radial-gradient(circle at 70% 45%, rgba(185, 192, 255, 0.42), transparent 60%);
-  opacity: 0.42;
+  background: radial-gradient(circle at 70% 45%, rgba(185, 192, 255, 0.65), transparent 65%);
+  opacity: 0.55;
+  transform: translate3d(var(--smoke-x2, 0px), var(--smoke-y2, 0px), 0) scale(1);
   animation: heroSmokeB 22s ease-in-out infinite;
 }
 
 .hero-smoke-blob-c {
-  background: radial-gradient(circle at 50% 70%, rgba(75, 60, 255, 0.38), transparent 62%);
-  opacity: 0.38;
+  background: radial-gradient(circle at 50% 70%, rgba(75, 60, 255, 0.60), transparent 66%);
+  opacity: 0.50;
+  transform: translate3d(var(--smoke-x3, 0px), var(--smoke-y3, 0px), 0) scale(1);
   animation: heroSmokeC 26s ease-in-out infinite;
 }
 
@@ -105,16 +136,46 @@ body {
   position: absolute;
   inset: 0;
   background-image: url("/illust/noise.png");
-  opacity: 0.07;
-  mix-blend-mode: overlay;
-  animation: heroNoiseDrift 14s steps(6) infinite;
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+  animation: heroNoiseDrift 22s linear infinite;
   transform: translateZ(0);
 }
 
 .hero-smoke-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 35%, rgba(14, 16, 32, 0) 0%, rgba(14, 16, 32, 0.55) 70%, rgba(14, 16, 32, 0.85) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(14, 16, 32, 0) 0%, rgba(14, 16, 32, 0.42) 72%, rgba(14, 16, 32, 0.78) 100%);
+}
+
+/* Hero parallax layers (vars are set on the hero container by HeroSmokeBackdrop) */
+
+[data-hero-parallax] {
+  --px: 0px;
+  --py: 0px;
+  --mx: 55%;
+  --my: 35%;
+}
+
+@media (min-width: 1024px) {
+  .hero-parallax-text,
+  .hero-parallax-video,
+  .hero-parallax-actions {
+    will-change: transform;
+    transform-style: preserve-3d;
+  }
+
+  .hero-parallax-text {
+    transform: translate3d(calc(var(--px) * 0.04), calc(var(--py) * 0.03), 0);
+  }
+
+  .hero-parallax-actions {
+    transform: translate3d(calc(var(--px) * 0.03), calc(var(--py) * 0.025), 0);
+  }
+
+  .hero-parallax-video {
+    transform: translate3d(calc(var(--px) * -0.07), calc(var(--py) * -0.05), 0);
+  }
 }
 
 /* --- Home CTA wave animation --- */

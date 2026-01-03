@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 
 type VideoDemoProps = {
@@ -15,15 +15,56 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
+  const [canHover, setCanHover] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // iOS/Safari nuance: autoplay is more reliable when we only apply
+  // transforms/hover interactions on devices that actually support hover.
+  // (Transformed parents can sometimes interfere with video autoplay on mobile.)
+  const isInteractive = interactive && canHover;
 
   const transformStyle = useMemo(() => {
-    if (!interactive) return undefined;
+    if (!isInteractive) return undefined;
     return {
       transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateZ(0)`,
       willChange: "transform",
     } as const;
-  }, [interactive, tilt.rx, tilt.ry]);
+  }, [isInteractive, tilt.rx, tilt.ry]);
+
+  useEffect(() => {
+    // Desktop-only hover/tilt. On touch devices we disable it.
+    if (typeof window === "undefined") return;
+    const m = window.matchMedia?.("(hover: hover) and (pointer: fine)");
+    const update = () => setCanHover(Boolean(m?.matches));
+    update();
+    if (!m) return;
+    m.addEventListener?.("change", update);
+    return () => m.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    // Autoplay kick (especially for iOS Safari). We keep it muted + inline.
+    const v = videoRef.current;
+    if (!v || broken) return;
+    try {
+      v.muted = true;
+      v.autoplay = true;
+      v.loop = true;
+      // Older iOS Safari can be picky about inline playback.
+      v.setAttribute("playsinline", "true");
+      v.setAttribute("webkit-playsinline", "true");
+      v.setAttribute("muted", "");
+      const p = v.play();
+      if (p && typeof (p as Promise<void>).catch === "function") {
+        (p as Promise<void>).catch(() => {
+          // If the browser blocks autoplay, we silently fail and the user can tap.
+        });
+      }
+    } catch {
+      // Ignore.
+    }
+  }, [broken]);
 
   useEffect(() => {
     if (!open) return;
@@ -34,8 +75,8 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  const onMove = (e: React.MouseEvent) => {
-    if (!interactive) return;
+  const onMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!isInteractive) return;
     const el = wrapRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -47,7 +88,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
   };
 
   const onLeave = () => {
-    if (!interactive) return;
+    if (!isInteractive) return;
     setTilt({ rx: 0, ry: 0 });
   };
 
@@ -55,6 +96,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
       {!broken ? (
         <video
+          ref={videoRef}
           className="h-full w-full object-cover"
           src="/videos/demo.mp4"
           autoPlay
@@ -86,22 +128,22 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
         ref={wrapRef}
         onMouseMove={onMove}
         onMouseLeave={onLeave}
-        onClick={() => interactive && !broken && setOpen(true)}
-        role={interactive && !broken ? "button" : undefined}
-        tabIndex={interactive && !broken ? 0 : -1}
+        onClick={() => isInteractive && !broken && setOpen(true)}
+        role={isInteractive && !broken ? "button" : undefined}
+        tabIndex={isInteractive && !broken ? 0 : -1}
         onKeyDown={(e) => {
-          if (!interactive || broken) return;
+          if (!isInteractive || broken) return;
           if (e.key === "Enter" || e.key === " ") setOpen(true);
         }}
         className={cn(
           "group relative",
-          interactive && !broken ? "cursor-zoom-in" : "",
+          isInteractive && !broken ? "cursor-zoom-in" : "",
           className
         )}
         style={transformStyle}
       >
         {/* hero glow behind */}
-        {interactive && !broken && (
+        {isInteractive && !broken && (
           <div className="pointer-events-none absolute -inset-24 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.40),transparent_55%)]" />
         )}
 
@@ -121,7 +163,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
             </div>
 
             {/* hover instruction */}
-            {interactive && !broken && (
+            {isInteractive && !broken && (
               <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/35 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 Click to expand
               </div>
@@ -130,7 +172,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
         ) : (
           <>
             {CardInner}
-            {interactive && !broken && (
+            {isInteractive && !broken && (
               <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 Click to expand
               </div>
@@ -139,7 +181,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
         )}
 
         {/* glass highlight */}
-        {interactive && !broken && (
+        {isInteractive && !broken && (
           <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent_40%)]" />
         )}
       </div>

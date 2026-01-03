@@ -98,14 +98,14 @@ export default function HomePage() {
   return (
     <main>
       {/* Hero */}
-      <header className="relative overflow-hidden -mt-10">
+      <header data-hero-parallax className="relative overflow-hidden -mt-10">
         {/* Cinematic, interactive smoke */}
         <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
           <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:items-start">
             {/* Copy */}
-            <div className="max-w-2xl lg:col-start-1 lg:row-start-1">
+            <div className="max-w-2xl lg:col-start-1 lg:row-start-1 hero-parallax-text">
               <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
               <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
@@ -120,7 +120,7 @@ export default function HomePage() {
             </div>
 
             {/* Video (mobile: directly under paragraph) */}
-            <div className="lg:col-start-2 lg:row-span-2 lg:pt-2">
+            <div className="lg:col-start-2 lg:row-span-2 lg:pt-2 hero-parallax-video">
               <VideoDemo className="mx-auto w-full max-w-xl lg:max-w-none" />
               <p className="mt-3 text-xs text-white/60">
                 Real pipeline, real output. Import the result into Final Cut Pro and refine.
@@ -128,7 +128,7 @@ export default function HomePage() {
             </div>
 
             {/* Actions (mobile: below video) */}
-            <div className="lg:col-start-1 lg:row-start-2">
+            <div className="lg:col-start-1 lg:row-start-2 hero-parallax-actions">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <Link href="/download" className="btn btn-primary">
@@ -204,13 +204,13 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+              <div className="group overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_20px_80px_rgba(0,0,0,0.55)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_28px_110px_rgba(0,0,0,0.65)]">
                 <div className="aspect-[16/9]">
                   <img
                     src="/illust/affiliate-earnings.gif"
                     alt="Affiliate earnings preview"
                     loading="lazy"
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                   />
                 </div>
               </div>

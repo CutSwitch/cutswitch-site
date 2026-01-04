@@ -25,25 +25,29 @@ export default function DownloadPage() {
     mediaAlt: string;
   }) {
     return (
-      <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-4">
-        <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-30" />
+      <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-[0_26px_120px_rgba(0,0,0,0.55)]">
+        <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-25" />
         <div className="relative">
-          <div className="aspect-[16/9] overflow-hidden rounded-xl border border-white/10 bg-black/20 shadow-[0_22px_90px_rgba(0,0,0,0.55)]">
+          <div className="relative aspect-[16/9] overflow-hidden bg-black/25">
             <img
               src={mediaSrc}
               alt={mediaAlt}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
             />
+            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.25),transparent_60%)]" />
+            <div className="pointer-events-none absolute inset-0 opacity-60 bg-[linear-gradient(180deg,rgba(0,0,0,0.25),transparent_35%,rgba(0,0,0,0.35))]" />
           </div>
 
-          <div className="mt-4 flex gap-3">
-            <div className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
-              <span className="text-brand">{icon}</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-white/90">{title}</div>
-              <p className="mt-1 text-sm leading-relaxed text-white/65">{caption}</p>
+          <div className="p-5 sm:p-6">
+            <div className="flex gap-3">
+              <div className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
+                <span className="text-brand">{icon}</span>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white/90">{title}</div>
+                <p className="mt-1 text-sm leading-relaxed text-white/65">{caption}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -51,7 +55,7 @@ export default function DownloadPage() {
     );
   }
 
-  return (
+return (
     <div className="container-edge">
       <SectionHeading
         eyebrow="Download"
@@ -60,7 +64,7 @@ export default function DownloadPage() {
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <div className="text-sm font-semibold text-white/90">Installer</div>
           <p className="mt-2 text-sm text-white/65">
             Download the latest build. If the button is disabled, set{" "}
@@ -105,17 +109,17 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <div className="text-sm font-semibold text-white/90">Next steps</div>
           <p className="mt-2 text-sm text-white/65">
             Four moves. No scrolling brain fatigue. Get from install → first cut as fast as possible.
           </p>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid gap-5">
             <StepCard
               title="Install CutSwitch"
               caption="Drag to Applications. Launch it once so macOS trusts it."
-              mediaSrc="/illust/download-steps/install.jpeg"
+              mediaSrc="/illust/download-steps/install.gif"
               mediaAlt="Install CutSwitch preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -128,7 +132,7 @@ export default function DownloadPage() {
             <StepCard
               title="Export a multicam XML"
               caption="In Final Cut Pro, export a .fcpxml/.fcpxmld from a project with a real multicam clip."
-              mediaSrc="/illust/download-steps/export.jpeg"
+              mediaSrc="/illust/download-steps/export.gif"
               mediaAlt="Export a multicam XML preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -142,7 +146,7 @@ export default function DownloadPage() {
             <StepCard
               title="Add audio + map speakers"
               caption="Drop isolated, single-speaker audio files (one file per speaker) with minimal bleed/crosstalk, map each speaker to a camera angle, then pick your rhythm."
-              mediaSrc="/illust/download-steps/add-audio.jpeg"
+              mediaSrc="/illust/download-steps/add-audio.gif"
               mediaAlt="Add audio and map speakers preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -156,7 +160,7 @@ export default function DownloadPage() {
             <StepCard
               title="Run + import back to FCP"
               caption="Generate the new .fcpxmld, import into Final Cut, and polish the cut like normal."
-              mediaSrc="/illust/download-steps/run-import.jpeg"
+              mediaSrc="/illust/download-steps/run-import.gif"
               mediaAlt="Run CutSwitch and import back into Final Cut preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">

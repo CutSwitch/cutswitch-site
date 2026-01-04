@@ -44,26 +44,76 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
   }, []);
 
   useEffect(() => {
-    // Autoplay kick (especially for iOS Safari). We keep it muted + inline.
+    // Autoplay: keep it muted + inline. Some browsers (especially iOS Safari)
+    // can be picky, so we:
+    // 1) set all relevant flags/attrs
+    // 2) try play on mount + on canplay
+    // 3) retry once on the first user gesture (scroll/tap) so users don't have
+    //    to hit the tiny play button.
     const v = videoRef.current;
     if (!v || broken) return;
-    try {
-      v.muted = true;
-      v.autoplay = true;
-      v.loop = true;
-      // Older iOS Safari can be picky about inline playback.
-      v.setAttribute("playsinline", "true");
-      v.setAttribute("webkit-playsinline", "true");
-      v.setAttribute("muted", "");
-      const p = v.play();
-      if (p && typeof (p as Promise<void>).catch === "function") {
-        (p as Promise<void>).catch(() => {
-          // If the browser blocks autoplay, we silently fail and the user can tap.
-        });
+
+    let cancelled = false;
+
+    const ensurePlaying = () => {
+      if (cancelled) return;
+      try {
+        v.muted = true;
+        v.defaultMuted = true;
+        v.volume = 0;
+        v.autoplay = true;
+        v.loop = true;
+        v.controls = false;
+        v.playsInline = true;
+        // Keep iOS from bouncing to full-screen.
+        v.setAttribute("playsinline", "true");
+        v.setAttribute("webkit-playsinline", "true");
+        v.setAttribute("muted", "");
+
+        // Prevent PiP/remote playback UIs from taking over.
+        // (Safari supports these attrs, Chrome ignores them.)
+        v.setAttribute("disablepictureinpicture", "true");
+        v.setAttribute("disableremoteplayback", "true");
+
+        const p = v.play();
+        if (p && typeof (p as Promise<void>).catch === "function") {
+          (p as Promise<void>).catch(() => {
+            // Autoplay can still be blocked. We'll retry on first gesture.
+          });
+        }
+      } catch {
+        // Ignore.
       }
-    } catch {
-      // Ignore.
-    }
+    };
+
+    ensurePlaying();
+
+    const onCanPlay = () => ensurePlaying();
+    v.addEventListener("canplay", onCanPlay);
+    v.addEventListener("loadeddata", onCanPlay);
+
+    const onVis = () => {
+      if (!document.hidden) ensurePlaying();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    // One-shot gesture fallback. This usually triggers immediately when the
+    // user scrolls the page or taps anywhere.
+    const onFirstGesture = () => ensurePlaying();
+    window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
+    window.addEventListener("pointerdown", onFirstGesture, { once: true, passive: true });
+    window.addEventListener("scroll", onFirstGesture, { once: true, passive: true });
+
+    return () => {
+      cancelled = true;
+      v.removeEventListener("canplay", onCanPlay);
+      v.removeEventListener("loadeddata", onCanPlay);
+      document.removeEventListener("visibilitychange", onVis);
+      // The gesture listeners are {once:true} but we still remove for cleanliness.
+      window.removeEventListener("touchstart", onFirstGesture);
+      window.removeEventListener("pointerdown", onFirstGesture);
+      window.removeEventListener("scroll", onFirstGesture);
+    };
   }, [broken]);
 
   useEffect(() => {

@@ -15,21 +15,36 @@ export default function DownloadPage() {
     title,
     caption,
     icon,
+    mediaSrc,
+    mediaAlt,
   }: {
     title: string;
     caption: string;
     icon: ReactNode;
+    mediaSrc: string;
+    mediaAlt: string;
   }) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-4">
+      <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-4">
         <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-30" />
-        <div className="relative flex gap-3">
-          <div className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
-            <span className="text-brand">{icon}</span>
+        <div className="relative">
+          <div className="aspect-[16/9] overflow-hidden rounded-xl border border-white/10 bg-black/20 shadow-[0_22px_90px_rgba(0,0,0,0.55)]">
+            <img
+              src={mediaSrc}
+              alt={mediaAlt}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+            />
           </div>
-          <div>
-            <div className="text-sm font-semibold text-white/90">{title}</div>
-            <p className="mt-1 text-sm leading-relaxed text-white/65">{caption}</p>
+
+          <div className="mt-4 flex gap-3">
+            <div className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
+              <span className="text-brand">{icon}</span>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-white/90">{title}</div>
+              <p className="mt-1 text-sm leading-relaxed text-white/65">{caption}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -100,6 +115,8 @@ export default function DownloadPage() {
             <StepCard
               title="Install CutSwitch"
               caption="Drag to Applications. Launch it once so macOS trusts it."
+              mediaSrc="/illust/download-steps/install.jpeg"
+              mediaAlt="Install CutSwitch preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M12 3v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -111,6 +128,8 @@ export default function DownloadPage() {
             <StepCard
               title="Export a multicam XML"
               caption="In Final Cut Pro, export a .fcpxml/.fcpxmld from a project with a real multicam clip."
+              mediaSrc="/illust/download-steps/export.jpeg"
+              mediaAlt="Export a multicam XML preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M7 3h7l3 3v15H7V3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
@@ -123,6 +142,8 @@ export default function DownloadPage() {
             <StepCard
               title="Add audio + map speakers"
               caption="Drop isolated, single-speaker audio files (one file per speaker) with minimal bleed/crosstalk, map each speaker to a camera angle, then pick your rhythm."
+              mediaSrc="/illust/download-steps/add-audio.jpeg"
+              mediaAlt="Add audio and map speakers preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3z" stroke="currentColor" strokeWidth="2" />
@@ -135,6 +156,8 @@ export default function DownloadPage() {
             <StepCard
               title="Run + import back to FCP"
               caption="Generate the new .fcpxmld, import into Final Cut, and polish the cut like normal."
+              mediaSrc="/illust/download-steps/run-import.jpeg"
+              mediaAlt="Run CutSwitch and import back into Final Cut preview"
               icon={
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                   <path d="M5 5h14v14H5V5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />

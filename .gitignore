@@ -1,0 +1,9 @@
+
+# Local env
+.env.local
+
+# Next build output
+.next
+
+# Dependencies
+node_modules

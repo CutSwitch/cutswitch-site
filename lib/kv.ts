@@ -14,6 +14,16 @@ export type LicenseRecord = {
   license_key_hash: string
   license_last4?: string
   license_expires_at?: string | null
+  /** Keygen license resource id, if known (preferred for server-side revalidation). */
+  keygen_license_id?: string
+  /** Cached Keygen suspension state, refreshed periodically server-side. */
+  license_suspended?: boolean
+  /** Last time the server validated this license with Keygen/allowlist. */
+  last_validated_at?: string | null
+  /** Server-directed next time this license should be revalidated. */
+  next_check_after?: string | null
+  /** Where the server validated this license (keygen vs allowlist). */
+  source?: 'keygen' | 'allowlist'
   activated_at: string // ISO timestamp
   last_seen_at: string // ISO timestamp
   app_version?: string
@@ -65,6 +75,25 @@ export async function getLicenseKeyIndex(keyHash: string): Promise<LicenseKeyInd
 export async function putLicenseKeyIndex(record: LicenseKeyIndex): Promise<void> {
   const key = `${LICENSE_KEY_PREFIX}${record.license_key_hash}`
   await kv.set(key, record)
+}
+
+/**
+ * Remove a device from a license's activation index (used when a device re-activates with a new license).
+ *
+ * This keeps our `LICENSE_MAX_DEVICES` enforcement from counting a single device against multiple licenses forever.
+ */
+export async function removeDeviceFromLicenseKeyIndex(keyHash: string, deviceId: string): Promise<void> {
+  const idx = await getLicenseKeyIndex(keyHash)
+  if (!idx) return
+
+  const next = (idx.device_ids ?? []).filter((d) => d !== deviceId)
+  if (next.length === idx.device_ids.length) return
+
+  await putLicenseKeyIndex({
+    license_key_hash: keyHash,
+    device_ids: next,
+    updated_at: new Date().toISOString(),
+  })
 }
 
 export async function getDevice(deviceId: string): Promise<DeviceRecord | null> {

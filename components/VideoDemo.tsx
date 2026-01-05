@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 
 type VideoDemoProps = {
@@ -14,23 +14,58 @@ type VideoDemoProps = {
 export function VideoDemo({ className, interactive = true, chrome = true }: VideoDemoProps) {
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
-  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
   const [canHover, setCanHover] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const tiltRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Smooth tilt without re-rendering on every mouse move.
+  const targetTilt = useRef({ rx: 0, ry: 0 });
+  const currentTilt = useRef({ rx: 0, ry: 0 });
+  const rafId = useRef<number | null>(null);
 
   // iOS/Safari nuance: autoplay is more reliable when we only apply
   // transforms/hover interactions on devices that actually support hover.
   // (Transformed parents can sometimes interfere with video autoplay on mobile.)
   const isInteractive = interactive && canHover;
 
-  const transformStyle = useMemo(() => {
-    if (!isInteractive) return undefined;
-    return {
-      transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translateZ(0)`,
-      willChange: "transform",
-    } as const;
-  }, [isInteractive, tilt.rx, tilt.ry]);
+  // Keep tilt stable when switching between interactive/non-interactive modes.
+  useEffect(() => {
+    const el = tiltRef.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+    targetTilt.current = { rx: 0, ry: 0 };
+    currentTilt.current = { rx: 0, ry: 0 };
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  }, [isInteractive]);
+
+  const startRaf = () => {
+    if (rafId.current) return;
+    const tick = () => {
+      rafId.current = null;
+      const el = tiltRef.current;
+      if (!el || !isInteractive) return;
+
+      const cur = currentTilt.current;
+      const tgt = targetTilt.current;
+      // Inertia smoothing.
+      const ease = 0.14;
+      cur.rx += (tgt.rx - cur.rx) * ease;
+      cur.ry += (tgt.ry - cur.ry) * ease;
+
+      el.style.setProperty("--rx", `${cur.rx.toFixed(3)}deg`);
+      el.style.setProperty("--ry", `${cur.ry.toFixed(3)}deg`);
+
+      if (Math.abs(tgt.rx - cur.rx) > 0.001 || Math.abs(tgt.ry - cur.ry) > 0.001) {
+        rafId.current = requestAnimationFrame(tick);
+      }
+    };
+    rafId.current = requestAnimationFrame(tick);
+  };
 
   useEffect(() => {
     // Desktop-only hover/tilt. On touch devices we disable it.
@@ -129,17 +164,21 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
     if (!isInteractive) return;
     const el = wrapRef.current;
     if (!el) return;
+    // Measure the *untransformed* wrapper so the math doesn't jitter.
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width;
     const py = (e.clientY - r.top) / r.height;
     const ry = (px - 0.5) * 5; // subtle
     const rx = (0.5 - py) * 3.5;
-    setTilt({ rx, ry });
+
+    targetTilt.current = { rx, ry };
+    startRaf();
   };
 
   const onLeave = () => {
     if (!isInteractive) return;
-    setTilt({ rx: 0, ry: 0 });
+    targetTilt.current = { rx: 0, ry: 0 };
+    startRaf();
   };
 
   const CardInner = (
@@ -185,21 +224,29 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
           if (!isInteractive || broken) return;
           if (e.key === "Enter" || e.key === " ") setOpen(true);
         }}
-        className={cn(
-          "group relative",
-          isInteractive && !broken ? "cursor-zoom-in" : "",
-          className
-        )}
-        style={transformStyle}
+        className={cn("group relative", isInteractive && !broken ? "cursor-zoom-in" : "", className)}
       >
         {/* hero glow behind */}
         {isInteractive && !broken && (
           <div className="pointer-events-none absolute -inset-24 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.40),transparent_55%)]" />
         )}
 
-        {/* macOS-ish frame */}
-        {chrome ? (
-          <div className="relative overflow-hidden rounded-[22px] border border-white/12 bg-black/35 shadow-2xl">
+        {/* Tilt layer (keeps wrapper math stable, avoids jitter) */}
+        <div
+          ref={tiltRef}
+          style={
+            isInteractive
+              ? ({
+                  transform:
+                    "perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(0)",
+                  willChange: "transform",
+                } as const)
+              : undefined
+          }
+        >
+          {/* macOS-ish frame */}
+          {chrome ? (
+            <div className="relative overflow-hidden rounded-[22px] border border-white/12 bg-black/35 shadow-2xl">
             <div className="flex items-center gap-2 border-b border-white/10 bg-black/30 px-4 py-3">
               <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
               <span className="h-2.5 w-2.5 rounded-full bg-white/25" />
@@ -218,17 +265,18 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
                 Click to expand
               </div>
             )}
-          </div>
-        ) : (
-          <>
-            {CardInner}
-            {isInteractive && !broken && (
-              <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                Click to expand
-              </div>
-            )}
-          </>
-        )}
+            </div>
+          ) : (
+            <>
+              {CardInner}
+              {isInteractive && !broken && (
+                <div className="pointer-events-none absolute bottom-4 right-4 grid place-items-center rounded-full border border-white/15 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/75 backdrop-blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  Click to expand
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* glass highlight */}
         {isInteractive && !broken && (

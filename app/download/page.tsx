@@ -63,12 +63,12 @@ return (
         subtitle="Download the latest build. CutSwitch runs locally on your Mac and exports a new Final Cut timeline you can refine."
       />
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      {/* Stack the download installer and the “Next steps” so the setup reads top-to-bottom. */}
+      <div className="mt-8 grid gap-6">
         <div className="card p-4 sm:p-6">
           <div className="text-sm font-semibold text-white/90">Installer</div>
           <p className="mt-2 text-sm text-white/65">
-            Download the latest build. If the button is disabled, set{" "}
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">NEXT_PUBLIC_DOWNLOAD_URL_MAC</code> in your env.
+            Download the latest build.
           </p>
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">

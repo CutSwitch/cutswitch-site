@@ -1,4 +1,3 @@
-cat > app/api/webhooks/rewardful/route.ts <<'EOF'
 // app/api/webhooks/rewardful/route.ts
 
 export const runtime = 'nodejs'
@@ -27,6 +26,7 @@ export async function POST(req: Request) {
     return new NextResponse('Not Found', { status: 404 })
   }
 
+  // Optional rate limit (won't crash build if KV isn't configured)
   try {
     const ipHash = getIpHash(req)
     const rl = await rateLimit(`rl:rewardful_webhook:${ipHash}`, 300, 60 * 60)
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     })
   }
 
+  // Must read raw body for signature verification
   const raw = await req.text()
 
   const maxBytes = 64 * 1024
@@ -83,4 +84,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true })
 }
-EOF

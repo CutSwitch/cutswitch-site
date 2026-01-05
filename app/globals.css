@@ -178,6 +178,190 @@ body {
   }
 }
 
+/* --- Timeline speed callout graphic --- */
+
+@keyframes timelineOrbA {
+  0% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.55), calc(var(--oy, 0px) * 0.35), 0) scale(1);
+  }
+  50% {
+    transform: translate3d(
+        calc(var(--ox, 0px) * 0.55 + 18px),
+        calc(var(--oy, 0px) * 0.35 - 14px),
+        0
+      )
+      scale(1.02);
+  }
+  100% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.55), calc(var(--oy, 0px) * 0.35), 0) scale(1);
+  }
+}
+
+@keyframes timelineOrbB {
+  0% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.38), calc(var(--oy, 0px) * 0.26), 0) scale(1);
+  }
+  50% {
+    transform: translate3d(
+        calc(var(--ox, 0px) * 0.38 - 16px),
+        calc(var(--oy, 0px) * 0.26 + 12px),
+        0
+      )
+      scale(1.03);
+  }
+  100% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.38), calc(var(--oy, 0px) * 0.26), 0) scale(1);
+  }
+}
+
+@keyframes timelineOrbC {
+  0% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.24), calc(var(--oy, 0px) * 0.18), 0) scale(1);
+  }
+  50% {
+    transform: translate3d(
+        calc(var(--ox, 0px) * 0.24 + 10px),
+        calc(var(--oy, 0px) * 0.18 + 10px),
+        0
+      )
+      scale(1.025);
+  }
+  100% {
+    transform: translate3d(calc(var(--ox, 0px) * 0.24), calc(var(--oy, 0px) * 0.18), 0) scale(1);
+  }
+}
+
+@keyframes timelineNoiseDrift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 220px 160px;
+  }
+}
+
+.timeline-orb-graphic {
+  position: relative;
+  overflow: hidden;
+
+  /* same glass language as cards, but with a deeper stage */
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background:
+    radial-gradient(900px circle at 10% 10%, rgba(101, 93, 255, 0.18), transparent 55%),
+    radial-gradient(800px circle at 90% 60%, rgba(185, 192, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 34px 140px rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(10px);
+  isolation: isolate;
+
+  /* vars set via TimelineSpeedGraphic (desktop) */
+  --ox: 0px;
+  --oy: 0px;
+  --gx: 60%;
+  --gy: 45%;
+}
+
+.timeline-orb-cursor {
+  position: absolute;
+  inset: -35%;
+  background: radial-gradient(
+    760px circle at var(--gx, 60%) var(--gy, 45%),
+    rgba(101, 93, 255, 0.42),
+    transparent 62%
+  );
+  filter: blur(28px);
+  opacity: 0.8;
+  mix-blend-mode: screen;
+  transform: translate3d(calc(var(--ox, 0px) * 0.18), calc(var(--oy, 0px) * 0.18), 0);
+  will-change: transform;
+}
+
+.timeline-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: saturate(1.12) contrast(1.05);
+  will-change: transform;
+
+  /* soft edge highlight */
+  box-shadow:
+    inset 0 0 0 1px rgba(185, 192, 255, 0.16),
+    inset 0 -80px 160px rgba(0, 0, 0, 0.35),
+    0 90px 170px rgba(0, 0, 0, 0.55);
+}
+
+.timeline-orb::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 55%);
+  opacity: 0.85;
+}
+
+/* Big orb (dominant) */
+.timeline-orb-a {
+  width: 620px;
+  height: 620px;
+  right: -320px;
+  top: -220px;
+  background:
+    radial-gradient(circle at 28% 25%, rgba(255, 255, 255, 0.16), rgba(185, 192, 255, 0.10) 40%, rgba(101, 93, 255, 0.14) 62%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 70% 85%, rgba(0, 0, 0, 0.55), transparent 62%);
+  opacity: 0.9;
+  animation: timelineOrbA 16s ease-in-out infinite;
+}
+
+/* Mid orb */
+.timeline-orb-b {
+  width: 520px;
+  height: 520px;
+  right: -280px;
+  top: 80px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(185, 192, 255, 0.08) 42%, rgba(101, 93, 255, 0.12) 64%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 72% 85%, rgba(0, 0, 0, 0.55), transparent 62%);
+  opacity: 0.72;
+  animation: timelineOrbB 19s ease-in-out infinite;
+}
+
+/* Lower orb */
+.timeline-orb-c {
+  width: 460px;
+  height: 460px;
+  right: -250px;
+  bottom: -250px;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.12), rgba(185, 192, 255, 0.07) 44%, rgba(75, 60, 255, 0.12) 66%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 70% 85%, rgba(0, 0, 0, 0.55), transparent 64%);
+  opacity: 0.6;
+  animation: timelineOrbC 22s ease-in-out infinite;
+}
+
+.timeline-orb-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 38%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.timeline-orb-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("/illust/noise.png");
+  opacity: 0.06;
+  mix-blend-mode: soft-light;
+  animation: timelineNoiseDrift 24s linear infinite;
+  transform: translateZ(0);
+}
+
+.timeline-orb-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 35% 30%, rgba(14, 16, 32, 0) 0%, rgba(14, 16, 32, 0.35) 70%, rgba(14, 16, 32, 0.78) 100%);
+}
+
 /* --- Home CTA wave animation --- */
 
 @keyframes ctaWaveScroll {
@@ -228,6 +412,11 @@ body {
 
   .hero-smoke-blob,
   .hero-smoke-noise {
+    animation: none;
+  }
+
+  .timeline-orb,
+  .timeline-orb-noise {
     animation: none;
   }
 }

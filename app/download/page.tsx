@@ -25,21 +25,26 @@ export default function DownloadPage() {
     mediaAlt: string;
   }) {
     return (
-      <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-[0_26px_120px_rgba(0,0,0,0.55)]">
+      <div className="group relative overflow-hidden rounded-2xl border border-line bg-surface-2 shadow-[0_22px_90px_rgba(0,0,0,0.52)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_110px_rgba(0,0,0,0.62)]">
         <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-25" />
         <div className="relative">
-          <div className="relative aspect-[16/9] overflow-hidden bg-black/25">
+          {/*
+            Keep the steps readable but compact:
+            - Mobile: taller preview (16:9)
+            - Desktop: more cinematic, shorter preview (21:9) so all 4 steps fit on-screen
+          */}
+          <div className="relative aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-black/25">
             <img
               src={mediaSrc}
               alt={mediaAlt}
               loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+              className="absolute inset-0 h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             />
             <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_30%_20%,rgba(101,93,255,0.25),transparent_60%)]" />
             <div className="pointer-events-none absolute inset-0 opacity-60 bg-[linear-gradient(180deg,rgba(0,0,0,0.25),transparent_35%,rgba(0,0,0,0.35))]" />
           </div>
 
-          <div className="p-5 sm:p-6">
+          <div className="p-4 sm:p-5">
             <div className="flex gap-3">
               <div className="mt-0.5 inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
                 <span className="text-brand">{icon}</span>
@@ -115,7 +120,8 @@ return (
             Four moves. No scrolling brain fatigue. Get from install → first cut as fast as possible.
           </p>
 
-          <div className="mt-6 grid gap-5">
+          {/* 2-up grid on desktop so all four steps are visible without scrolling */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <StepCard
               title="Install CutSwitch"
               caption="Drag to Applications. Launch it once so macOS trusts it."

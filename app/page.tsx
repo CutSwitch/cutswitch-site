@@ -8,6 +8,7 @@ import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import { FinalCTA } from "@/components/FinalCTA";
 import { HeroSmokeBackdrop } from "@/components/HeroSmokeBackdrop";
+import { TimelineSpeedGraphic } from "@/components/TimelineSpeedGraphic";
 import {
   IconCamera,
   IconExport,
@@ -157,6 +158,26 @@ export default function HomePage() {
         {/* Bottom fade so the next scene reads clean */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
+
+      {/* Speed proof (Frame.io-ish) */}
+      <section className="relative overflow-hidden py-16 sm:py-20">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(101,93,255,0.16),transparent_58%),radial-gradient(circle_at_90%_70%,rgba(185,192,255,0.10),transparent_62%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
+        <div className="container-edge relative">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div className="max-w-xl">
+              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                A full multicam podcast timeline in minutes — not hours.
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-white/65 sm:text-base">
+                Export your multicam XML, add isolated single-speaker audio, pick a rhythm. CutSwitch gives you a clean first cut you can refine in Final Cut.
+              </p>
+            </div>
+
+            <TimelineSpeedGraphic className="h-[320px] sm:h-[380px] lg:h-[360px]" />
+          </div>
+        </div>
+      </section>
 
       {/* Feature previews */}
       <section className="relative overflow-hidden bg-white/[0.02] py-16 sm:py-20">

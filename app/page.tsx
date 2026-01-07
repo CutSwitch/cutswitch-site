@@ -169,9 +169,6 @@ export default function HomePage() {
               <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 A full multicam podcast timeline in minutes — not hours.
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-white/65 sm:text-base">
-                Export your multicam XML, add isolated single-speaker audio, pick a rhythm. CutSwitch gives you a clean first cut you can refine in Final Cut.
-              </p>
             </div>
 
             <TimelineSpeedGraphic className="h-[320px] sm:h-[380px] lg:h-[360px]" />

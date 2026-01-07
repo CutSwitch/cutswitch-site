@@ -8,7 +8,7 @@ import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import { FinalCTA } from "@/components/FinalCTA";
 import { HeroSmokeBackdrop } from "@/components/HeroSmokeBackdrop";
-import { TimelineSpeedGraphic } from "@/components/TimelineSpeedGraphic";
+import { SpeedProofBackground } from "@/components/SpeedProofBackground";
 import {
   IconCamera,
   IconExport,
@@ -159,9 +159,9 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
 
-      {/* Speed proof (Frame.io-ish) */}
-      <section className="relative overflow-hidden py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(101,93,255,0.16),transparent_58%),radial-gradient(circle_at_90%_70%,rgba(185,192,255,0.10),transparent_62%)]" />
+      {/* Speed proof (Frame.io-ish, now fully integrated background) */}
+      <section className="speedproof relative overflow-hidden py-16 sm:py-20">
+        <SpeedProofBackground />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
         <div className="container-edge relative">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -169,9 +169,15 @@ export default function HomePage() {
               <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 A full multicam podcast timeline in minutes — not hours.
               </h2>
+              <div className="mt-6">
+                <Link href="/pricing" className="btn btn-secondary">
+                  Explore plans <span aria-hidden>→</span>
+                </Link>
+              </div>
             </div>
 
-            <TimelineSpeedGraphic className="h-[320px] sm:h-[380px] lg:h-[360px]" />
+            {/* Right column is intentionally empty so the background art can breathe */}
+            <div aria-hidden className="hidden lg:block" />
           </div>
         </div>
       </section>

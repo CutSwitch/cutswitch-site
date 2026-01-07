@@ -16,6 +16,119 @@ body {
   height: 100%;
 }
 
+/* --- Speed-proof background (Frame-ish, embedded, calm) --- */
+
+@keyframes speedproofDrift {
+  0% {
+    transform: translate3d(-1.5%, -1.0%, 0) scale(1.06);
+  }
+  50% {
+    transform: translate3d(1.25%, 0.75%, 0) scale(1.07);
+  }
+  100% {
+    transform: translate3d(-1.5%, -1.0%, 0) scale(1.06);
+  }
+}
+
+@keyframes speedproofHaloPulse {
+  0% {
+    opacity: 0.55;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate3d(0, 0, 0) scale(1.03);
+  }
+  100% {
+    opacity: 0.55;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes speedproofDiffusion {
+  0% {
+    transform: translate3d(-1%, -0.5%, 0) scale(1.02);
+  }
+  50% {
+    transform: translate3d(1%, 0.6%, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-1%, -0.5%, 0) scale(1.02);
+  }
+}
+
+.speedproof {
+  /* baseline so the animated art blends into something consistent */
+  background: radial-gradient(circle_at 25% 0%, rgba(101, 93, 255, 0.14), transparent 55%),
+    radial-gradient(circle_at 90% 70%, rgba(185, 192, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(14, 16, 32, 0.0), rgba(14, 16, 32, 0.65) 55%, rgba(14, 16, 32, 1.0));
+}
+
+.speedproof-bg {
+  /* pointer parallax vars (set by component) */
+  --spx: 65%;
+  --spy: 38%;
+  isolation: isolate;
+}
+
+.speedproof-bg__gif {
+  position: absolute;
+  inset: -10% -10% -10% -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  opacity: 0.45;
+  filter: saturate(1.05) contrast(1.02);
+  transform-origin: var(--spx) var(--spy);
+  animation: speedproofDrift 9s ease-in-out infinite;
+  /* Blend into background like Frame, not a sticker */
+  mix-blend-mode: screen;
+  /* Fade the left side so the headline has clean contrast */
+  -webkit-mask-image: radial-gradient(circle_at 72% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0) 78%);
+  mask-image: radial-gradient(circle_at 72% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0) 78%);
+}
+
+.speedproof-bg__halo {
+  position: absolute;
+  inset: -10% -10% -10% -10%;
+  background: radial-gradient(circle_at var(--spx) var(--spy), rgba(101, 93, 255, 0.22), transparent 52%),
+    radial-gradient(circle_at calc(var(--spx) + 10%) calc(var(--spy) + 8%), rgba(185, 192, 255, 0.14), transparent 55%);
+  filter: blur(22px);
+  opacity: 0.6;
+  animation: speedproofHaloPulse 8s ease-in-out infinite;
+}
+
+.speedproof-bg__diffusion {
+  position: absolute;
+  inset: -8% -8% -8% -8%;
+  background: radial-gradient(circle_at calc(var(--spx) + 8%) calc(var(--spy) - 6%), rgba(255, 255, 255, 0.06), transparent 44%),
+    radial-gradient(circle_at calc(var(--spx) - 10%) calc(var(--spy) + 10%), rgba(185, 192, 255, 0.08), transparent 48%),
+    linear-gradient(90deg, rgba(101, 93, 255, 0.05), rgba(185, 192, 255, 0.03), rgba(101, 93, 255, 0.05));
+  filter: blur(28px);
+  opacity: 0.55;
+  animation: speedproofDiffusion 10s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+.speedproof-bg__edge {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle_at 72% 50%, rgba(255, 255, 255, 0.12), transparent 48%);
+  opacity: 0.25;
+  filter: blur(1px);
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(circle_at 72% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 46%, rgba(0,0,0,0) 74%);
+  mask-image: radial-gradient(circle_at 72% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 46%, rgba(0,0,0,0) 74%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speedproof-bg__gif,
+  .speedproof-bg__halo,
+  .speedproof-bg__diffusion {
+    animation: none !important;
+  }
+}
+
 /* --- Home hero smoke backdrop --- */
 
 @keyframes heroSmokeA {
@@ -242,186 +355,107 @@ body {
 
 .timeline-orb-graphic {
   position: relative;
-  width: 100%;
-  height: 100%;
   overflow: hidden;
 
-  /* Cinematic frosted glass (anchored, not “floating card”) */
-  border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  /* same glass language as cards, but with a deeper stage */
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
   background:
-    radial-gradient(900px circle at 12% 8%, rgba(101, 93, 255, 0.16), transparent 58%),
-    radial-gradient(820px circle at 92% 72%, rgba(185, 192, 255, 0.10), transparent 62%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
-
-  /* Softer shadow so it blends into the section backdrop */
-  box-shadow:
-    0 26px 120px rgba(0, 0, 0, 0.52),
-    0 8px 30px rgba(0, 0, 0, 0.35);
-
-  backdrop-filter: blur(14px);
+    radial-gradient(900px circle at 10% 10%, rgba(101, 93, 255, 0.18), transparent 55%),
+    radial-gradient(800px circle at 90% 60%, rgba(185, 192, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 34px 140px rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(10px);
   isolation: isolate;
-}
 
-/* Stage wrapper sets vars + allows the ambient halo to extend beyond the panel */
-.timeline-orb-stage {
-  position: relative;
-  width: 100%;
-  height: 100%;
-
-  /* vars set via TimelineSpeedGraphic (desktop parallax) */
+  /* vars set via TimelineSpeedGraphic (desktop) */
   --ox: 0px;
   --oy: 0px;
   --gx: 60%;
   --gy: 45%;
 }
 
-/* Background “light response” that bleeds beyond the panel */
-@keyframes timelineAmbientBreath {
-  0% {
-    opacity: 0.20;
-    transform: translate3d(calc(var(--ox, 0px) * 0.10), calc(var(--oy, 0px) * 0.08), 0) scale(1);
-  }
-  50% {
-    opacity: 0.34;
-    transform: translate3d(
-        calc(var(--ox, 0px) * 0.10 + 14px),
-        calc(var(--oy, 0px) * 0.08 - 10px),
-        0
-      )
-      scale(1.04);
-  }
-  100% {
-    opacity: 0.20;
-    transform: translate3d(calc(var(--ox, 0px) * 0.10), calc(var(--oy, 0px) * 0.08), 0) scale(1);
-  }
-}
-
-.timeline-orb-ambient {
+.timeline-orb-cursor {
   position: absolute;
-  inset: -38%;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      880px circle at var(--gx, 60%) var(--gy, 45%),
-      rgba(101, 93, 255, 0.26),
-      rgba(185, 192, 255, 0.16) 35%,
-      transparent 68%
-    ),
-    radial-gradient(
-      780px circle at calc(var(--gx, 60%) + 10%) calc(var(--gy, 45%) + 8%),
-      rgba(185, 192, 255, 0.12),
-      transparent 64%
-    );
-  filter: blur(34px);
+  inset: -35%;
+  background: radial-gradient(
+    760px circle at var(--gx, 60%) var(--gy, 45%),
+    rgba(101, 93, 255, 0.42),
+    transparent 62%
+  );
+  filter: blur(28px);
+  opacity: 0.8;
   mix-blend-mode: screen;
-  animation: timelineAmbientBreath 10s ease-in-out infinite;
-  will-change: transform, opacity;
+  transform: translate3d(calc(var(--ox, 0px) * 0.18), calc(var(--oy, 0px) * 0.18), 0);
+  will-change: transform;
 }
 
-/* Internal gradient drift (slow, organic, “breathing” glass) */
-@keyframes timelinePanelDriftA {
-  0% {
-    transform: translate3d(calc(var(--ox, 0px) * 0.09), calc(var(--oy, 0px) * 0.06), 0) scale(1.02);
-    opacity: 0.62;
-  }
-  50% {
-    transform: translate3d(
-        calc(var(--ox, 0px) * 0.09 + 12px),
-        calc(var(--oy, 0px) * 0.06 - 9px),
-        0
-      )
-      scale(1.045);
-    opacity: 0.72;
-  }
-  100% {
-    transform: translate3d(calc(var(--ox, 0px) * 0.09), calc(var(--oy, 0px) * 0.06), 0) scale(1.02);
-    opacity: 0.62;
-  }
-}
-
-@keyframes timelinePanelDriftB {
-  0% {
-    transform: translate3d(calc(var(--ox, 0px) * -0.06), calc(var(--oy, 0px) * -0.04), 0) scale(1);
-    opacity: 0.46;
-  }
-  50% {
-    transform: translate3d(
-        calc(var(--ox, 0px) * -0.06 - 10px),
-        calc(var(--oy, 0px) * -0.04 + 8px),
-        0
-      )
-      scale(1.03);
-    opacity: 0.56;
-  }
-  100% {
-    transform: translate3d(calc(var(--ox, 0px) * -0.06), calc(var(--oy, 0px) * -0.04), 0) scale(1);
-    opacity: 0.46;
-  }
-}
-
-.timeline-orb-graphic::before {
-  content: "";
+.timeline-orb {
   position: absolute;
-  inset: -30%;
-  border-radius: inherit;
-  background:
-    radial-gradient(360px circle at 34% 36%, rgba(255, 255, 255, 0.09), rgba(185, 192, 255, 0.08) 42%, rgba(101, 93, 255, 0.12) 64%, transparent 74%),
-    radial-gradient(340px circle at 68% 52%, rgba(255, 255, 255, 0.07), rgba(185, 192, 255, 0.06) 44%, rgba(101, 93, 255, 0.10) 66%, transparent 76%),
-    radial-gradient(320px circle at 48% 70%, rgba(255, 255, 255, 0.06), rgba(185, 192, 255, 0.05) 46%, rgba(75, 60, 255, 0.09) 70%, transparent 80%);
-  filter: blur(18px) saturate(1.10);
-  mix-blend-mode: screen;
-  animation: timelinePanelDriftA 9s ease-in-out infinite;
-  will-change: transform, opacity;
-}
+  border-radius: 9999px;
+  filter: saturate(1.12) contrast(1.05);
+  will-change: transform;
 
-.timeline-orb-graphic::after {
-  content: "";
-  position: absolute;
-  inset: -34%;
-  border-radius: inherit;
-  background:
-    radial-gradient(520px circle at 20% 20%, rgba(101, 93, 255, 0.12), transparent 62%),
-    radial-gradient(520px circle at 86% 78%, rgba(185, 192, 255, 0.10), transparent 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.00) 55%);
-  filter: blur(26px);
-  mix-blend-mode: overlay;
-  animation: timelinePanelDriftB 10s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-
-/* Edge refraction: subtle glow that breathes */
-@keyframes timelineEdgeBreath {
-  0% {
-    opacity: 0.26;
-  }
-  50% {
-    opacity: 0.40;
-  }
-  100% {
-    opacity: 0.26;
-  }
-}
-
-.timeline-orb-edge {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
+  /* soft edge highlight */
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 0 0 12px rgba(101, 93, 255, 0.045),
-    inset 0 -60px 120px rgba(0, 0, 0, 0.28);
-  background: radial-gradient(800px circle at var(--gx, 60%) var(--gy, 45%), rgba(185, 192, 255, 0.10), transparent 60%);
-  filter: blur(0.2px);
-  animation: timelineEdgeBreath 9s ease-in-out infinite;
+    inset 0 0 0 1px rgba(185, 192, 255, 0.16),
+    inset 0 -80px 160px rgba(0, 0, 0, 0.35),
+    0 90px 170px rgba(0, 0, 0, 0.55);
+}
+
+.timeline-orb::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 55%);
+  opacity: 0.85;
+}
+
+/* Big orb (dominant) */
+.timeline-orb-a {
+  width: 620px;
+  height: 620px;
+  right: -320px;
+  top: -220px;
+  background:
+    radial-gradient(circle at 28% 25%, rgba(255, 255, 255, 0.16), rgba(185, 192, 255, 0.10) 40%, rgba(101, 93, 255, 0.14) 62%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 70% 85%, rgba(0, 0, 0, 0.55), transparent 62%);
+  opacity: 0.9;
+  animation: timelineOrbA 16s ease-in-out infinite;
+}
+
+/* Mid orb */
+.timeline-orb-b {
+  width: 520px;
+  height: 520px;
+  right: -280px;
+  top: 80px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(185, 192, 255, 0.08) 42%, rgba(101, 93, 255, 0.12) 64%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 72% 85%, rgba(0, 0, 0, 0.55), transparent 62%);
+  opacity: 0.72;
+  animation: timelineOrbB 19s ease-in-out infinite;
+}
+
+/* Lower orb */
+.timeline-orb-c {
+  width: 460px;
+  height: 460px;
+  right: -250px;
+  bottom: -250px;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.12), rgba(185, 192, 255, 0.07) 44%, rgba(75, 60, 255, 0.12) 66%, rgba(14, 16, 32, 0) 74%),
+    radial-gradient(circle at 70% 85%, rgba(0, 0, 0, 0.55), transparent 64%);
+  opacity: 0.6;
+  animation: timelineOrbC 22s ease-in-out infinite;
 }
 
 .timeline-orb-sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02) 34%, transparent 70%);
-  opacity: 0.48;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 38%);
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -438,7 +472,7 @@ body {
 .timeline-orb-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 35% 30%, rgba(14, 16, 32, 0) 0%, rgba(14, 16, 32, 0.32) 68%, rgba(14, 16, 32, 0.78) 100%);
+  background: radial-gradient(circle at 35% 30%, rgba(14, 16, 32, 0) 0%, rgba(14, 16, 32, 0.35) 70%, rgba(14, 16, 32, 0.78) 100%);
 }
 
 /* --- Home CTA wave animation --- */
@@ -494,14 +528,8 @@ body {
     animation: none;
   }
 
-  .timeline-orb-ambient,
-  .timeline-orb-edge,
+  .timeline-orb,
   .timeline-orb-noise {
-    animation: none;
-  }
-
-  .timeline-orb-graphic::before,
-  .timeline-orb-graphic::after {
     animation: none;
   }
 }

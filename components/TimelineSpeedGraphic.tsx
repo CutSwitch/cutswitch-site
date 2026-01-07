@@ -23,10 +23,6 @@ export function TimelineSpeedGraphic({ className }: Props) {
     const m = window.matchMedia?.("(hover: hover) and (pointer: fine)");
     if (!m?.matches) return;
 
-    // Respect reduced-motion preferences.
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (reduce?.matches) return;
-
     const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
     let rect = el.getBoundingClientRect();
@@ -69,9 +65,9 @@ export function TimelineSpeedGraphic({ className }: Props) {
       tmx = px * 100;
       tmy = py * 100;
 
-      // Tiny parallax translation (keep it restrained)
-      tx = (px - 0.5) * 28;
-      ty = (py - 0.5) * 20;
+      // tiny parallax translation
+      tx = (px - 0.5) * 60;
+      ty = (py - 0.5) * 44;
     };
 
     const onMove = (e: PointerEvent) => setTargets(e.clientX, e.clientY);
@@ -98,20 +94,22 @@ export function TimelineSpeedGraphic({ className }: Props) {
   }, []);
 
   return (
-    <div ref={ref} aria-hidden="true" className={cn("timeline-orb-stage", className)}>
-      {/*
-        Ambient response layer (extends beyond the panel)
-        so the panel feels anchored to the background.
-      */}
-      <div className="timeline-orb-ambient" />
+    <div
+      ref={ref}
+      aria-hidden="true"
+      className={cn("timeline-orb-graphic", className)}
+    >
+      <div className="timeline-orb-cursor" />
 
-      {/* Frosted-glass panel */}
-      <div className="timeline-orb-graphic">
-        <div className="timeline-orb-edge" />
-        <div className="timeline-orb-sheen" />
-        <div className="timeline-orb-noise" />
-        <div className="timeline-orb-vignette" />
-      </div>
+      {/* The stack */}
+      <div className="timeline-orb timeline-orb-a" />
+      <div className="timeline-orb timeline-orb-b" />
+      <div className="timeline-orb timeline-orb-c" />
+
+      {/* glass + grain */}
+      <div className="timeline-orb-sheen" />
+      <div className="timeline-orb-noise" />
+      <div className="timeline-orb-vignette" />
     </div>
   );
 }

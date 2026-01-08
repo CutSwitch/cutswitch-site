@@ -74,14 +74,16 @@ export function SpeedProofBackground({ className }: Props) {
       aria-hidden
       className={["speedproof-bg pointer-events-none absolute inset-0", className].filter(Boolean).join(" ")}
     >
-      {/* Animated GIF background layer (subtle drift + masking). */}
-      <img
-        src="/illust/speedproof-bg.gif"
-        alt=""
-        className="speedproof-bg__gif"
-        loading="lazy"
-        decoding="async"
-      />
+      {/*
+        Animated backdrop layer.
+
+        NOTE: use a background-image div (instead of an <img>) so the GIF can truly full-bleed
+        across ultra-wide viewports without leaving a hard edge on the right.
+      */}
+      <div className="speedproof-bg__gif" />
+
+      {/* Brand tint so the palette is consistent with CutSwitch */}
+      <div className="speedproof-bg__tint" />
 
       {/* Gentle light response halo so the art feels anchored into the environment. */}
       <div className="speedproof-bg__halo" />

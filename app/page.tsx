@@ -170,7 +170,7 @@ export default function HomePage() {
                 A full multicam podcast timeline in minutes — not hours.
               </h2>
               <div className="mt-6">
-                <Link href="/pricing" className="btn btn-secondary">
+                <Link href="/pricing" className="btn btn-primary">
                   Explore plans <span aria-hidden>→</span>
                 </Link>
               </div>

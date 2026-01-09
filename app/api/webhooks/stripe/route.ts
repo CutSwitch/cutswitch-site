@@ -245,7 +245,7 @@ async function handleCheckoutSessionCompleted(eventId: string, session: Stripe.C
           ...subscription.metadata,
           keygen_license_id: license.id,
           keygen_license_key_last6: license.attributes.key.slice(-6),
-          plan: subscription.metadata?.plan || (planKey !== "unknown" ? planKey : undefined),
+          plan: subscription.metadata?.plan || (planKey !== "unknown" ? planKey : null),
         },
       });
 
@@ -363,7 +363,7 @@ async function handleCheckoutSessionCompleted(eventId: string, session: Stripe.C
           ...pi.metadata,
           keygen_license_id: license.id,
           keygen_license_key_last6: license.attributes.key.slice(-6),
-          plan: pi.metadata?.plan || (planKey !== "unknown" ? planKey : undefined),
+          plan: pi.metadata?.plan || (planKey !== "unknown" ? planKey : null),
         },
       });
 

@@ -2,129 +2,105 @@ import { requireEnv } from "@/lib/env";
 
 export type KeygenLicense = {
   id: string;
-  type: "licenses";
   attributes: {
     key: string;
-    name: string | null;
-    expiry: string | null;
-    maxMachines: number | null;
-    suspended: boolean;
-    metadata: Record<string, unknown>;
-    created: string;
-    updated: string;
+    maxMachines?: number | null;
+    suspended?: boolean;
   };
 };
 
-function getKeygenConfig() {
-  const apiKey = process.env.KEYGEN_API_TOKEN || process.env.KEYGEN_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "Missing env var KEYGEN_API_TOKEN (or KEYGEN_API_KEY). This is your Keygen admin API token."
-    );
-  }
+type KeygenConfig = {
+  baseUrl: string;
+  accountId: string;
+  policyId: string;
+  adminToken: string;
+};
 
+function getKeygenConfig(): KeygenConfig {
   return {
-    apiKey,
+    baseUrl: requireEnv("KEYGEN_BASE_URL"), // e.g. https://api.keygen.sh
     accountId: requireEnv("KEYGEN_ACCOUNT_ID"),
     policyId: requireEnv("KEYGEN_POLICY_ID"),
-    version: process.env.KEYGEN_VERSION || "1.1",
+    adminToken: requireEnv("KEYGEN_ADMIN_TOKEN"),
   };
 }
 
-const KEYGEN_BASE = "https://api.keygen.sh/v1";
-
-async function keygenRequest<T>(
-  path: string,
-  init: RequestInit & { json?: unknown } = {}
-): Promise<T> {
-  const { apiKey, version } = getKeygenConfig();
-
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.api+json",
-    Authorization: `Bearer ${apiKey}`,
-    "Keygen-Version": version,
-  };
-
-  if (init.json !== undefined) {
-    headers["Content-Type"] = "application/vnd.api+json";
-  }
-
-  const res = await fetch(`${KEYGEN_BASE}${path}`, {
+async function keygenFetch<T>(path: string, init: RequestInit): Promise<T> {
+  const { baseUrl, adminToken } = getKeygenConfig();
+  const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
-      ...headers,
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+      Authorization: `Bearer ${adminToken}`,
       ...(init.headers || {}),
     },
-    body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
   });
 
-  const text = await res.text();
-  const json = text ? (JSON.parse(text) as any) : null;
-
   if (!res.ok) {
-    const detail =
-      json?.errors?.[0]?.detail || json?.errors?.[0]?.title || text || "Unknown error";
-    throw new Error(`Keygen API error (${res.status}): ${detail}`);
+    const text = await res.text();
+    throw new Error(`Keygen error (${res.status}): ${text}`);
   }
 
-  return json as T;
+  return (await res.json()) as T;
 }
 
 export async function createLicense(params: {
   metadata: Record<string, unknown>;
   maxMachinesOverride?: number;
   name?: string;
+  /** Optional override for the Keygen policy ID (useful for mapping Stripe price IDs to different policies). */
+  policyIdOverride?: string;
 }): Promise<KeygenLicense> {
   const { accountId, policyId } = getKeygenConfig();
+  const effectivePolicyId = params.policyIdOverride || policyId;
 
-  const payload: any = {
+  const payload = {
     data: {
       type: "licenses",
       attributes: {
+        name: params.name || "CutSwitch",
         metadata: params.metadata,
+        ...(typeof params.maxMachinesOverride === "number"
+          ? { maxMachines: params.maxMachinesOverride }
+          : {}),
       },
       relationships: {
+        account: {
+          data: { type: "accounts", id: accountId },
+        },
         policy: {
-          data: { type: "policies", id: policyId },
+          data: { type: "policies", id: effectivePolicyId },
         },
       },
     },
   };
 
-  if (params.name) payload.data.attributes.name = params.name;
-  if (typeof params.maxMachinesOverride === "number") {
-    payload.data.attributes.maxMachines = params.maxMachinesOverride;
-  }
+  const out = await keygenFetch<{ data: KeygenLicense }>("/licenses", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-  const res = await keygenRequest<{ data: KeygenLicense }>(
-    `/accounts/${accountId}/licenses`,
-    { method: "POST", json: payload }
-  );
-
-  return res.data;
-}
-
-export async function suspendLicense(licenseId: string): Promise<void> {
-  const { accountId } = getKeygenConfig();
-  await keygenRequest(
-    `/accounts/${accountId}/licenses/${licenseId}/actions/suspend`,
-    { method: "POST" }
-  );
-}
-
-export async function reinstateLicense(licenseId: string): Promise<void> {
-  const { accountId } = getKeygenConfig();
-  await keygenRequest(
-    `/accounts/${accountId}/licenses/${licenseId}/actions/reinstate`,
-    { method: "POST" }
-  );
+  return out.data;
 }
 
 export async function retrieveLicense(licenseId: string): Promise<KeygenLicense> {
-  const { accountId } = getKeygenConfig();
-  const res = await keygenRequest<{ data: KeygenLicense }>(
-    `/accounts/${accountId}/licenses/${licenseId}`,
-    { method: "GET" }
-  );
-  return res.data;
+  const out = await keygenFetch<{ data: KeygenLicense }>(`/licenses/${licenseId}`, {
+    method: "GET",
+  });
+  return out.data;
+}
+
+export async function suspendLicense(licenseId: string): Promise<void> {
+  await keygenFetch(`/licenses/${licenseId}/actions/suspend`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function reinstateLicense(licenseId: string): Promise<void> {
+  await keygenFetch(`/licenses/${licenseId}/actions/reinstate`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }

@@ -13,8 +13,14 @@ export async function sendEmail(message: OutboundEmail): Promise<void> {
   const from = getPublicEnv("RESEND_FROM") || "CutSwitch <support@cutswitch.com>";
 
   if (!apiKey) {
-    // Safe fallback for local dev: don't throw, just log.
-    console.log("[email:log-only]", { from, ...message, to: message.to });
+    // Safe fallback for local dev: don't throw, but also don't log PII or secrets.
+    // (License emails contain keys; support emails can contain personal info.)
+    const toCount = Array.isArray(message.to) ? message.to.length : 1;
+    console.log("[email:log-only] RESEND_API_KEY missing, email suppressed", {
+      from,
+      toCount,
+      subject: message.subject,
+    });
     return;
   }
 

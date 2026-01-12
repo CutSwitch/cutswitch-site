@@ -106,7 +106,6 @@ async function validateLicenseKeyDetailed(
     try {
       json = JSON.parse(rawText)
     } catch {
-      // non-JSON response (still logged above)
       json = {}
     }
 
@@ -135,11 +134,8 @@ async function validateLicenseKeyDetailed(
         : undefined
 
     // 2) If NOT valid because there are no machines for this fingerprint,
-    //    create a machine for this fingerprint + license.
-    if (
-      !valid &&
-      (code === 'NO_MACHINES' || code === 'FINGERPRINT_SCOPE_MISMATCH')
-    ) {
+    //    create a machine for this fingerprint + license (CORRECT ENDPOINT).
+    if (!valid && (code === 'NO_MACHINES' || code === 'FINGERPRINT_SCOPE_MISMATCH')) {
       if (!licenseId) {
         return {
           ok: false,
@@ -148,6 +144,7 @@ async function validateLicenseKeyDetailed(
         }
       }
 
+      // ✅ Correct endpoint: /machines (NOT /licenses/{id}/machines)
       const machineUrl = `https://api.keygen.sh/v1/accounts/${keygenAccount}/machines`
 
       const mRes = await fetch(machineUrl, {
@@ -163,6 +160,11 @@ async function validateLicenseKeyDetailed(
             attributes: {
               fingerprint,
               name: `CutSwitch Mac (${fingerprint.slice(0, 8)})`,
+            },
+            relationships: {
+              license: {
+                data: { type: 'licenses', id: licenseId },
+              },
             },
           },
         }),

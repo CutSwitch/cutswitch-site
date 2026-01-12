@@ -148,7 +148,7 @@ async function validateLicenseKeyDetailed(
         }
       }
 
-      const machineUrl = `https://api.keygen.sh/v1/accounts/${keygenAccount}/licenses/${licenseId}/machines`
+      const machineUrl = `https://api.keygen.sh/v1/accounts/${keygenAccount}/machines`
 
       const mRes = await fetch(machineUrl, {
         method: 'POST',

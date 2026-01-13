@@ -6,12 +6,9 @@ import { jsonError, jsonOk } from '@/lib/api'
 import { getEntitlementStatus } from '@/lib/entitlement'
 import {
   getLicense,
-  getLicenseKeyIndex,
   getTrial,
   putLicense,
-  putLicenseKeyIndex,
   putTrial,
-  removeDeviceFromLicenseKeyIndex,
   upsertDeviceSeen,
 } from '@/lib/kv'
 import { rateLimit } from '@/lib/rateLimit'
@@ -29,12 +26,8 @@ function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex')
 }
 
-function getMaxDevices(): number {
-  const raw = process.env.LICENSE_MAX_DEVICES ?? '2'
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n <= 0) return 2
-  return Math.min(50, Math.floor(n))
-}
+// NOTE: We rely on Keygen machine limits (policy maxMachines) for device enforcement.
+// Server-side KV "device index" enforcement is intentionally removed to avoid double-limiting.
 
 type ValidateLicenseResult =
   | {
@@ -231,24 +224,8 @@ export async function POST(req: Request) {
   const last4 = licenseKey.slice(-4)
 
   const existingLic = await getLicense(deviceId)
-  if (existingLic?.license_key_hash && existingLic.license_key_hash !== keyHash) {
-    await removeDeviceFromLicenseKeyIndex(existingLic.license_key_hash, deviceId)
-  }
-
-  const maxDevices = getMaxDevices()
-  const idxExisting = await getLicenseKeyIndex(keyHash)
-  const deviceIds = new Set(idxExisting?.device_ids ?? [])
-
-  if (!deviceIds.has(deviceId) && deviceIds.size >= maxDevices) {
-    return jsonError(409, 'license_device_limit', 'License is active on too many devices.')
-  }
-
-  deviceIds.add(deviceId)
-  await putLicenseKeyIndex({
-    license_key_hash: keyHash,
-    device_ids: Array.from(deviceIds),
-    updated_at: now,
-  })
+  // If this device previously activated with another key, we simply overwrite the device's license record.
+  // Keygen will enforce the global machine limit per license.
 
   const ttlSeconds = 6 * 60 * 60
   const nextCheckAfter = new Date(Date.now() + ttlSeconds * 1000).toISOString()

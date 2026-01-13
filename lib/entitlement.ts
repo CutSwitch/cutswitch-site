@@ -108,15 +108,6 @@ function sha256Hex(input: string): string {
   return crypto.createHash('sha256').update(input).digest('hex')
 }
 
-function getAllowlistHashes(): Set<string> {
-  const raw = process.env.TEST_LICENSE_KEYS ?? ''
-  const keys = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  return new Set(keys.map((k) => sha256Hex(k)))
-}
-
 function keygenConfigured(): boolean {
   // lib/keygen.ts requires KEYGEN_POLICY_ID even for retrieval, so treat it as required.
   return (
@@ -169,16 +160,19 @@ export async function getEntitlementStatus(
   let lastValidatedAt: string | null = lic?.last_validated_at ?? null
   let validationError: { code: string; message: string } | undefined
   let nextCheckAfterIso: string | null = lic?.next_check_after ?? null
-
-  const allowlistHashes = getAllowlistHashes()
-  const hasAllowlist = allowlistHashes.size > 0
   const canUseKeygen = keygenConfigured()
 
   if (lic) {
     // Always keep last_seen fresh
     await putLicense({ ...lic, last_seen_at: now, app_version: opts.appVersion ?? lic.app_version })
 
-    licenseSource = lic.source ?? (canUseKeygen ? 'keygen' : hasAllowlist ? 'allowlist' : 'unknown')
+    // Production: rely on Keygen only. If a legacy allowlist record is encountered,
+    // treat it as Keygen-backed (or unknown if Keygen isn't configured).
+    if (lic.source === 'allowlist') {
+      licenseSource = canUseKeygen ? 'keygen' : 'unknown'
+    } else {
+      licenseSource = lic.source ?? (canUseKeygen ? 'keygen' : 'unknown')
+    }
 
     // Determine whether we should validate now (or respect next_check_after)
     const cachedNextMs = nextCheckAfterIso ? parseIsoToMs(nextCheckAfterIso) : null
@@ -252,24 +246,8 @@ export async function getEntitlementStatus(
       }
     }
 
-    // 2) Allowlist path (testing / fallback)
-    if (licenseState === 'none' && hasAllowlist) {
-      const active = allowlistHashes.has(lic.license_key_hash)
-      licenseSource = 'allowlist'
-      licenseState = active ? 'active' : 'revoked'
-      const nc = computeNextCheckAfter(nowMs, active ? TTL_ACTIVE_LICENSE_SECONDS : TTL_INACTIVE_SECONDS)
-      nextCheckAfterIso = nc.nextCheckAfter
-      await putLicense({
-        ...lic,
-        source: 'allowlist',
-        last_validated_at: now,
-        next_check_after: nc.nextCheckAfter,
-        last_seen_at: now,
-        app_version: opts.appVersion ?? lic.app_version,
-      })
-      lastValidatedAt = now
-      validationState = 'fresh'
-    }
+    // 2) Allowlist entitlement is disabled (Option B). Legacy allowlist records are
+    // treated as Keygen-backed when possible; no special revoked handling here.
 
     // 3) If Keygen is configured but we cannot validate (missing id), do NOT grant permanent active.
     if (licenseState === 'none' && canUseKeygen && !keygenLicenseId) {

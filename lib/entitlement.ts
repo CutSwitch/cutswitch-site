@@ -302,11 +302,13 @@ export async function getEntitlementStatus(
   let canExport = false
   let reason = 'no_entitlement'
 
-  if (licenseState === 'suspended' || licenseState === 'revoked') {
-    entitlementState = 'revoked'
-    canExport = false
-    reason = 'license_revoked'
-  } else if (licenseState === 'active') {
+	// Keygen-only: we rely on Keygen policy enforcement.
+	// Treat suspended as revoked for entitlement purposes.
+	if (licenseState === 'suspended') {
+		entitlementState = 'revoked'
+		canExport = false
+		reason = 'license_revoked'
+	} else if (licenseState === 'active') {
     entitlementState = 'licensed'
     canExport = true
     reason = validationState === 'stale' ? 'license_active_stale' : 'license_active'

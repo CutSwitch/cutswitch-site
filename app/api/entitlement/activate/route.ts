@@ -4,13 +4,7 @@ import crypto from 'crypto'
 
 import { jsonError, jsonOk } from '@/lib/api'
 import { getEntitlementStatus } from '@/lib/entitlement'
-import {
-  getLicense,
-  getTrial,
-  putLicense,
-  putTrial,
-  upsertDeviceSeen,
-} from '@/lib/kv'
+import { getLicense, getTrial, putLicense, putTrial, upsertDeviceSeen } from '@/lib/kv'
 import { rateLimit } from '@/lib/rateLimit'
 import { getIpHash, readJsonBody } from '@/lib/request'
 import { normalizeAppVersion, normalizeDeviceId, normalizeLicenseKey } from '@/lib/validation'
@@ -83,7 +77,9 @@ async function validateLicenseKeyDetailed(
     let json: any = {}
     try {
       json = JSON.parse(rawText)
-    } catch {}
+    } catch {
+      json = {}
+    }
 
     if (!res.ok) {
       return {
@@ -147,7 +143,9 @@ async function validateLicenseKeyDetailed(
         let err: any = {}
         try {
           err = JSON.parse(mText)
-        } catch {}
+        } catch {
+          err = {}
+        }
         return {
           ok: false,
           code: 'validation_error',
@@ -200,11 +198,7 @@ export async function POST(req: Request) {
   const appVersion = normalizeAppVersion(parsed.data.app_version)
 
   if (!deviceId || !licenseKey || !fingerprint) {
-    return jsonError(
-      400,
-      'invalid_payload',
-      'device_id, license_key, and fingerprint are required.'
-    )
+    return jsonError(400, 'invalid_payload', 'device_id, license_key, and fingerprint are required.')
   }
 
   const rlDevice = await rateLimit(`rl:entitlement_activate:device:${deviceId}`, 20, 60 * 60)

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+
 import { getBaseUrl } from "@/lib/env";
 import { getCheckoutPlan, findPromotionCodeId } from "@/lib/billing";
 import { stripe } from "@/lib/stripe";
 import type { PlanKey } from "@/lib/site";
+import { rateLimit } from "@/lib/rateLimit";
+import { getIpHash, readJsonBody } from "@/lib/request";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -18,9 +21,48 @@ function isPlanKey(value: unknown): value is PlanKey {
   return value === "monthly" || value === "yearly" || value === "lifetime";
 }
 
+type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  reset_seconds: number;
+};
+
+async function safeRateLimit(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<RateLimitResult> {
+  try {
+    return await rateLimit(key, limit, windowSeconds);
+  } catch (err: any) {
+    // Fail-open: purchases should not be blocked by KV outages.
+    console.warn("[checkout:create-session] rateLimit unavailable, continuing");
+    return { allowed: true, remaining: limit, reset_seconds: windowSeconds };
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Body;
+    // Abuse protection: creating Stripe Checkout Sessions is a paid API surface.
+    // Keep this generous so it never hits real buyers.
+    const ipHash = getIpHash(req);
+    const rl = await safeRateLimit(`rl:checkout_create_session:ip:${ipHash}`, 30, 60 * 60);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests." },
+        { status: 429, headers: { "Retry-After": String(Math.max(1, rl.reset_seconds ?? 60)) } }
+      );
+    }
+
+    const parsed = await readJsonBody<Body>(req, 8 * 1024);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: parsed.message || "Invalid request." },
+        { status: parsed.status }
+      );
+    }
+
+    const body = parsed.data;
 
     if (!isPlanKey(body.plan)) {
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
@@ -37,12 +79,29 @@ export async function POST(req: Request) {
     const plan = getCheckoutPlan(body.plan);
 
     const referral = typeof body.referral === "string" ? body.referral.trim() : "";
-    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
+    if (referral.length > 128) {
+      return NextResponse.json({ error: "Invalid referral." }, { status: 400 });
+    }
 
-    const promoId = couponCode ? await findPromotionCodeId(couponCode) : null;
+    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
+    if (couponCode.length > 64) {
+      return NextResponse.json({ error: "Invalid coupon code." }, { status: 400 });
+    }
+
+    let promoId: string | null = null;
+    if (couponCode) {
+      promoId = await findPromotionCodeId(couponCode);
+      if (!promoId) {
+        return NextResponse.json(
+          { error: "Invalid or inactive coupon code." },
+          { status: 400 }
+        );
+      }
+    }
 
     const sessionMetadata: Record<string, string> = {
       plan: plan.key,
+      stripe_price_id: plan.priceId,
       no_refunds_ack: "true",
     };
     if (referral) sessionMetadata.referral = referral;
@@ -102,12 +161,15 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create(common);
 
     if (!session.url) {
-      return NextResponse.json({ error: "Stripe session missing URL." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Stripe session missing URL." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("create-session error", err);
+    console.error("[checkout:create-session] error", err?.message || err);
     return NextResponse.json(
       { error: err?.message || "Server error" },
       { status: 500 }

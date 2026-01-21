@@ -71,8 +71,6 @@ async function validateLicenseKeyDetailed(
     })
 
     const rawText = await res.text()
-    console.log('Keygen validate status:', res.status)
-    console.log('Keygen validate body:', rawText)
 
     let json: any = {}
     try {
@@ -136,8 +134,6 @@ async function validateLicenseKeyDetailed(
       })
 
       const mText = await mRes.text()
-      console.log('Keygen machine status:', mRes.status)
-      console.log('Keygen machine body:', mText)
 
       if (!mRes.ok) {
         let err: any = {}

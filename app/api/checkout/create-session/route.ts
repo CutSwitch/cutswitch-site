@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getBaseUrl } from "@/lib/env";
 import { getCheckoutPlan, findPromotionCodeId } from "@/lib/billing";
-import { stripe } from "@/lib/stripe";
-import type { PlanKey } from "@/lib/site";
-import { rateLimit } from "@/lib/rateLimit";
+import { getBaseUrl } from "@/lib/env";
 import { getIpHash, readJsonBody } from "@/lib/request";
+import { rateLimit, type RateLimitResult } from "@/lib/rateLimit";
+import type { PlanKey } from "@/lib/site";
+import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -21,12 +21,6 @@ function isPlanKey(value: unknown): value is PlanKey {
   return value === "monthly" || value === "yearly" || value === "lifetime";
 }
 
-type RateLimitResult = {
-  allowed: boolean;
-  remaining: number;
-  reset_seconds: number;
-};
-
 async function safeRateLimit(
   key: string,
   limit: number,
@@ -34,10 +28,10 @@ async function safeRateLimit(
 ): Promise<RateLimitResult> {
   try {
     return await rateLimit(key, limit, windowSeconds);
-  } catch (err: any) {
+  } catch {
     // Fail-open: purchases should not be blocked by KV outages.
     console.warn("[checkout:create-session] rateLimit unavailable, continuing");
-    return { allowed: true, remaining: limit, reset_seconds: windowSeconds };
+    return { allowed: true, remaining: limit, limit, reset_seconds: windowSeconds };
   }
 }
 
@@ -50,7 +44,12 @@ export async function POST(req: Request) {
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests." },
-        { status: 429, headers: { "Retry-After": String(Math.max(1, rl.reset_seconds ?? 60)) } }
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.max(1, rl.reset_seconds ?? 60)),
+          },
+        }
       );
     }
 
@@ -161,18 +160,13 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create(common);
 
     if (!session.url) {
-      return NextResponse.json(
-        { error: "Stripe session missing URL." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Stripe session missing URL." }, { status: 500 });
     }
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
+    // Intentionally do not log request payloads (may contain PII).
     console.error("[checkout:create-session] error", err?.message || err);
-    return NextResponse.json(
-      { error: err?.message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
   }
 }

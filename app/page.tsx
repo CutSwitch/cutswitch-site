@@ -160,10 +160,10 @@ export default function HomePage() {
       </header>
 
       {/* Speed proof (Frame.io-ish, fully integrated background) */}
-      <section className="speedproof relative overflow-hidden py-16 sm:py-20">
+      <section className="speedproof relative overflow-hidden py-20 sm:py-24 lg:py-32 min-h-[460px] sm:min-h-[520px] lg:min-h-[600px]">
         <SpeedProofBackground />
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+        <div className="container-edge scene-content">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div className="max-w-xl">
               <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
@@ -184,8 +184,8 @@ export default function HomePage() {
 
       {/* Feature previews */}
       <section className="scene scene--features py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative z-10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+        <div className="container-edge scene-content">
           <FeatureGrid
             title="Built for conversation edits"
             subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
@@ -196,8 +196,8 @@ export default function HomePage() {
 
       {/* Social proof */}
       <section className="scene scene--social py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative z-10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+        <div className="container-edge scene-content">
           <TestimonialGrid
             title="What early editors are saying"
             subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
@@ -208,8 +208,8 @@ export default function HomePage() {
 
       {/* Affiliates */}
       <section className="scene scene--affiliates py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative z-10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+        <div className="container-edge scene-content">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
             <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
@@ -242,8 +242,8 @@ export default function HomePage() {
 
       {/* Final act: Pricing flows into CTA */}
       <section className="scene scene--final">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative z-10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+        <div className="scene-content">
           <PricingTable embedded />
           <FinalCTA embedded />
         </div>

@@ -5,6 +5,7 @@ import { getBaseUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { ScrollCSSVars } from "@/components/ScrollCSSVars";
 
 const baseUrl = getBaseUrl();
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen">
+        <ScrollCSSVars />
         {rewardfulApiKey ? (
           <>
             <Script id="rewardful-init" strategy="beforeInteractive">

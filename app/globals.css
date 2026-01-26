@@ -9,6 +9,8 @@
   --highlight: #B9C0FF;
   --shadow: #8F9BFF;
   --edge: #4B3CFF;
+  /* Updated by components/ScrollCSSVars.tsx (parallax backgrounds). */
+  --scrollY: 0px;
 }
 
 html,
@@ -74,33 +76,33 @@ body {
 .speedproof-bg__gif {
   position: absolute;
   /* Full-bleed across ultra-wide viewports: no hard edge on the right */
-  inset: -14%;
+  inset: -18%;
   background-image: url("/illust/speedproof-bg.gif");
   background-size: cover;
   background-repeat: no-repeat;
   /* Keep the abstract form anchored to the right, like Frame.io */
-  background-position: 100% 50%;
-  opacity: 0.52;
+  background-position: 98% 50%;
+  opacity: 0.62;
   filter: saturate(1.08) contrast(1.04) brightness(1.02);
   transform-origin: var(--spx) var(--spy);
   animation: speedproofDrift 9s ease-in-out infinite;
   /* Blend into background like Frame, not a sticker */
   mix-blend-mode: screen;
-  /* Fade ONLY the left side so the headline stays crisp; keep right fully visible */
+  /* Fade the left side so copy stays crisp, but keep enough art visible to feel intentional. */
   -webkit-mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.12) 18%,
-    rgba(0, 0, 0, 0.78) 46%,
-    rgba(0, 0, 0, 1) 64%,
+    rgba(0, 0, 0, 0.10) 0%,
+    rgba(0, 0, 0, 0.24) 16%,
+    rgba(0, 0, 0, 0.78) 44%,
+    rgba(0, 0, 0, 1) 62%,
     rgba(0, 0, 0, 1) 100%
   );
   mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.12) 18%,
-    rgba(0, 0, 0, 0.78) 46%,
-    rgba(0, 0, 0, 1) 64%,
+    rgba(0, 0, 0, 0.10) 0%,
+    rgba(0, 0, 0, 0.24) 16%,
+    rgba(0, 0, 0, 0.78) 44%,
+    rgba(0, 0, 0, 1) 62%,
     rgba(0, 0, 0, 1) 100%
   );
   -webkit-mask-repeat: no-repeat;
@@ -518,6 +520,26 @@ body {
 
 /* --- Home CTA wave animation --- */
 
+.cta-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(101, 93, 255, 0.22), transparent 60%),
+    radial-gradient(circle at 20% 35%, rgba(185, 192, 255, 0.12), transparent 55%),
+    radial-gradient(circle at 80% 70%, rgba(75, 60, 255, 0.12), transparent 60%);
+}
+
+/*
+  Embedded CTA sits directly under Pricing.
+  Fade the glow in so the background doesn't "kick" and look like it's bleeding into the card above.
+*/
+.cta-glow--embedded {
+  opacity: 0.9;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 1) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 1) 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 @keyframes ctaWaveScroll {
   0% {
     transform: translateX(0);
@@ -584,66 +606,43 @@ body {
   text-rendering: geometricPrecision;
 }
 
-/* --- Scene wrapper system (stabilize section backgrounds) --- */
+/* --- Scene backgrounds (pro, continuous, no hard cutoffs) --- */
 
-/* Generic vertical fade mask to prevent backgrounds from looking "cut off". */
-.fade-y {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-}
-
+/*
+  Why scenes:
+  - Removes the "each section has its own cropped gradient" look.
+  - Gives every section a consistent, intentional atmosphere.
+  - Uses mask fades + oversized gradients so nothing looks cut off.
+  - Adds subtle scroll parallax via --scrollY.
+*/
 .scene {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 
-  /* Default composition (can be overridden by scene variants) */
-  --scene-x1: 22%;
-  --scene-y1: 0%;
-  --scene-x2: 88%;
-  --scene-y2: 62%;
-  --scene-x3: 44%;
-  --scene-y3: 104%;
-
-  --scene-o: 1;
+  /* Defaults (safe, subtle) */
+  --scene-opacity: 1;
+  --scene-parallax: -0.008;
+  --scene-grain: 0.035;
+  --scene-bg: radial-gradient(900px circle at 25% 20%, rgba(101, 93, 255, 0.10), transparent 60%),
+    radial-gradient(900px circle at 75% 70%, rgba(185, 192, 255, 0.06), transparent 60%);
 }
 
-/*
-  Background gradients live in ::before and are masked vertically so
-  they fade out before section boundaries. This removes the "hard edge"
-  feel where a radial gradient looks abruptly clipped by the next section.
-*/
 .scene::before {
   content: "";
   position: absolute;
-  inset: -32% -22%;
-  z-index: 0;
+  /* Oversize so gradients never clip at section edges */
+  inset: -34%;
+  background: var(--scene-bg);
+  opacity: var(--scene-opacity);
   pointer-events: none;
+  z-index: 0;
 
-  background:
-    radial-gradient(1100px circle at var(--scene-x1) var(--scene-y1), rgba(101, 93, 255, 0.16), transparent 60%),
-    radial-gradient(980px circle at var(--scene-x2) var(--scene-y2), rgba(185, 192, 255, 0.09), transparent 62%),
-    radial-gradient(900px circle at var(--scene-x3) var(--scene-y3), rgba(75, 60, 255, 0.07), transparent 64%);
+  /* Subtle scroll parallax */
+  transform: translate3d(0, calc(var(--scrollY, 0px) * var(--scene-parallax)), 0) scale(1.05);
+  will-change: transform;
 
-  opacity: var(--scene-o);
-  filter: saturate(1.06) contrast(1.02);
-  transform: translateZ(0);
+  /* Fade out near section boundaries so backgrounds never look "cut" */
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
@@ -664,86 +663,59 @@ body {
   mask-size: 100% 100%;
 }
 
-/* Subtle grain to unify scenes (Frame.io-ish restraint, not "Instagram filter"). */
 .scene::after {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
-  pointer-events: none;
-
   background-image: url("/illust/noise.png");
-  opacity: 0.025;
+  opacity: var(--scene-grain);
   mix-blend-mode: soft-light;
+  pointer-events: none;
+  z-index: 1;
   transform: translateZ(0);
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
 }
 
-/* Scene variants: keep the lighting direction consistent, but vary composition slightly. */
-.scene--features {
-  --scene-x1: 22%;
-  --scene-y1: -6%;
-  --scene-x2: 92%;
-  --scene-y2: 64%;
-  --scene-x3: 40%;
-  --scene-y3: 108%;
-  --scene-o: 0.95;
-}
-
-.scene--social {
-  --scene-x1: 72%;
-  --scene-y1: -6%;
-  --scene-x2: 18%;
-  --scene-y2: 72%;
-  --scene-x3: 86%;
-  --scene-y3: 110%;
-  --scene-o: 0.9;
-}
-
-.scene--affiliates {
-  --scene-x1: 26%;
-  --scene-y1: 18%;
-  --scene-x2: 90%;
-  --scene-y2: 18%;
-  --scene-x3: 58%;
-  --scene-y3: 112%;
-  --scene-o: 0.95;
-}
-
-.scene--final {
-  --scene-x1: 28%;
-  --scene-y1: -4%;
-  --scene-x2: 84%;
-  --scene-y2: 78%;
-  --scene-x3: 44%;
-  --scene-y3: 112%;
-  --scene-o: 0.9;
-}
-
-/* Mobile: expand the gradient field slightly so nothing feels clipped on shorter sections. */
+/* Mobile: scenes are shorter, so expand the gradient field further to avoid clipping */
 @media (max-width: 640px) {
   .scene::before {
-    inset: -44% -30%;
+    inset: -50%;
   }
 }
 
+.scene-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Scene variants for the home page (calibrated to avoid muddy overlaps) */
+.scene--features {
+  --scene-bg: radial-gradient(1100px circle at 22% 0%, rgba(101, 93, 255, 0.18), transparent 58%),
+    radial-gradient(1000px circle at 88% 72%, rgba(185, 192, 255, 0.10), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.00));
+}
+
+.scene--social {
+  --scene-bg: radial-gradient(1050px circle at 65% 6%, rgba(185, 192, 255, 0.10), transparent 60%),
+    radial-gradient(950px circle at 18% 78%, rgba(101, 93, 255, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.00));
+  --scene-parallax: -0.007;
+}
+
+.scene--affiliates {
+  --scene-bg: radial-gradient(1100px circle at 86% 38%, rgba(101, 93, 255, 0.16), transparent 62%),
+    radial-gradient(900px circle at 28% 22%, rgba(185, 192, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.00));
+  --scene-parallax: -0.006;
+}
+
+.scene--final {
+  /* Calmest: pricing + CTA already have a lot of internal sheen */
+  --scene-bg: radial-gradient(1200px circle at 30% 0%, rgba(101, 93, 255, 0.12), transparent 62%),
+    radial-gradient(1000px circle at 82% 90%, rgba(75, 60, 255, 0.10), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.00));
+  --scene-parallax: -0.005;
+  --scene-grain: 0.03;
+}
 
 ::selection {
   background: rgba(101, 93, 255, 0.35);

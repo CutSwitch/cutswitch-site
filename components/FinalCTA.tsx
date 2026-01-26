@@ -15,7 +15,7 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
       )}
     >
       {/* Background glow */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_0%,rgba(101,93,255,0.22),transparent_60%),radial-gradient(circle_at_20%_35%,rgba(185,192,255,0.12),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(75,60,255,0.12),transparent_60%)]" />
+      <div className="pointer-events-none absolute -inset-24 z-0 fade-y bg-[radial-gradient(circle_at_50%_0%,rgba(101,93,255,0.22),transparent_60%),radial-gradient(circle_at_20%_35%,rgba(185,192,255,0.12),transparent_55%),radial-gradient(circle_at_80%_70%,rgba(75,60,255,0.12),transparent_60%)]" />
 
       {/* Section divider (only when this CTA is its own scene) */}
       {!embedded ? (

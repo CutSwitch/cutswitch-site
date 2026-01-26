@@ -584,6 +584,167 @@ body {
   text-rendering: geometricPrecision;
 }
 
+/* --- Scene wrapper system (stabilize section backgrounds) --- */
+
+/* Generic vertical fade mask to prevent backgrounds from looking "cut off". */
+.fade-y {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.scene {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  /* Default composition (can be overridden by scene variants) */
+  --scene-x1: 22%;
+  --scene-y1: 0%;
+  --scene-x2: 88%;
+  --scene-y2: 62%;
+  --scene-x3: 44%;
+  --scene-y3: 104%;
+
+  --scene-o: 1;
+}
+
+/*
+  Background gradients live in ::before and are masked vertically so
+  they fade out before section boundaries. This removes the "hard edge"
+  feel where a radial gradient looks abruptly clipped by the next section.
+*/
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: -32% -22%;
+  z-index: 0;
+  pointer-events: none;
+
+  background:
+    radial-gradient(1100px circle at var(--scene-x1) var(--scene-y1), rgba(101, 93, 255, 0.16), transparent 60%),
+    radial-gradient(980px circle at var(--scene-x2) var(--scene-y2), rgba(185, 192, 255, 0.09), transparent 62%),
+    radial-gradient(900px circle at var(--scene-x3) var(--scene-y3), rgba(75, 60, 255, 0.07), transparent 64%);
+
+  opacity: var(--scene-o);
+  filter: saturate(1.06) contrast(1.02);
+  transform: translateZ(0);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+/* Subtle grain to unify scenes (Frame.io-ish restraint, not "Instagram filter"). */
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background-image: url("/illust/noise.png");
+  opacity: 0.025;
+  mix-blend-mode: soft-light;
+  transform: translateZ(0);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+/* Scene variants: keep the lighting direction consistent, but vary composition slightly. */
+.scene--features {
+  --scene-x1: 22%;
+  --scene-y1: -6%;
+  --scene-x2: 92%;
+  --scene-y2: 64%;
+  --scene-x3: 40%;
+  --scene-y3: 108%;
+  --scene-o: 0.95;
+}
+
+.scene--social {
+  --scene-x1: 72%;
+  --scene-y1: -6%;
+  --scene-x2: 18%;
+  --scene-y2: 72%;
+  --scene-x3: 86%;
+  --scene-y3: 110%;
+  --scene-o: 0.9;
+}
+
+.scene--affiliates {
+  --scene-x1: 26%;
+  --scene-y1: 18%;
+  --scene-x2: 90%;
+  --scene-y2: 18%;
+  --scene-x3: 58%;
+  --scene-y3: 112%;
+  --scene-o: 0.95;
+}
+
+.scene--final {
+  --scene-x1: 28%;
+  --scene-y1: -4%;
+  --scene-x2: 84%;
+  --scene-y2: 78%;
+  --scene-x3: 44%;
+  --scene-y3: 112%;
+  --scene-o: 0.9;
+}
+
+/* Mobile: expand the gradient field slightly so nothing feels clipped on shorter sections. */
+@media (max-width: 640px) {
+  .scene::before {
+    inset: -44% -30%;
+  }
+}
+
+
 ::selection {
   background: rgba(101, 93, 255, 0.35);
 }

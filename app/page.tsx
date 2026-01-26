@@ -159,7 +159,7 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
 
-      {/* Speed proof (Frame.io-ish, now fully integrated background) */}
+      {/* Speed proof (Frame.io-ish, fully integrated background) */}
       <section className="speedproof relative overflow-hidden py-16 sm:py-20">
         <SpeedProofBackground />
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
@@ -183,10 +183,9 @@ export default function HomePage() {
       </section>
 
       {/* Feature previews */}
-      <section className="relative overflow-hidden bg-white/[0.02] py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(101,93,255,0.18),transparent_55%),radial-gradient(circle_at_85%_65%,rgba(185,192,255,0.10),transparent_60%)]" />
+      <section className="scene scene--features py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative">
+        <div className="container-edge relative z-10">
           <FeatureGrid
             title="Built for conversation edits"
             subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
@@ -196,10 +195,9 @@ export default function HomePage() {
       </section>
 
       {/* Social proof */}
-      <section className="relative overflow-hidden py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(101,93,255,0.14),transparent_55%),radial-gradient(circle_at_15%_70%,rgba(185,192,255,0.08),transparent_60%)]" />
+      <section className="scene scene--social py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative">
+        <div className="container-edge relative z-10">
           <TestimonialGrid
             title="What early editors are saying"
             subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
@@ -209,10 +207,9 @@ export default function HomePage() {
       </section>
 
       {/* Affiliates */}
-      <section className="relative overflow-hidden bg-white/[0.02] py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(101,93,255,0.16),transparent_60%),radial-gradient(circle_at_85%_20%,rgba(185,192,255,0.08),transparent_60%)]" />
+      <section className="scene scene--affiliates py-16 sm:py-20">
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="container-edge relative">
+        <div className="container-edge relative z-10">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
             <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
@@ -244,10 +241,9 @@ export default function HomePage() {
       </section>
 
       {/* Final act: Pricing flows into CTA */}
-      <section className="relative overflow-hidden bg-white/[0.02]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(101,93,255,0.12),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(75,60,255,0.10),transparent_60%)]" />
+      <section className="scene scene--final">
         <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80" />
-        <div className="relative">
+        <div className="relative z-10">
           <PricingTable embedded />
           <FinalCTA embedded />
         </div>

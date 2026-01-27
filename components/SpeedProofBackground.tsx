@@ -13,6 +13,7 @@ type Props = {
  * - feels embedded in the section background (not a boxed card)
  * - slow, calm, continuous loop (no snappy UI effects)
  * - subtle pointer parallax on desktop only
+ * - MP4 is the primary media; GIF is a reduced-motion fallback
  */
 export function SpeedProofBackground({ className }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -72,15 +73,31 @@ export function SpeedProofBackground({ className }: Props) {
     <div
       ref={ref}
       aria-hidden
-      className={["speedproof-bg pointer-events-none absolute inset-0", className].filter(Boolean).join(" ")}
+      className={[
+        "speedproof-bg pointer-events-none absolute inset-0",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      {/*
-        Animated backdrop layer.
+      {/* Animated media layer (MP4; GIF fallback for reduced-motion) */}
+      <div className="speedproof-bg__media">
+        <video
+          className="speedproof-bg__video"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          disableRemotePlayback
+        >
+          <source src="/illust/speedproof-bg.mp4" type="video/mp4" />
+        </video>
 
-        NOTE: use a background-image div (instead of an <img>) so the GIF can truly full-bleed
-        across ultra-wide viewports without leaving a hard edge on the right.
-      */}
-      <div className="speedproof-bg__gif" />
+        {/* Reduced-motion fallback (or if video fails to load). */}
+        <div className="speedproof-bg__gif" />
+      </div>
 
       {/* Brand tint so the palette is consistent with CutSwitch */}
       <div className="speedproof-bg__tint" />

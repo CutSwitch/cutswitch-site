@@ -73,42 +73,75 @@ body {
   isolation: isolate;
 }
 
-.speedproof-bg__gif {
+.speedproof-bg__media {
   position: absolute;
   /* Full-bleed across ultra-wide viewports: no hard edge on the right */
   inset: -18%;
-  background-image: url("/illust/speedproof-bg.gif");
-  background-size: cover;
-  background-repeat: no-repeat;
-  /* Keep the abstract form anchored to the right, like Frame.io */
-  background-position: 98% 50%;
-  opacity: 0.62;
+  opacity: 0.74;
   filter: saturate(1.08) contrast(1.04) brightness(1.02);
   transform-origin: var(--spx) var(--spy);
-  animation: speedproofDrift 9s ease-in-out infinite;
+  animation: speedproofDrift 12s ease-in-out infinite;
   /* Blend into background like Frame, not a sticker */
   mix-blend-mode: screen;
-  /* Fade the left side so copy stays crisp, but keep enough art visible to feel intentional. */
+
+  /* Soft edge fade so the media feels like atmosphere, not a cropped rectangle */
   -webkit-mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.10) 0%,
-    rgba(0, 0, 0, 0.24) 16%,
-    rgba(0, 0, 0, 0.78) 44%,
-    rgba(0, 0, 0, 1) 62%,
-    rgba(0, 0, 0, 1) 100%
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0.55) 100%
   );
   mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 0.10) 0%,
-    rgba(0, 0, 0, 0.24) 16%,
-    rgba(0, 0, 0, 0.78) 44%,
-    rgba(0, 0, 0, 1) 62%,
-    rgba(0, 0, 0, 1) 100%
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 0.55) 100%
   );
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
+}
+
+.speedproof-bg__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+.speedproof-bg__gif {
+  position: absolute;
+  inset: 0;
+  background-image: url("/illust/speedproof-bg.gif");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  /* Always-on fallback (very subtle) so the section never flashes "empty". */
+  opacity: 0.12;
+}
+
+.speedproof-copy {
+  position: relative;
+}
+
+.speedproof-copy::before {
+  content: "";
+  position: absolute;
+  inset: -26px -22px;
+  border-radius: 28px;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    640px circle at 50% 44%,
+    rgba(14, 16, 32, 0.78),
+    rgba(14, 16, 32, 0.40) 52%,
+    rgba(14, 16, 32, 0.0) 100%
+  );
 }
 
 .speedproof-bg__tint {
@@ -165,10 +198,19 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .speedproof-bg__gif,
+  .speedproof-bg__media,
   .speedproof-bg__halo,
-  .speedproof-bg__diffusion {
+  .speedproof-bg__diffusion,
+  .speedproof-bg__tint {
     animation: none !important;
+  }
+
+  .speedproof-bg__video {
+    display: none !important;
+  }
+
+  .speedproof-bg__gif {
+    opacity: 0.55;
   }
 }
 
@@ -646,15 +688,15 @@ body {
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 1) 12%,
+    rgba(0, 0, 0, 1) 88%,
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 82%,
+    rgba(0, 0, 0, 1) 12%,
+    rgba(0, 0, 0, 1) 88%,
     rgba(0, 0, 0, 0) 100%
   );
   -webkit-mask-repeat: no-repeat;
@@ -685,6 +727,20 @@ body {
 .scene-content {
   position: relative;
   z-index: 10;
+}
+
+/*
+  Home page: one continuous atmosphere behind the entire mid+lower stack
+  (features → testimonials → affiliates → pricing → questions → CTA).
+  This reduces the "background seams" that made sections feel cut apart.
+*/
+.scene--flow {
+  --scene-bg: radial-gradient(1200px circle at 18% 0%, rgba(101, 93, 255, 0.20), transparent 60%),
+    radial-gradient(1100px circle at 82% 26%, rgba(185, 192, 255, 0.10), transparent 62%),
+    radial-gradient(1000px circle at 50% 100%, rgba(75, 60, 255, 0.10), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.00));
+  --scene-parallax: -0.006;
+  --scene-grain: 0.032;
 }
 
 /* Scene variants for the home page (calibrated to avoid muddy overlaps) */

@@ -150,7 +150,7 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
     <div className="w-full">
       <div
         className={cn(
-          "mx-auto max-w-6xl px-4",
+          "container-edge",
           embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10"
         )}
       >

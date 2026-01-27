@@ -159,93 +159,84 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
 
-      {/* Speed proof (Frame.io-ish, fully integrated background) */}
-      <section className="speedproof relative overflow-hidden py-20 sm:py-24 lg:py-32 min-h-[460px] sm:min-h-[520px] lg:min-h-[600px]">
+      {/* Speed proof: MP4 background, centered headline */}
+      <section className="speedproof relative overflow-hidden py-20 sm:py-24 lg:py-32 min-h-[520px] sm:min-h-[600px] lg:min-h-[680px]">
         <SpeedProofBackground />
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
-        <div className="container-edge scene-content">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div className="max-w-xl">
-              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                A full multicam podcast timeline in minutes — not hours.
-              </h2>
-              <div className="mt-6">
-                <Link href="/pricing" className="btn btn-primary">
-                  Explore plans <span aria-hidden>→</span>
-                </Link>
-              </div>
-            </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-10" />
 
-            {/* Right column is intentionally empty so the background art can breathe */}
-            <div aria-hidden className="hidden lg:block" />
-          </div>
-        </div>
-      </section>
-
-      {/* Feature previews */}
-      <section className="scene scene--features py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
-        <div className="container-edge scene-content">
-          <FeatureGrid
-            title="Built for conversation edits"
-            subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
-            features={features}
-          />
-        </div>
-      </section>
-
-      {/* Social proof */}
-      <section className="scene scene--social py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
-        <div className="container-edge scene-content">
-          <TestimonialGrid
-            title="What early editors are saying"
-            subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
-            items={testimonials}
-          />
-        </div>
-      </section>
-
-      {/* Affiliates */}
-      <section className="scene scene--affiliates py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
-        <div className="container-edge scene-content">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
-            <div className="grid gap-8 md:grid-cols-2 md:items-center">
-              <div>
-                <h3 className="text-xl font-semibold text-white">Affiliate program</h3>
-                <p className="mt-2 text-sm text-white/70">
-                  Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring
-                  commissions.
-                </p>
-                <div className="mt-5 flex gap-3">
-                  <Link href="/affiliates" className="btn btn-secondary">
-                    Become an affiliate
-                  </Link>
-                </div>
-              </div>
-
-              <div className="group overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_20px_80px_rgba(0,0,0,0.55)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_28px_110px_rgba(0,0,0,0.65)]">
-                <div className="aspect-[16/9]">
-                  <img
-                    src="/illust/affiliate-earnings.gif"
-                    alt="Affiliate earnings preview"
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-                  />
-                </div>
-              </div>
+        <div className="container-edge scene-content flex min-h-[520px] sm:min-h-[600px] lg:min-h-[680px] items-center justify-center">
+          <div className="speedproof-copy mx-auto max-w-3xl text-center -mt-4 sm:-mt-6">
+            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              A full multicam podcast timeline in minutes — not hours.
+            </h2>
+            <div className="mt-7 flex justify-center">
+              <Link href="/pricing" className="btn btn-primary">
+                Explore plans <span aria-hidden>→</span>
+              </Link>
             </div>
           </div>
         </div>
+
+        {/* Bottom fade to merge into the continuous home background */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-24 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </section>
 
-      {/* Final act: Pricing flows into CTA */}
-      <section className="scene scene--final">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-80 z-10" />
+      {/* Continuous background: features → testimonials → affiliates → pricing → questions → final CTA */}
+      <section className="scene scene--flow">
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-10" />
+
         <div className="scene-content">
-          <PricingTable embedded />
-          <FinalCTA embedded />
+          <div className="container-edge py-16 sm:py-20">
+            <FeatureGrid
+              title="Built for conversation edits"
+              subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
+              features={features}
+            />
+          </div>
+
+          <div className="container-edge py-16 sm:py-20">
+            <TestimonialGrid
+              title="What early editors are saying"
+              subtitle="Early feedback has been consistent: less clicking, more control, better rhythm."
+              items={testimonials}
+            />
+          </div>
+
+          <div className="container-edge py-16 sm:py-20">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
+              <div className="grid gap-8 md:grid-cols-2 md:items-center">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Affiliate program</h3>
+                  <p className="mt-2 text-sm text-white/70">
+                    Recommend CutSwitch to editors and get paid. We provide tracking links, assets, and recurring
+                    commissions.
+                  </p>
+                  <div className="mt-5 flex gap-3">
+                    <Link href="/affiliates" className="btn btn-secondary">
+                      Become an affiliate
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="group overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_20px_80px_rgba(0,0,0,0.55)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_28px_110px_rgba(0,0,0,0.65)]">
+                  <div className="aspect-[16/9]">
+                    <img
+                      src="/illust/affiliate-earnings.gif"
+                      alt="Affiliate earnings preview"
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing flows into CTA (still embedded) */}
+          <div className="pb-4">
+            <PricingTable embedded />
+            <FinalCTA embedded />
+          </div>
         </div>
       </section>
     </main>

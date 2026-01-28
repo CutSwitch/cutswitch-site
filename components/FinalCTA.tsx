@@ -1,75 +1,66 @@
-import { cn } from "@/lib/utils";
+"use client";
 
-type FinalCTAProps = {
-  embedded?: boolean;
-};
+import { DownloadCTA } from "@/components/DownloadCTA";
 
-export function FinalCTA({ embedded }: FinalCTAProps) {
+export function FinalCTA() {
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden",
-        embedded ? "" : "border-t border-line",
-      )}
-    >
-      {/* Soft glow behind everything */}
-      <div
-        className="pointer-events-none absolute inset-0 cta-glow"
-        aria-hidden="true"
-      />
-
-      {/* Single wave system (no duplicated layers) */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden cta-wave-mask"
-        aria-hidden="true"
-      >
+    <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+      <div className="relative mt-16 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-14 sm:px-10 sm:py-20">
         {/*
-          We center the *wrapper* vertically so we can keep the SVG animation on
-          transform (translateX) without fighting Tailwind translateY classes.
+          Single animated wave system.
+          The wrapper is flex-centered so the wave band lives behind the CTA content,
+          rather than feeling like a stripe above or below it.
         */}
-        <div className="absolute left-0 top-1/2 w-full -translate-y-1/2">
+        <div className="absolute inset-0 -z-10 cta-wave-mask pointer-events-none flex items-center justify-center">
           <svg
-            className="cta-wave-svg block h-[200px] w-[200%] opacity-65 sm:h-[240px]"
-            viewBox="0 0 1440 100"
+            className="w-[120%] h-[70%] opacity-40"
+            viewBox="0 0 1200 220"
+            preserveAspectRatio="none"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M0 55C160 15 320 15 480 55C640 95 800 95 960 55C1120 15 1280 15 1440 55"
-              stroke="rgba(143, 158, 255, 0.65)"
-              strokeWidth="2"
-            />
-            <path
-              d="M0 70C160 30 320 30 480 70C640 110 800 110 960 70C1120 30 1280 30 1440 70"
-              stroke="rgba(143, 158, 255, 0.35)"
-              strokeWidth="2"
-            />
-            <path
-              d="M0 40C160 0 320 0 480 40C640 80 800 80 960 40C1120 0 1280 0 1440 40"
-              stroke="rgba(143, 158, 255, 0.25)"
-              strokeWidth="2"
-            />
-            <path
-              d="M0 85C160 45 320 45 480 85C640 125 800 125 960 85C1120 45 1280 45 1440 85"
-              stroke="rgba(143, 158, 255, 0.18)"
-              strokeWidth="2"
-            />
+            <g>
+              <path
+                d="M0 116 C 140 96, 240 136, 380 116 C 520 96, 620 136, 760 116 C 900 96, 1020 136, 1200 112"
+                stroke="rgba(255,255,255,0.38)"
+                strokeWidth="1.4"
+              />
+              <path
+                d="M0 96 C 160 116, 260 76, 420 96 C 580 116, 700 76, 860 96 C 1020 116, 1100 78, 1200 92"
+                stroke="rgba(101,93,255,0.65)"
+                strokeWidth="1.2"
+              />
+              <path
+                d="M0 138 C 180 120, 280 156, 460 138 C 640 120, 740 156, 920 138 C 1100 120, 1160 154, 1200 132"
+                stroke="rgba(255,255,255,0.22)"
+                strokeWidth="1.1"
+              />
+              <path
+                d="M0 72 C 210 92, 300 52, 510 72 C 720 92, 810 52, 1020 72 C 1110 80, 1160 76, 1200 70"
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth="1"
+              />
+
+              <animateTransform
+                attributeName="transform"
+                attributeType="XML"
+                type="translate"
+                dur="12s"
+                values="0 0; -80 0; 0 0"
+                repeatCount="indefinite"
+              />
+            </g>
           </svg>
         </div>
-      </div>
 
-      {/* Copy centered inside the wave field */}
-      <div className="container-edge relative z-10 flex min-h-[360px] items-center justify-center py-20 sm:min-h-[420px] sm:py-24">
-        <div className="cta-copy max-w-3xl text-center">
+        <div className="relative mx-auto max-w-2xl text-center">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
             Start using CutSwitch
             <br />
             today for free.
           </h2>
-          <div className="mt-7 flex justify-center">
-            <a href="/pricing" className="btn-primary">
-              Start Free Trial
-            </a>
+          <div className="mt-6 flex justify-center">
+            <DownloadCTA />
           </div>
         </div>
       </div>

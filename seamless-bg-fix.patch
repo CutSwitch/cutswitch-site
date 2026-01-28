@@ -1,0 +1,595 @@
+diff -ruN /mnt/data/worksite_orig/CHANGELOG.txt /mnt/data/worksite/CHANGELOG.txt
+--- /mnt/data/worksite_orig/CHANGELOG.txt	2026-01-28 08:05:51.000000000 +0000
++++ /mnt/data/worksite/CHANGELOG.txt	2026-01-28 20:33:50.352363738 +0000
+@@ -6,3 +6,11 @@
+ - Simplified Final CTA to a single wave system; centered CTA content within the wave area.
+ - Updated CTA wave masking to fade top + bottom (no hard horizontal stripe).
+ - Removed the pricing section background slab pseudo-element to reduce section separation.
++
++---
++
++2026-01-28
++- Added app/seamless-bg.css to force a single-tone page background and disable per-section gradient backdrops that were producing visible banding/seams.
++- Added a fixed global background layer (.site-bg) in app/layout.tsx (with subtle grain) so the background is one continuous element across the entire scroll.
++- Removed hero header overflow clipping so backdrops can fade naturally without a hard rectangular edge.
++- Simplified FinalCTA to remove extra glow gradients and vertically center the wave system behind the CTA content.
+diff -ruN /mnt/data/worksite_orig/app/layout.tsx /mnt/data/worksite/app/layout.tsx
+--- /mnt/data/worksite_orig/app/layout.tsx	2026-01-26 23:09:06.000000000 +0000
++++ /mnt/data/worksite/app/layout.tsx	2026-01-28 20:28:41.268459685 +0000
+@@ -1,6 +1,7 @@
+ import type { Metadata } from "next";
+ import Script from "next/script";
+ import "./globals.css";
++import "./seamless-bg.css";
+ import { getBaseUrl } from "@/lib/env";
+ import { siteConfig } from "@/lib/site";
+ import { Nav } from "@/components/Nav";
+@@ -42,8 +43,10 @@
+ 
+   return (
+     <html lang="en">
+-      <body className="min-h-screen">
++      <body className="min-h-screen relative isolate text-white antialiased">
+         <ScrollCSSVars />
++        <div className="site-bg" aria-hidden="true" />
++
+         {rewardfulApiKey ? (
+           <>
+             <Script id="rewardful-init" strategy="beforeInteractive">
+diff -ruN /mnt/data/worksite_orig/app/page.tsx /mnt/data/worksite/app/page.tsx
+--- /mnt/data/worksite_orig/app/page.tsx	2026-01-28 07:56:00.000000000 +0000
++++ /mnt/data/worksite/app/page.tsx	2026-01-28 20:29:46.199996394 +0000
+@@ -99,7 +99,7 @@
+   return (
+     <main>
+       {/* Hero */}
+-      <header data-hero-parallax className="relative overflow-hidden -mt-10">
++      <header data-hero-parallax className="relative -mt-10">
+         {/* Cinematic, interactive smoke */}
+         <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
+ 
+diff -ruN /mnt/data/worksite_orig/app/seamless-bg.css /mnt/data/worksite/app/seamless-bg.css
+--- /mnt/data/worksite_orig/app/seamless-bg.css	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/worksite/app/seamless-bg.css	2026-01-28 20:39:51.186459374 +0000
+@@ -0,0 +1,86 @@
++/*
++  Seamless background mode
++  ------------------------
++  Goal: eliminate visible horizontal bands/seams by removing large, per-section gradients
++  (which can band on dark UIs) and ensuring there is a single, continuous base background.
++
++  This file intentionally overrides styles from app/globals.css.
++*/
++
++:root {
++  /*
++    globals.css defines --bg as a multi-layer gradient stack.
++    On some displays (and in some browsers), that stack can show stepping/banding.
++    For a “no seams, no bands” mode, force --bg to a single, solid tone.
++  */
++  --bg: #070a17 !important;
++}
++
++html,
++body {
++  background: var(--bg) !important;
++}
++
++/*
++  The homepage previously used section-scoped backdrop layers (.scene::before / .scene--flow::after)
++  which can create visible “bands” at boundaries and exaggerate gradient banding.
++  Disable those pseudo layers so the page reads as one continuous background.
++*/
++
++.scene {
++  background: transparent !important;
++  overflow: visible !important;
++}
++
++.scene::before {
++  content: none !important;
++}
++
++.scene--flow::after {
++  content: none !important;
++}
++
++/*
++  Global, single-element backdrop.
++  We render it once, behind everything, so there are no section boundaries to reveal.
++  A touch of grain helps prevent gradient banding without introducing “hard” edges.
++*/
++
++.site-bg {
++  position: fixed;
++  inset: 0;
++  z-index: -1;
++  pointer-events: none;
++  background: var(--bg);
++}
++
++.site-bg::before {
++  content: "";
++  position: absolute;
++  inset: 0;
++  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
++  opacity: 0.06;
++  mix-blend-mode: overlay;
++  transform: translateZ(0);
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .site-bg::before {
++    opacity: 0.04;
++  }
++}
++
++/*
++  Remove any remaining full-width slab backgrounds that can read as “bands”
++  against the single-tone backdrop.
++*/
++
++.scene-divider,
++.container-edge {
++  background: transparent !important;
++}
++
++footer {
++  background: transparent !important;
++  border-color: transparent !important;
++}
+diff -ruN /mnt/data/worksite_orig/components/FinalCTA.tsx /mnt/data/worksite/components/FinalCTA.tsx
+--- /mnt/data/worksite_orig/components/FinalCTA.tsx	2026-01-28 08:02:50.000000000 +0000
++++ /mnt/data/worksite/components/FinalCTA.tsx	2026-01-28 20:32:22.961412905 +0000
+@@ -1,75 +1,66 @@
+-import { cn } from "@/lib/utils";
++"use client";
+ 
+-type FinalCTAProps = {
+-  embedded?: boolean;
+-};
++import { DownloadCTA } from "@/components/DownloadCTA";
+ 
+-export function FinalCTA({ embedded }: FinalCTAProps) {
++export function FinalCTA() {
+   return (
+-    <section
+-      className={cn(
+-        "relative overflow-hidden",
+-        embedded ? "" : "border-t border-line",
+-      )}
+-    >
+-      {/* Soft glow behind everything */}
+-      <div
+-        className="pointer-events-none absolute inset-0 cta-glow"
+-        aria-hidden="true"
+-      />
+-
+-      {/* Single wave system (no duplicated layers) */}
+-      <div
+-        className="pointer-events-none absolute inset-0 overflow-hidden cta-wave-mask"
+-        aria-hidden="true"
+-      >
++    <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
++      <div className="relative mt-16 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-14 sm:px-10 sm:py-20">
+         {/*
+-          We center the *wrapper* vertically so we can keep the SVG animation on
+-          transform (translateX) without fighting Tailwind translateY classes.
++          Single animated wave system.
++          The wrapper is flex-centered so the wave band lives behind the CTA content,
++          rather than feeling like a stripe above or below it.
+         */}
+-        <div className="absolute left-0 top-1/2 w-full -translate-y-1/2">
++        <div className="absolute inset-0 -z-10 cta-wave-mask pointer-events-none flex items-center justify-center">
+           <svg
+-            className="cta-wave-svg block h-[200px] w-[200%] opacity-65 sm:h-[240px]"
+-            viewBox="0 0 1440 100"
++            className="w-[120%] h-[70%] opacity-40"
++            viewBox="0 0 1200 220"
++            preserveAspectRatio="none"
+             fill="none"
+             xmlns="http://www.w3.org/2000/svg"
+           >
+-            <path
+-              d="M0 55C160 15 320 15 480 55C640 95 800 95 960 55C1120 15 1280 15 1440 55"
+-              stroke="rgba(143, 158, 255, 0.65)"
+-              strokeWidth="2"
+-            />
+-            <path
+-              d="M0 70C160 30 320 30 480 70C640 110 800 110 960 70C1120 30 1280 30 1440 70"
+-              stroke="rgba(143, 158, 255, 0.35)"
+-              strokeWidth="2"
+-            />
+-            <path
+-              d="M0 40C160 0 320 0 480 40C640 80 800 80 960 40C1120 0 1280 0 1440 40"
+-              stroke="rgba(143, 158, 255, 0.25)"
+-              strokeWidth="2"
+-            />
+-            <path
+-              d="M0 85C160 45 320 45 480 85C640 125 800 125 960 85C1120 45 1280 45 1440 85"
+-              stroke="rgba(143, 158, 255, 0.18)"
+-              strokeWidth="2"
+-            />
++            <g>
++              <path
++                d="M0 116 C 140 96, 240 136, 380 116 C 520 96, 620 136, 760 116 C 900 96, 1020 136, 1200 112"
++                stroke="rgba(255,255,255,0.38)"
++                strokeWidth="1.4"
++              />
++              <path
++                d="M0 96 C 160 116, 260 76, 420 96 C 580 116, 700 76, 860 96 C 1020 116, 1100 78, 1200 92"
++                stroke="rgba(101,93,255,0.65)"
++                strokeWidth="1.2"
++              />
++              <path
++                d="M0 138 C 180 120, 280 156, 460 138 C 640 120, 740 156, 920 138 C 1100 120, 1160 154, 1200 132"
++                stroke="rgba(255,255,255,0.22)"
++                strokeWidth="1.1"
++              />
++              <path
++                d="M0 72 C 210 92, 300 52, 510 72 C 720 92, 810 52, 1020 72 C 1110 80, 1160 76, 1200 70"
++                stroke="rgba(255,255,255,0.14)"
++                strokeWidth="1"
++              />
++
++              <animateTransform
++                attributeName="transform"
++                attributeType="XML"
++                type="translate"
++                dur="12s"
++                values="0 0; -80 0; 0 0"
++                repeatCount="indefinite"
++              />
++            </g>
+           </svg>
+         </div>
+-      </div>
+ 
+-      {/* Copy centered inside the wave field */}
+-      <div className="container-edge relative z-10 flex min-h-[360px] items-center justify-center py-20 sm:min-h-[420px] sm:py-24">
+-        <div className="cta-copy max-w-3xl text-center">
++        <div className="relative mx-auto max-w-2xl text-center">
+           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+             Start using CutSwitch
+             <br />
+             today for free.
+           </h2>
+-          <div className="mt-7 flex justify-center">
+-            <a href="/pricing" className="btn-primary">
+-              Start Free Trial
+-            </a>
++          <div className="mt-6 flex justify-center">
++            <DownloadCTA />
+           </div>
+         </div>
+       </div>
+diff -ruN /mnt/data/worksite_orig/seamless-bg-fix.patch /mnt/data/worksite/seamless-bg-fix.patch
+--- /mnt/data/worksite_orig/seamless-bg-fix.patch	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/worksite/seamless-bg-fix.patch	2026-01-28 20:40:29.635670329 +0000
+@@ -0,0 +1,265 @@
++diff -ruN /mnt/data/worksite_orig/CHANGELOG.txt /mnt/data/worksite/CHANGELOG.txt
++--- /mnt/data/worksite_orig/CHANGELOG.txt	2026-01-28 08:05:51.000000000 +0000
+++++ /mnt/data/worksite/CHANGELOG.txt	2026-01-28 20:33:50.352363738 +0000
++@@ -6,3 +6,11 @@
++ - Simplified Final CTA to a single wave system; centered CTA content within the wave area.
++ - Updated CTA wave masking to fade top + bottom (no hard horizontal stripe).
++ - Removed the pricing section background slab pseudo-element to reduce section separation.
+++
+++---
+++
+++2026-01-28
+++- Added app/seamless-bg.css to force a single-tone page background and disable per-section gradient backdrops that were producing visible banding/seams.
+++- Added a fixed global background layer (.site-bg) in app/layout.tsx (with subtle grain) so the background is one continuous element across the entire scroll.
+++- Removed hero header overflow clipping so backdrops can fade naturally without a hard rectangular edge.
+++- Simplified FinalCTA to remove extra glow gradients and vertically center the wave system behind the CTA content.
++diff -ruN /mnt/data/worksite_orig/app/layout.tsx /mnt/data/worksite/app/layout.tsx
++--- /mnt/data/worksite_orig/app/layout.tsx	2026-01-26 23:09:06.000000000 +0000
+++++ /mnt/data/worksite/app/layout.tsx	2026-01-28 20:28:41.268459685 +0000
++@@ -1,6 +1,7 @@
++ import type { Metadata } from "next";
++ import Script from "next/script";
++ import "./globals.css";
+++import "./seamless-bg.css";
++ import { getBaseUrl } from "@/lib/env";
++ import { siteConfig } from "@/lib/site";
++ import { Nav } from "@/components/Nav";
++@@ -42,8 +43,10 @@
++ 
++   return (
++     <html lang="en">
++-      <body className="min-h-screen">
+++      <body className="min-h-screen relative isolate text-white antialiased">
++         <ScrollCSSVars />
+++        <div className="site-bg" aria-hidden="true" />
+++
++         {rewardfulApiKey ? (
++           <>
++             <Script id="rewardful-init" strategy="beforeInteractive">
++diff -ruN /mnt/data/worksite_orig/app/page.tsx /mnt/data/worksite/app/page.tsx
++--- /mnt/data/worksite_orig/app/page.tsx	2026-01-28 07:56:00.000000000 +0000
+++++ /mnt/data/worksite/app/page.tsx	2026-01-28 20:29:46.199996394 +0000
++@@ -99,7 +99,7 @@
++   return (
++     <main>
++       {/* Hero */}
++-      <header data-hero-parallax className="relative overflow-hidden -mt-10">
+++      <header data-hero-parallax className="relative -mt-10">
++         {/* Cinematic, interactive smoke */}
++         <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
++ 
++diff -ruN /mnt/data/worksite_orig/app/seamless-bg.css /mnt/data/worksite/app/seamless-bg.css
++--- /mnt/data/worksite_orig/app/seamless-bg.css	1970-01-01 00:00:00.000000000 +0000
+++++ /mnt/data/worksite/app/seamless-bg.css	2026-01-28 20:39:51.186459374 +0000
++@@ -0,0 +1,86 @@
+++/*
+++  Seamless background mode
+++  ------------------------
+++  Goal: eliminate visible horizontal bands/seams by removing large, per-section gradients
+++  (which can band on dark UIs) and ensuring there is a single, continuous base background.
+++
+++  This file intentionally overrides styles from app/globals.css.
+++*/
+++
+++:root {
+++  /*
+++    globals.css defines --bg as a multi-layer gradient stack.
+++    On some displays (and in some browsers), that stack can show stepping/banding.
+++    For a “no seams, no bands” mode, force --bg to a single, solid tone.
+++  */
+++  --bg: #070a17 !important;
+++}
+++
+++html,
+++body {
+++  background: var(--bg) !important;
+++}
+++
+++/*
+++  The homepage previously used section-scoped backdrop layers (.scene::before / .scene--flow::after)
+++  which can create visible “bands” at boundaries and exaggerate gradient banding.
+++  Disable those pseudo layers so the page reads as one continuous background.
+++*/
+++
+++.scene {
+++  background: transparent !important;
+++  overflow: visible !important;
+++}
+++
+++.scene::before {
+++  content: none !important;
+++}
+++
+++.scene--flow::after {
+++  content: none !important;
+++}
+++
+++/*
+++  Global, single-element backdrop.
+++  We render it once, behind everything, so there are no section boundaries to reveal.
+++  A touch of grain helps prevent gradient banding without introducing “hard” edges.
+++*/
+++
+++.site-bg {
+++  position: fixed;
+++  inset: 0;
+++  z-index: -1;
+++  pointer-events: none;
+++  background: var(--bg);
+++}
+++
+++.site-bg::before {
+++  content: "";
+++  position: absolute;
+++  inset: 0;
+++  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+++  opacity: 0.06;
+++  mix-blend-mode: overlay;
+++  transform: translateZ(0);
+++}
+++
+++@media (prefers-reduced-motion: reduce) {
+++  .site-bg::before {
+++    opacity: 0.04;
+++  }
+++}
+++
+++/*
+++  Remove any remaining full-width slab backgrounds that can read as “bands”
+++  against the single-tone backdrop.
+++*/
+++
+++.scene-divider,
+++.container-edge {
+++  background: transparent !important;
+++}
+++
+++footer {
+++  background: transparent !important;
+++  border-color: transparent !important;
+++}
++diff -ruN /mnt/data/worksite_orig/components/FinalCTA.tsx /mnt/data/worksite/components/FinalCTA.tsx
++--- /mnt/data/worksite_orig/components/FinalCTA.tsx	2026-01-28 08:02:50.000000000 +0000
+++++ /mnt/data/worksite/components/FinalCTA.tsx	2026-01-28 20:32:22.961412905 +0000
++@@ -1,75 +1,66 @@
++-import { cn } from "@/lib/utils";
+++"use client";
++ 
++-type FinalCTAProps = {
++-  embedded?: boolean;
++-};
+++import { DownloadCTA } from "@/components/DownloadCTA";
++ 
++-export function FinalCTA({ embedded }: FinalCTAProps) {
+++export function FinalCTA() {
++   return (
++-    <section
++-      className={cn(
++-        "relative overflow-hidden",
++-        embedded ? "" : "border-t border-line",
++-      )}
++-    >
++-      {/* Soft glow behind everything */}
++-      <div
++-        className="pointer-events-none absolute inset-0 cta-glow"
++-        aria-hidden="true"
++-      />
++-
++-      {/* Single wave system (no duplicated layers) */}
++-      <div
++-        className="pointer-events-none absolute inset-0 overflow-hidden cta-wave-mask"
++-        aria-hidden="true"
++-      >
+++    <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+++      <div className="relative mt-16 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-14 sm:px-10 sm:py-20">
++         {/*
++-          We center the *wrapper* vertically so we can keep the SVG animation on
++-          transform (translateX) without fighting Tailwind translateY classes.
+++          Single animated wave system.
+++          The wrapper is flex-centered so the wave band lives behind the CTA content,
+++          rather than feeling like a stripe above or below it.
++         */}
++-        <div className="absolute left-0 top-1/2 w-full -translate-y-1/2">
+++        <div className="absolute inset-0 -z-10 cta-wave-mask pointer-events-none flex items-center justify-center">
++           <svg
++-            className="cta-wave-svg block h-[200px] w-[200%] opacity-65 sm:h-[240px]"
++-            viewBox="0 0 1440 100"
+++            className="w-[120%] h-[70%] opacity-40"
+++            viewBox="0 0 1200 220"
+++            preserveAspectRatio="none"
++             fill="none"
++             xmlns="http://www.w3.org/2000/svg"
++           >
++-            <path
++-              d="M0 55C160 15 320 15 480 55C640 95 800 95 960 55C1120 15 1280 15 1440 55"
++-              stroke="rgba(143, 158, 255, 0.65)"
++-              strokeWidth="2"
++-            />
++-            <path
++-              d="M0 70C160 30 320 30 480 70C640 110 800 110 960 70C1120 30 1280 30 1440 70"
++-              stroke="rgba(143, 158, 255, 0.35)"
++-              strokeWidth="2"
++-            />
++-            <path
++-              d="M0 40C160 0 320 0 480 40C640 80 800 80 960 40C1120 0 1280 0 1440 40"
++-              stroke="rgba(143, 158, 255, 0.25)"
++-              strokeWidth="2"
++-            />
++-            <path
++-              d="M0 85C160 45 320 45 480 85C640 125 800 125 960 85C1120 45 1280 45 1440 85"
++-              stroke="rgba(143, 158, 255, 0.18)"
++-              strokeWidth="2"
++-            />
+++            <g>
+++              <path
+++                d="M0 116 C 140 96, 240 136, 380 116 C 520 96, 620 136, 760 116 C 900 96, 1020 136, 1200 112"
+++                stroke="rgba(255,255,255,0.38)"
+++                strokeWidth="1.4"
+++              />
+++              <path
+++                d="M0 96 C 160 116, 260 76, 420 96 C 580 116, 700 76, 860 96 C 1020 116, 1100 78, 1200 92"
+++                stroke="rgba(101,93,255,0.65)"
+++                strokeWidth="1.2"
+++              />
+++              <path
+++                d="M0 138 C 180 120, 280 156, 460 138 C 640 120, 740 156, 920 138 C 1100 120, 1160 154, 1200 132"
+++                stroke="rgba(255,255,255,0.22)"
+++                strokeWidth="1.1"
+++              />
+++              <path
+++                d="M0 72 C 210 92, 300 52, 510 72 C 720 92, 810 52, 1020 72 C 1110 80, 1160 76, 1200 70"
+++                stroke="rgba(255,255,255,0.14)"
+++                strokeWidth="1"
+++              />
+++
+++              <animateTransform
+++                attributeName="transform"
+++                attributeType="XML"
+++                type="translate"
+++                dur="12s"
+++                values="0 0; -80 0; 0 0"
+++                repeatCount="indefinite"
+++              />
+++            </g>
++           </svg>
++         </div>
++-      </div>
++ 
++-      {/* Copy centered inside the wave field */}
++-      <div className="container-edge relative z-10 flex min-h-[360px] items-center justify-center py-20 sm:min-h-[420px] sm:py-24">
++-        <div className="cta-copy max-w-3xl text-center">
+++        <div className="relative mx-auto max-w-2xl text-center">
++           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
++             Start using CutSwitch
++             <br />
++             today for free.
++           </h2>
++-          <div className="mt-7 flex justify-center">
++-            <a href="/pricing" className="btn-primary">
++-              Start Free Trial
++-            </a>
+++          <div className="mt-6 flex justify-center">
+++            <DownloadCTA />
++           </div>
++         </div>
++       </div>
+diff -ruN /mnt/data/worksite_orig/shared_reasoning.md /mnt/data/worksite/shared_reasoning.md
+--- /mnt/data/worksite_orig/shared_reasoning.md	2026-01-28 08:05:34.000000000 +0000
++++ /mnt/data/worksite/shared_reasoning.md	2026-01-28 20:34:55.403790812 +0000
+@@ -59,3 +59,57 @@
+ 1. Inspect the pricing block wrapper.
+ 2. In the Styles panel, confirm there is no `.pricing-block::before` pseudo-element.
+    - The pricing section should sit naturally on the Flow scene background without a giant rounded plate behind it.
++
++---
++
++## 2026-01-28 – “Seamless background” mode (single-tone background, no seams)
++
++### What I changed
++
++- Added a small override stylesheet: `app/seamless-bg.css`.
++  - Forces `--bg` to a single solid color.
++  - Disables the per-section gradient backdrops (`.scene::before` and `.scene--flow::after`).
++  - Ensures `.scene` does not clip with `overflow:hidden` (removes another common source of hard edges).
++  - Adds a single fixed background layer (`.site-bg`) with subtle grain, so the entire scroll shares one continuous backdrop.
++
++- Updated `app/layout.tsx` to:
++  - Import the override CSS.
++  - Render the `.site-bg` element once at the top of the page.
++
++- Updated `app/page.tsx` to remove hero header overflow clipping.
++
++- Updated `components/FinalCTA.tsx` to:
++  - Remove the extra glow gradients.
++  - Keep only a single wave system.
++  - Center the wave field vertically behind the CTA content.
++
++### Why the artifact happened
++
++The “bands” you are seeing are a classic dark-UI combo problem:
++
++1) **Large, low-contrast gradients** (especially long linear gradients in near-black values) can show visible banding on many displays and in browser compositing. It reads like “seams”, even when there is no actual DOM edge.
++
++2) **Per-section background layers** (pseudo-elements + masks + blend modes) increase the chances of visible transitions and clipped backdrops. Even a single `overflow:hidden` on the wrong wrapper can turn a soft blur into a hard rectangle.
++
++The previous approach was visually rich, but it left too many opportunities for displays/browsers to reveal banding or clipped edges.
++
++### Trade-offs and alternatives
++
++- Trade-off: the background is intentionally simpler and flatter. This is on purpose: correctness and cleanliness over fancy.
++- Alternative considered: keep the gradients and crank up dithering/noise per section. That can work, but it is still vulnerable to clipping and per-section stacking differences. The global single-tone background is the most robust across Chrome + Safari.
++
++### How to verify visually (DevTools)
++
++1) **Confirm the background is one continuous element**
++   - Inspect the DOM and find the `.site-bg` element.
++   - Toggle it off: the page should still be a single solid background due to the body override.
++
++2) **Confirm section backdrops are truly disabled**
++   - Inspect any element with class `.scene`.
++   - In the Styles pane, check `::before` and `::after` pseudo-elements.
++   - You should see `content: none` coming from `app/seamless-bg.css`.
++
++3) **Hunt for remaining offenders**
++   - If you still see a “band”, use the element picker on the band area.
++   - Look for any element with a large gradient background, mask-image, mix-blend-mode, or overflow clipping.
++   - Disable that single rule to confirm it is the source.

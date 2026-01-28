@@ -1,0 +1,86 @@
+/*
+  Seamless background mode
+  ------------------------
+  Goal: eliminate visible horizontal bands/seams by removing large, per-section gradients
+  (which can band on dark UIs) and ensuring there is a single, continuous base background.
+
+  This file intentionally overrides styles from app/globals.css.
+*/
+
+:root {
+  /*
+    globals.css defines --bg as a multi-layer gradient stack.
+    On some displays (and in some browsers), that stack can show stepping/banding.
+    For a “no seams, no bands” mode, force --bg to a single, solid tone.
+  */
+  --bg: #070a17 !important;
+}
+
+html,
+body {
+  background: var(--bg) !important;
+}
+
+/*
+  The homepage previously used section-scoped backdrop layers (.scene::before / .scene--flow::after)
+  which can create visible “bands” at boundaries and exaggerate gradient banding.
+  Disable those pseudo layers so the page reads as one continuous background.
+*/
+
+.scene {
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+.scene::before {
+  content: none !important;
+}
+
+.scene--flow::after {
+  content: none !important;
+}
+
+/*
+  Global, single-element backdrop.
+  We render it once, behind everything, so there are no section boundaries to reveal.
+  A touch of grain helps prevent gradient banding without introducing “hard” edges.
+*/
+
+.site-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg);
+}
+
+.site-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-bg::before {
+    opacity: 0.04;
+  }
+}
+
+/*
+  Remove any remaining full-width slab backgrounds that can read as “bands”
+  against the single-tone backdrop.
+*/
+
+.scene-divider,
+.container-edge {
+  background: transparent !important;
+}
+
+footer {
+  background: transparent !important;
+  border-color: transparent !important;
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import "./seamless-bg.css";
 import { getBaseUrl } from "@/lib/env";
 import { siteConfig } from "@/lib/site";
 import { Nav } from "@/components/Nav";
@@ -42,8 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className="min-h-screen">
+      <body className="min-h-screen relative isolate text-white antialiased">
         <ScrollCSSVars />
+        <div className="site-bg" aria-hidden="true" />
+
         {rewardfulApiKey ? (
           <>
             <Script id="rewardful-init" strategy="beforeInteractive">

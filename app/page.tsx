@@ -99,7 +99,7 @@ export default function HomePage() {
   return (
     <main>
       {/* Hero */}
-      <header data-hero-parallax className="relative overflow-hidden -mt-10">
+      <header data-hero-parallax className="relative -mt-10">
         {/* Cinematic, interactive smoke */}
         <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
 

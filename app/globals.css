@@ -648,6 +648,8 @@ body {
 .pricing-block {
   position: relative;
   isolation: isolate;
+  /* Contain atmospheric backgrounds so they never slice through surrounding sections. */
+  overflow: hidden;
 }
 
 .pricing-block::before {
@@ -663,25 +665,38 @@ body {
     radial-gradient(1000px circle at 82% 88%, rgba(185, 192, 255, 0.06), transparent 64%),
     radial-gradient(900px circle at 50% 12%, rgba(14, 16, 32, 0.55), rgba(14, 16, 32, 0.0) 70%);
 
-  /* Fade edges so it feels like atmosphere, not a bordered panel. */
+  /* Softer fades prevent visible "bands" behind the plan cards. */
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 14%,
-    rgba(0, 0, 0, 1) 88%,
+    rgba(0, 0, 0, 1) 20%,
+    rgba(0, 0, 0, 1) 80%,
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 14%,
-    rgba(0, 0, 0, 1) 88%,
+    rgba(0, 0, 0, 1) 20%,
+    rgba(0, 0, 0, 1) 80%,
     rgba(0, 0, 0, 0) 100%
   );
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
+}
+
+/*
+  Embedded pricing (home page): keep the aura, but stop the background from
+  bleeding upward into the sections above (the "slice" in your screenshots).
+*/
+.pricing-block--embedded {
+  border-radius: 44px;
+}
+
+.pricing-block--embedded::before {
+  inset: 0;
+  opacity: 0.82;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -745,19 +760,22 @@ body {
   transform: translate3d(0, calc(var(--scrollY, 0px) * var(--scene-parallax)), 0) scale(1.05);
   will-change: transform;
 
-  /* Fade out near section boundaries so backgrounds never look "cut" */
+  /*
+    Softer fades reduce visible "bands" where gradient masks ramp.
+    (Those bands were the background visually slicing through cards/media.)
+  */
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 12%,
-    rgba(0, 0, 0, 1) 88%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 12%,
-    rgba(0, 0, 0, 1) 88%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
     rgba(0, 0, 0, 0) 100%
   );
   -webkit-mask-repeat: no-repeat;

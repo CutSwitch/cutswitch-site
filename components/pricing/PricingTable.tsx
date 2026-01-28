@@ -147,7 +147,12 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
   }
 
   return (
-    <div className={cn("w-full pricing-block", embedded ? "pricing-block--embedded" : "")}>
+    <div
+      className={cn(
+        "w-full pricing-block relative isolate overflow-hidden",
+        embedded ? "pricing-block--embedded" : ""
+      )}
+    >
       <div
         className={cn(
           "container-edge relative z-10",

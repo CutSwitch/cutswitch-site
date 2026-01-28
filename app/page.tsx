@@ -160,9 +160,9 @@ export default function HomePage() {
       </header>
 
       {/* Speed proof: MP4 background, centered headline */}
-      <section className="speedproof relative overflow-hidden py-20 sm:py-24 lg:py-32 min-h-[520px] sm:min-h-[600px] lg:min-h-[680px]">
+      <section className="speedproof relative isolate overflow-hidden py-20 sm:py-24 lg:py-32 min-h-[520px] sm:min-h-[600px] lg:min-h-[680px]">
         <SpeedProofBackground />
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-10" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-0" />
 
         <div className="container-edge scene-content flex min-h-[520px] sm:min-h-[600px] lg:min-h-[680px] items-center justify-center">
           <div className="speedproof-copy mx-auto max-w-3xl text-center -mt-4 sm:-mt-6">
@@ -183,7 +183,7 @@ export default function HomePage() {
 
       {/* Continuous background: features → testimonials → affiliates → pricing → questions → final CTA */}
       <section className="scene scene--flow">
-        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-10" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 gradient-line opacity-70 z-0" />
 
         <div className="scene-content">
           <div className="container-edge py-16 sm:py-20">

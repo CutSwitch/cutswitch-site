@@ -10,21 +10,21 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
   return (
     <section
       className={cn(
-        "relative isolate overflow-hidden",
+        "relative overflow-hidden",
         embedded ? "py-16 sm:py-20" : "py-20 sm:py-24"
       )}
     >
       {/* Background glow */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 -z-10 cta-glow",
+          "pointer-events-none absolute inset-0 z-0 cta-glow",
           embedded ? "cta-glow--embedded" : ""
         )}
       />
 
       {/* Section divider (only when this CTA is its own scene) */}
       {!embedded ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 gradient-line opacity-80" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 gradient-line opacity-80" />
       ) : null}
 
       {/* CTA content */}
@@ -54,7 +54,7 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
       {/* Animated waves (Frame.io-ish, CutSwitch colored) */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 -z-10 overflow-hidden cta-wave-mask",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-0 overflow-hidden cta-wave-mask",
           embedded ? "h-80 sm:h-96" : "h-56"
         )}
       >

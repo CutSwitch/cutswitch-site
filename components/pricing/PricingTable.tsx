@@ -147,19 +147,19 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
   }
 
   return (
-    <div className="w-full">
+    <div className={cn("w-full pricing-block", embedded ? "pricing-block--embedded" : "")}>
       <div
         className={cn(
-          "container-edge",
+          "container-edge relative z-10",
           embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10"
         )}
       >
         <div className={cn(embedded ? "mb-7" : "mb-8")}>
-          <Heading className="text-3xl font-semibold tracking-tight">Pricing</Heading>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <Heading className="text-3xl font-semibold tracking-tight text-white">Pricing</Heading>
+          <p className="mt-2 text-sm text-white/70">
             Simple plans. Serious speed.
           </p>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <p className="mt-2 text-sm text-white/70">
             Subscriptions include a 7-day free trial. Taxes are calculated
             automatically with Stripe Tax. All purchases are final: no refunds.
           </p>
@@ -170,15 +170,12 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           <div className="relative">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div className="text-sm font-medium">Coupon code</div>
-            <Link
-              href="/affiliates"
-              className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-            >
+            <Link href="/affiliates" className="text-sm text-brand-highlight hover:text-white">
               Become an affiliate
             </Link>
           </div>
 
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+          <p className="mt-1 text-sm text-white/65">
             Codes are optional. You can also enter a promotion code inside Stripe
             Checkout.
           </p>
@@ -188,14 +185,14 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
               value={coupon}
               onChange={(e) => setCoupon(e.target.value)}
               placeholder="Enter code"
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none ring-0 focus:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:focus:border-neutral-700 md:max-w-sm"
+              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 md:max-w-sm"
             />
-            <label className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-200">
+            <label className="flex items-start gap-2 text-sm text-white/80">
               <input
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-neutral-300 text-indigo-600 focus:ring-indigo-600 dark:border-neutral-700"
+                className="mt-1 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand/70"
               />
               <span>
                 I understand CutSwitch purchases are final and we do not offer
@@ -208,13 +205,13 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
             </label>
           </div>
 
-          <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="mt-2 text-xs text-white/55">
             Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean
             chain.
           </div>
 
           {error ? (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+            <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {error}
             </div>
           ) : null}

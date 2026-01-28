@@ -167,7 +167,7 @@ export default function HomePage() {
         <div className="container-edge scene-content flex min-h-[520px] sm:min-h-[600px] lg:min-h-[680px] items-center justify-center">
           <div className="speedproof-copy mx-auto max-w-3xl text-center -mt-4 sm:-mt-6">
             <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
-              A full multicam podcast timeline in minutes — not hours.
+              A full multicam podcast timeline cut in minutes — not hours.
             </h2>
             <div className="mt-7 flex justify-center">
               <Link href="/pricing" className="btn btn-primary">

@@ -11,7 +11,7 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
     <section
       className={cn(
         "relative overflow-hidden",
-        embedded ? "pt-10 pb-20 sm:pt-12 sm:pb-24" : "py-20 sm:py-24"
+        embedded ? "py-16 sm:py-20" : "py-20 sm:py-24"
       )}
     >
       {/* Background glow */}
@@ -28,8 +28,13 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
       ) : null}
 
       {/* CTA content */}
-      <div className="container-edge relative z-10">
-        <div className="mx-auto max-w-3xl text-center">
+      <div
+        className={cn(
+          "container-edge relative z-10",
+          embedded ? "min-h-[340px] sm:min-h-[380px] flex items-center justify-center" : ""
+        )}
+      >
+        <div className="cta-copy mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white/95 sm:text-4xl">
             Start using CutSwitch
             <span className="block">today for free.</span>
@@ -47,7 +52,12 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
       </div>
 
       {/* Animated waves (Frame.io-ish, CutSwitch colored) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-56 overflow-hidden cta-wave-mask">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 z-0 overflow-hidden cta-wave-mask",
+          embedded ? "h-80 sm:h-96" : "h-56"
+        )}
+      >
         {/* back layer */}
         <svg
           aria-hidden="true"

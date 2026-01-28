@@ -74,7 +74,7 @@ export function SpeedProofBackground({ className }: Props) {
       ref={ref}
       aria-hidden
       className={[
-        "speedproof-bg pointer-events-none absolute inset-0",
+        "speedproof-bg speedproof-bg--fade-bottom pointer-events-none absolute inset-0",
         className,
       ]
         .filter(Boolean)

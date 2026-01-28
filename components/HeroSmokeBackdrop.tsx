@@ -118,7 +118,7 @@ export function HeroSmokeBackdrop({ className }: Props) {
     <div
       ref={ref}
       aria-hidden="true"
-      className={cn("hero-smoke pointer-events-none", className)}
+      className={cn("hero-smoke hero-smoke-mask pointer-events-none", className)}
     >
       <div className="hero-smoke-cursor" />
       <div className="hero-smoke-blob hero-smoke-blob-a" />

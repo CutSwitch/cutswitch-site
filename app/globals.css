@@ -73,6 +73,29 @@ body {
   isolation: isolate;
 }
 
+/* Fade the SpeedProof backdrop out near the bottom so the transition into the
+   next scene doesn't create a hard horizontal seam. */
+.speedproof-bg--fade-bottom {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 72%,
+    rgba(0, 0, 0, 0.45) 86%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 72%,
+    rgba(0, 0, 0, 0.45) 86%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 .speedproof-bg__media {
   position: absolute;
   /* Full-bleed across ultra-wide viewports: no hard edge on the right */
@@ -283,6 +306,29 @@ body {
     var(--bg);
 
   filter: saturate(1.18) contrast(1.06);
+}
+
+/* Fade the hero backdrop out near the bottom so it blends into the next scene
+   without creating a hard rectangular band. */
+.hero-smoke-mask {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 68%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 68%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 .hero-smoke-cursor {
@@ -615,20 +661,22 @@ body {
 }
 
 /*
-  Fade the wave SVGs out as they approach the top of the CTA
-  without darkening the entire section (prevents the "black band" effect).
+  Fade the wave field at the top + bottom so it feels like it belongs to the
+  section (no hard horizontal stripe / seam).
 */
 .cta-wave-mask {
   -webkit-mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 70%,
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 70%,
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 1) 82%,
     rgba(0, 0, 0, 0) 100%
   );
   -webkit-mask-repeat: no-repeat;
@@ -637,24 +685,12 @@ body {
   mask-size: 100% 100%;
 }
 
-/* Pricing needs stable "text safety" so the background never reads as mixed or sliced. */
+/* Pricing previously had its own large background slab, which read like a
+   separate "section" and created visible horizontal seams on the home page.
+   Keep pricing on the same continuous scene background for a cleaner, more
+   premium feel. */
 .pricing-block {
   position: relative;
-  isolation: isolate;
-}
-
-.pricing-block::before {
-  content: "";
-  position: absolute;
-  inset: -10% -6%;
-  border-radius: 44px;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.72;
-  background:
-    radial-gradient(1100px circle at 25% 0%, rgba(101, 93, 255, 0.10), transparent 62%),
-    radial-gradient(1000px circle at 82% 88%, rgba(185, 192, 255, 0.06), transparent 64%),
-    radial-gradient(900px circle at 50% 12%, rgba(14, 16, 32, 0.55), rgba(14, 16, 32, 0.0) 70%);
 }
 
 @media (prefers-reduced-motion: reduce) {

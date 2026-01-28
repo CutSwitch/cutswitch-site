@@ -1,150 +1,77 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 type FinalCTAProps = {
-  /** When true, removes the top divider and tightens padding so it can flow from the previous section. */
   embedded?: boolean;
 };
 
-export function FinalCTA({ embedded = false }: FinalCTAProps) {
+export function FinalCTA({ embedded }: FinalCTAProps) {
   return (
     <section
       className={cn(
         "relative overflow-hidden",
-        embedded ? "py-16 sm:py-20" : "py-20 sm:py-24"
+        embedded ? "" : "border-t border-line",
       )}
     >
-      {/* Background glow */}
+      {/* Soft glow behind everything */}
       <div
-        className={cn(
-          "pointer-events-none absolute inset-0 z-0 cta-glow",
-          embedded ? "cta-glow--embedded" : ""
-        )}
+        className="pointer-events-none absolute inset-0 cta-glow"
+        aria-hidden="true"
       />
 
-      {/* Section divider (only when this CTA is its own scene) */}
-      {!embedded ? (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 gradient-line opacity-80" />
-      ) : null}
-
-      {/* CTA content */}
+      {/* Single wave system (no duplicated layers) */}
       <div
-        className={cn(
-          "container-edge relative z-10",
-          embedded ? "min-h-[340px] sm:min-h-[380px] flex items-center justify-center" : ""
-        )}
+        className="pointer-events-none absolute inset-0 overflow-hidden cta-wave-mask"
+        aria-hidden="true"
       >
-        <div className="cta-copy mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white/95 sm:text-4xl">
-            Start using CutSwitch
-            <span className="block">today for free.</span>
-          </h2>
-
-          <div className="mt-7 flex justify-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/5 px-7 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-md transition hover:bg-white/10 hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70"
-            >
-              Start Free Trial
-            </Link>
-          </div>
+        {/*
+          We center the *wrapper* vertically so we can keep the SVG animation on
+          transform (translateX) without fighting Tailwind translateY classes.
+        */}
+        <div className="absolute left-0 top-1/2 w-full -translate-y-1/2">
+          <svg
+            className="cta-wave-svg block h-[200px] w-[200%] opacity-65 sm:h-[240px]"
+            viewBox="0 0 1440 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0 55C160 15 320 15 480 55C640 95 800 95 960 55C1120 15 1280 15 1440 55"
+              stroke="rgba(143, 158, 255, 0.65)"
+              strokeWidth="2"
+            />
+            <path
+              d="M0 70C160 30 320 30 480 70C640 110 800 110 960 70C1120 30 1280 30 1440 70"
+              stroke="rgba(143, 158, 255, 0.35)"
+              strokeWidth="2"
+            />
+            <path
+              d="M0 40C160 0 320 0 480 40C640 80 800 80 960 40C1120 0 1280 0 1440 40"
+              stroke="rgba(143, 158, 255, 0.25)"
+              strokeWidth="2"
+            />
+            <path
+              d="M0 85C160 45 320 45 480 85C640 125 800 125 960 85C1120 45 1280 45 1440 85"
+              stroke="rgba(143, 158, 255, 0.18)"
+              strokeWidth="2"
+            />
+          </svg>
         </div>
       </div>
 
-      {/* Animated waves (Frame.io-ish, CutSwitch colored) */}
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-0 overflow-hidden cta-wave-mask",
-          embedded ? "h-80 sm:h-96" : "h-56"
-        )}
-      >
-        {/* back layer */}
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          viewBox="0 0 2400 240"
-          preserveAspectRatio="none"
-          className="absolute bottom-0 left-0 h-full w-[200%] opacity-55 cta-wave-svg cta-wave-svg-slow"
-        >
-          <defs>
-            <linearGradient id="csWaveGradBack" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(101,93,255,0)" />
-              <stop offset="20%" stopColor="rgba(101,93,255,0.55)" />
-              <stop offset="50%" stopColor="rgba(185,192,255,0.40)" />
-              <stop offset="80%" stopColor="rgba(101,93,255,0.55)" />
-              <stop offset="100%" stopColor="rgba(101,93,255,0)" />
-            </linearGradient>
-            <g id="csWaveSetBack" fill="none" stroke="url(#csWaveGradBack)" strokeLinecap="round">
-              <path
-                d="M0 175 C 200 115 400 235 600 175 C 800 115 1000 235 1200 175"
-                strokeWidth="3"
-                opacity="0.55"
-              />
-              <path
-                d="M0 195 C 220 130 420 255 620 195 C 820 135 1020 255 1220 195"
-                strokeWidth="2"
-                opacity="0.45"
-              />
-              <path
-                d="M0 155 C 200 105 410 225 610 155 C 810 105 1010 225 1210 155"
-                strokeWidth="2"
-                opacity="0.40"
-              />
-            </g>
-          </defs>
-
-          <g opacity="0.34" transform="translate(0,-80)">
-            <use href="#csWaveSetBack" x="0" />
-            <use href="#csWaveSetBack" x="1200" />
-          </g>
-
-          <use href="#csWaveSetBack" x="0" />
-          <use href="#csWaveSetBack" x="1200" />
-        </svg>
-
-        {/* front layer */}
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          viewBox="0 0 2400 240"
-          preserveAspectRatio="none"
-          className="absolute bottom-0 left-0 h-full w-[200%] opacity-80 cta-wave-svg"
-        >
-          <defs>
-            <linearGradient id="csWaveGradFront" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(101,93,255,0)" />
-              <stop offset="18%" stopColor="rgba(101,93,255,0.75)" />
-              <stop offset="50%" stopColor="rgba(185,192,255,0.65)" />
-              <stop offset="82%" stopColor="rgba(101,93,255,0.75)" />
-              <stop offset="100%" stopColor="rgba(101,93,255,0)" />
-            </linearGradient>
-            <g id="csWaveSetFront" fill="none" stroke="url(#csWaveGradFront)" strokeLinecap="round">
-              <path
-                d="M0 185 C 200 120 400 245 600 185 C 800 120 1000 245 1200 185"
-                strokeWidth="3"
-                opacity="0.9"
-              />
-              <path
-                d="M0 205 C 220 140 420 265 620 205 C 820 145 1020 265 1220 205"
-                strokeWidth="2"
-                opacity="0.7"
-              />
-              <path
-                d="M0 165 C 200 110 410 235 610 165 C 810 110 1010 235 1210 165"
-                strokeWidth="2"
-                opacity="0.55"
-              />
-            </g>
-          </defs>
-
-          <g opacity="0.42" transform="translate(0,-80)">
-            <use href="#csWaveSetFront" x="0" />
-            <use href="#csWaveSetFront" x="1200" />
-          </g>
-
-          <use href="#csWaveSetFront" x="0" />
-          <use href="#csWaveSetFront" x="1200" />
-        </svg>
+      {/* Copy centered inside the wave field */}
+      <div className="container-edge relative z-10 flex min-h-[360px] items-center justify-center py-20 sm:min-h-[420px] sm:py-24">
+        <div className="cta-copy max-w-3xl text-center">
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+            Start using CutSwitch
+            <br />
+            today for free.
+          </h2>
+          <div className="mt-7 flex justify-center">
+            <a href="/pricing" className="btn-primary">
+              Start Free Trial
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );

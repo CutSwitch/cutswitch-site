@@ -155,8 +155,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom fade so the next scene reads clean */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-20 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </header>
 
       {/* Speed proof: MP4 background, centered headline */}
@@ -176,8 +174,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom fade to merge into the continuous home background */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-24 bg-[linear-gradient(to_bottom,rgba(14,16,32,0),rgba(14,16,32,1))]" />
       </section>
 
       {/* Continuous background: features → testimonials → affiliates → pricing → questions → final CTA */}

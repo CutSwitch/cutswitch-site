@@ -93,6 +93,11 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
             </g>
           </defs>
 
+          <g opacity="0.34" transform="translate(0,-80)">
+            <use href="#csWaveSetBack" x="0" />
+            <use href="#csWaveSetBack" x="1200" />
+          </g>
+
           <use href="#csWaveSetBack" x="0" />
           <use href="#csWaveSetBack" x="1200" />
         </svg>
@@ -131,6 +136,11 @@ export function FinalCTA({ embedded = false }: FinalCTAProps) {
               />
             </g>
           </defs>
+
+          <g opacity="0.42" transform="translate(0,-80)">
+            <use href="#csWaveSetFront" x="0" />
+            <use href="#csWaveSetFront" x="1200" />
+          </g>
 
           <use href="#csWaveSetFront" x="0" />
           <use href="#csWaveSetFront" x="1200" />

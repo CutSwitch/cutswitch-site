@@ -110,7 +110,7 @@ export default function HomePage() {
               <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
               <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-                Auto-switch your multicam by who’s speaking.
+                Automatically cut podcasts and interviews in Final Cut Pro.
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">

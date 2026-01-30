@@ -1,50 +1,46 @@
-import { DownloadCTA } from "@/components/DownloadCTA";
-
-export function FinalCTA({ embedded }: { embedded?: boolean }) {
-  const sectionClassName = embedded
-    ? "relative isolate mt-10"
-    : "relative isolate mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20";
+export default function FinalCTA({ embedded = false }: { embedded?: boolean }) {
+  const outerPadding = embedded ? "" : "py-24 sm:py-28";
+  const innerPadding = embedded ? "min-h-[260px] py-14 sm:py-16" : "min-h-[340px] py-16 sm:py-20";
 
   return (
-    <section className={sectionClassName}>
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/20 p-10 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:p-12">
-        {/* Single wave system with soft fade at edges (via .cta-wave-mask) */}
-        <div className="pointer-events-none absolute inset-0 opacity-70 cta-wave-mask">
-          <svg
-            className="h-full w-full"
-            viewBox="0 0 1000 240"
-            preserveAspectRatio="none"
+    <section className={`mx-auto max-w-6xl px-4 sm:px-6 ${outerPadding}`}>
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink/40 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset]">
+        {/* Background video */}
+        <div className="absolute inset-0">
+          <video
+            className="h-full w-full object-cover opacity-90 motion-reduce:hidden"
+            src="/illust/cta-loop.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
             aria-hidden="true"
-          >
-            <g fill="none" stroke="rgba(142, 160, 255, 0.40)" strokeWidth="2">
-              <path d="M0 120 C 160 60, 320 180, 480 120 S 800 60, 1000 120" />
-              <path d="M0 140 C 180 90, 340 190, 520 140 S 820 90, 1000 140" />
-              <path d="M0 100 C 140 40, 300 160, 460 100 S 780 40, 1000 100" />
-              <animateTransform
-                attributeName="transform"
-                attributeType="XML"
-                type="translate"
-                from="0 0"
-                to="-220 0"
-                dur="7s"
-                repeatCount="indefinite"
-              />
-            </g>
-          </svg>
+          />
+
+          {/*
+            Soft overlays to keep text readable and prevent the video from reading as a hard
+            horizontal band. The gradients also blend into the page background.
+          */}
+          <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_40%,rgba(90,65,255,0.22),transparent_55%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink/95 via-ink/55 to-ink/95" />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-transparent to-ink/80" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Start using CutSwitch
-            <br />
-            today for free.
-          </h2>
-          <p className="mt-3 max-w-prose text-sm text-white/70 sm:text-base">
-            Get a clean first cut fast, then refine in Final Cut like normal.
-          </p>
+        {/* Content */}
+        <div className={`relative z-10 flex flex-col items-center justify-center text-center ${innerPadding}`}>
+          <div className="cta-copy px-7 py-9 sm:px-10 sm:py-10">
+            <h2 className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              Start using CutSwitch
+              <br />
+              today for free.
+            </h2>
 
-          <div className="mt-6">
-            <DownloadCTA href="/pricing" label="Start Free Trial" />
+            <div className="mt-7 flex items-center justify-center">
+              <a href="/pricing" className="btn-primary">
+                Start Free Trial
+              </a>
+            </div>
           </div>
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className="min-h-screen relative isolate text-white antialiased">
+      <body className="min-h-screen bg-[#0e101f] relative isolate text-white antialiased">
         <ScrollCSSVars />
         <div className="site-bg" aria-hidden="true" />
 

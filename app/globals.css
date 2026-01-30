@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0E1020;
+  --bg: #0e101f;
   --brand: #655DFF;
   --highlight: #B9C0FF;
   --shadow: #8F9BFF;
@@ -16,6 +16,7 @@
 html,
 body {
   height: 100%;
+  background-color: var(--bg);
 }
 
 /* --- Speed-proof background (Frame-ish, embedded, calm) --- */

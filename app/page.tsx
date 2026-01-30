@@ -99,7 +99,26 @@ export default function HomePage() {
     <main>
       {/* Hero */}
       <header data-hero-parallax className="relative -mt-10">
-        {/* Hero background: keep it simple and stable (no smoke layer). */}
+        {/* Animated hero backdrop (video) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <video
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70"
+            src="/illust/hero-intro-smoke.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            style={{
+              filter: "brightness(1.35) saturate(1.05) contrast(1.05)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)",
+            }}
+          />
+          <div className="absolute inset-0 bg-[#0e101f]/55" />
+        </div>
 
         <div className="relative z-10 mx-auto max-w-7xl xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
           <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12 lg:items-start">

@@ -6,7 +6,7 @@ import { VideoDemo } from "@/components/VideoDemo";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
-import { FinalCTA } from "@/components/FinalCTA";
+import FinalCTA from "@/components/FinalCTA";
 import { HeroSmokeBackdrop } from "@/components/HeroSmokeBackdrop";
 import { SpeedProofBackground } from "@/components/SpeedProofBackground";
 import {

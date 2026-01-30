@@ -7,7 +7,6 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import FinalCTA from "@/components/FinalCTA";
-import { HeroSmokeBackdrop } from "@/components/HeroSmokeBackdrop";
 import { SpeedProofBackground } from "@/components/SpeedProofBackground";
 import {
   IconCamera,
@@ -100,8 +99,7 @@ export default function HomePage() {
     <main>
       {/* Hero */}
       <header data-hero-parallax className="relative -mt-10">
-        {/* Cinematic, interactive smoke */}
-        <HeroSmokeBackdrop className="opacity-95" />
+        {/* Hero background: keep it simple and stable (no smoke layer). */}
 
         <div className="relative z-10 mx-auto max-w-7xl xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
           <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12 lg:items-start">
@@ -110,13 +108,12 @@ export default function HomePage() {
               <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
 
               <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-                Automatically cut podcasts and interviews in Final Cut Pro.
+                <span className="block">Instantly Edit Podcasts</span>
+                <span className="block">in Final Cut Pro.</span>
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML, attach isolated, single-speaker audio files (one file per speaker) with minimal
-                bleed/crosstalk, pick a rhythm. CutSwitch generates a clean, editable cut plan that follows the
-                conversation.
+                Import a Final Cut XML, and instantly edit a multi-cam interview or podcast.
               </p>
             </div>
 
@@ -161,7 +158,7 @@ export default function HomePage() {
         <div className="container-edge scene-content flex min-h-[520px] sm:min-h-[600px] lg:min-h-[680px] items-center justify-center">
           <div className="speedproof-copy mx-auto max-w-3xl text-center -mt-4 sm:-mt-6">
             <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
-              A full multicam podcast timeline cut in minutes — not hours.
+              Cut in minutes — not hours.
             </h2>
             <div className="mt-7 flex justify-center">
               <Link href="/pricing" className="btn btn-primary">

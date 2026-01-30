@@ -18,7 +18,6 @@ type Plan = {
 
 const MONTHLY_PRICE = 19.99;
 const YEARLY_PRICE = 199;
-const LIFETIME_PRICE = 299;
 
 /**
  * NOTE:
@@ -64,20 +63,6 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         ],
         featured: true,
         cta: "Start trial",
-      },
-      {
-        key: "lifetime",
-        name: "Lifetime",
-        priceLabel: `${formatUsd(LIFETIME_PRICE)}`,
-        priceNote: "one-time purchase",
-        highlights: [
-          "Pay once, use forever",
-          "All core features",
-          "License for 2 Macs",
-          "Includes major updates",
-          "Stripe Tax calculated at checkout",
-        ],
-        cta: "Buy lifetime",
       },
     ],
     []
@@ -218,7 +203,7 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {plans.map((p) => (
             <div
               key={p.key}

@@ -101,10 +101,10 @@ export default function HomePage() {
       {/* Hero */}
       <header data-hero-parallax className="relative -mt-10">
         {/* Cinematic, interactive smoke */}
-        <HeroSmokeBackdrop className="absolute -top-16 inset-x-0 bottom-0 z-0 opacity-95" />
+        <HeroSmokeBackdrop className="opacity-95" />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:items-start">
+        <div className="relative z-10 mx-auto max-w-7xl xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12 lg:items-start">
             {/* Copy */}
             <div className="max-w-2xl lg:col-start-1 lg:row-start-1 hero-parallax-text">
               <div className="chip w-fit">macOS app · Final Cut Pro multicam</div>
@@ -123,9 +123,6 @@ export default function HomePage() {
             {/* Video (mobile: directly under paragraph) */}
             <div className="lg:col-start-2 lg:row-span-2 lg:pt-2 hero-parallax-video">
               <VideoDemo className="mx-auto w-full max-w-xl lg:max-w-none" />
-              <p className="mt-3 text-xs text-white/60">
-                Real pipeline, real output. Import the result into Final Cut Pro and refine.
-              </p>
             </div>
 
             {/* Actions (mobile: below video) */}

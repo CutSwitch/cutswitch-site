@@ -10,11 +10,6 @@ export const metadata: Metadata = {
 export default function CookiePolicyPage() {
   return (
     <LegalPage title="Cookie Policy" updated="2026-01-02">
-      <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-white/70">
-        <strong className="text-white/90">Note:</strong> This is a practical template, not legal advice. Cookie
-        requirements vary by jurisdiction (e.g., GDPR/ePrivacy, CCPA/CPRA). Have counsel review.
-      </p>
-
       <p>
         This Cookie Policy explains how {siteConfig.name} uses cookies and similar technologies on {siteConfig.domain}
         (the “Site”) and in connection with the CutSwitch purchase/affiliate flow.

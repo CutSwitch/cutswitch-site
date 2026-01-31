@@ -11,11 +11,6 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" updated="2025-12-30">
-      <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-white/70">
-        <strong className="text-white/90">Important:</strong> This is a practical template, not legal advice.
-        Have counsel review before you ship at scale.
-      </p>
-
       <p>
         These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the CutSwitch website and macOS
         application (&ldquo;CutSwitch&rdquo;). By downloading, installing, purchasing, or using CutSwitch, you agree to

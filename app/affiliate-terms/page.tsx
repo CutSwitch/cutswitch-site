@@ -11,11 +11,6 @@ export const metadata: Metadata = {
 export default function AffiliateTermsPage() {
   return (
     <LegalPage title="Affiliate Program Terms" updated="2026-01-02">
-      <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-white/70">
-        <strong className="text-white/90">Important:</strong> This is a practical template, not legal advice. Have
-        counsel review, especially around FTC/ASA disclosure rules and your jurisdiction.
-      </p>
-
       <p>
         These Affiliate Program Terms ("Affiliate Terms") govern participation in the CutSwitch affiliate program
         (the “Program”). By applying to or participating in the Program, you agree to these Affiliate Terms in

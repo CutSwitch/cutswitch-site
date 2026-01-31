@@ -1,48 +1,53 @@
-export default function FinalCTA({ embedded = false }: { embedded?: boolean }) {
-  const outerPadding = embedded ? "" : "py-24 sm:py-28";
-  const innerPadding = embedded ? "min-h-[260px] py-14 sm:py-16" : "min-h-[340px] py-16 sm:py-20";
+type Props = {
+  embedded?: boolean;
+};
+
+export default function FinalCTA({ embedded = false }: Props) {
+  const outerPadding = embedded ? "pt-14 pb-16" : "py-16 sm:py-24";
 
   return (
-    <section className={`container-edge ${outerPadding}`}>
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink/35 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_24px_80px_rgba(0,0,0,0.55)]">
-        {/* Background loop (WebM/MP4). */}
-        <div className="absolute inset-0" aria-hidden="true">
+    <section aria-label="Final call to action" className={`relative overflow-hidden ${outerPadding}`}>
+      {/* Full-bleed background (Frame.io-style band) */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        {/* Base */}
+        <div className="absolute inset-0 bg-[#0e101f]" />
+
+        {/* Video */}
+        <div className="absolute inset-[-18%] cta-wave-mask">
           <video
-            className="h-full w-full object-cover opacity-100"
-            style={{ filter: "brightness(1.45) saturate(1.1) contrast(1.05)" }}
+            className="h-full w-full object-cover opacity-80 [filter:brightness(1.25)_contrast(1.05)]"
             autoPlay
+            playsInline
             muted
             loop
-            playsInline
-            preload="metadata"
+            preload="auto"
           >
             <source src="/illust/cta-loop.webm" type="video/webm" />
-            <source src="/illust/cta-loop.mp4" type="video/mp4" />
           </video>
-
-          {/*
-            Soft overlays to keep text readable and prevent the video from reading as a hard
-            horizontal band. The gradients also blend into the page background.
-          */}
-          <div className="absolute inset-0 bg-[radial-gradient(900px_circle_at_50%_40%,rgba(90,65,255,0.22),transparent_55%)]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-ink/75 via-ink/35 to-ink/75" />
-          <div className="absolute inset-0 bg-gradient-to-r from-ink/60 via-transparent to-ink/60" />
         </div>
 
-        {/* Content */}
-        <div className={`relative z-10 flex flex-col items-center justify-center text-center ${innerPadding}`}>
-          <div className="cta-copy px-7 py-9 sm:px-10 sm:py-10">
-            <h2 className="text-balance text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Start using CutSwitch
-              <br />
-              today for free.
-            </h2>
+        {/* Blend overlays (keep it on-brand + prevent hard edges) */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(112,92,255,0.35),_transparent_65%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0e101f] via-transparent to-[#0e101f]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e101f] via-transparent to-[#0e101f] opacity-80" />
+      </div>
 
-            <div className="mt-7 flex items-center justify-center">
-              <a href="/pricing" className="btn-primary">
-                Start Free Trial
-              </a>
-            </div>
+      {/* Content */}
+      <div className="container-edge relative z-10">
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <h2 className="text-3xl font-semibold leading-tight tracking-tight text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.45)] sm:text-4xl">
+            Start using CutSwitch
+            <br />
+            today for free.
+          </h2>
+
+          <div className="mt-8">
+            <a
+              className="btn btn-primary rounded-full px-8 py-3 text-base shadow-[0_18px_50px_rgba(112,92,255,0.25)]"
+              href="/pricing"
+            >
+              Start Free Trial
+            </a>
           </div>
         </div>
       </div>

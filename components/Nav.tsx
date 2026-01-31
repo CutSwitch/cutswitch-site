@@ -10,7 +10,6 @@ type NavItem = { href: string; label: string; glow?: boolean };
 
 const NAV: NavItem[] = [
   { href: "/pricing", label: "Pricing", glow: true },
-  { href: "/download", label: "Download" },
   { href: "/support", label: "Support", glow: true },
   { href: "/affiliates", label: "Affiliates" },
 ];
@@ -54,9 +53,16 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            href="/support"
+            className="text-sm text-white/70 transition hover:text-white"
+          >
+            Contact Us
+          </Link>
+
           <Link className="btn btn-primary" href="/download">
-            Download
+            Try It Free
             <span className="text-white/80">→</span>
           </Link>
         </div>
@@ -91,9 +97,15 @@ export function Nav() {
                   </Link>
                 );
               })}
-              <div className="pt-2">
+              <div className="pt-2 grid gap-2">
+                <Link
+                  href="/support"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center text-sm text-white/80 hover:bg-white/10 hover:text-white"
+                >
+                  Contact Us
+                </Link>
                 <Link className="btn btn-primary w-full" href="/download">
-                  Download
+                  Try It Free
                 </Link>
               </div>
             </div>

@@ -146,7 +146,7 @@ export default function HomePage() {
               <div className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <Link href="/download" className="btn btn-primary">
-                    Download
+                    Get CutSwitch
                     <span aria-hidden>→</span>
                   </Link>
                   <Link href="/demo" className="btn btn-secondary">

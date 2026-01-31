@@ -27,31 +27,31 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0E1020]/80 backdrop-blur">
       <div className="container-edge flex h-16 items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6 md:gap-8">
           <Logo />
-        </div>
 
-        <nav className="hidden md:flex items-center gap-1">
-          {NAV.map((item) => {
-            const isActive = active === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative rounded-lg px-3 py-2 text-sm transition",
-                  isActive ? "text-white" : "text-white/70 hover:text-white",
-                  item.glow && !isActive ? "hover:shadow-[0_0_0_1px_rgba(101,93,255,0.25)]" : ""
-                )}
-              >
-                {item.label}
-                {isActive && (
-                  <span className="absolute inset-x-2 -bottom-[9px] h-[2px] rounded-full bg-brand/80" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="hidden md:flex items-center gap-1">
+            {NAV.map((item) => {
+              const isActive = active === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative rounded-lg px-3 py-2 text-sm transition",
+                    isActive ? "text-white" : "text-white/70 hover:text-white",
+                    item.glow && !isActive ? "hover:shadow-[0_0_0_1px_rgba(101,93,255,0.25)]" : ""
+                  )}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute inset-x-2 -bottom-[9px] h-[2px] rounded-full bg-brand/80" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
         <div className="hidden md:flex items-center gap-3">
           <Link

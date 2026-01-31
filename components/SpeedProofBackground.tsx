@@ -80,16 +80,19 @@ export function SpeedProofBackground({ className }: Props) {
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Animated media layer (GIF). */}
-      <div className="speedproof-bg__media">
-        <img
+      {/* Animated media layer (WebM/MP4). */}
+      <div className="speedproof-bg__media" aria-hidden="true">
+        <video
           className="speedproof-bg__video"
-          src="/illust/speedproof-bg.gif"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          draggable={false}
-        />
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        >
+          <source src="/illust/speedproof-bg.webm" type="video/webm" />
+          <source src="/illust/speedproof-bg.mp4" type="video/mp4" />
+        </video>
       </div>
 
       {/* Brand tint so the palette is consistent with CutSwitch */}

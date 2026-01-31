@@ -5,18 +5,20 @@ export default function FinalCTA({ embedded = false }: { embedded?: boolean }) {
   return (
     <section className={`mx-auto max-w-6xl px-4 sm:px-6 ${outerPadding}`}>
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink/35 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_24px_80px_rgba(0,0,0,0.55)]">
-        {/* Background loop (lazy-loaded) */}
-        <div className="absolute inset-0">
-          <img
+        {/* Background loop (WebM/MP4). */}
+        <div className="absolute inset-0" aria-hidden="true">
+          <video
             className="h-full w-full object-cover opacity-100"
-            style={{ filter: "brightness(1.35) saturate(1.1) contrast(1.05)" }}
-            src="/illust/cta-loop.gif"
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-          />
+            style={{ filter: "brightness(1.45) saturate(1.1) contrast(1.05)" }}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          >
+            <source src="/illust/cta-loop.webm" type="video/webm" />
+            <source src="/illust/cta-loop.mp4" type="video/mp4" />
+          </video>
 
           {/*
             Soft overlays to keep text readable and prevent the video from reading as a hard

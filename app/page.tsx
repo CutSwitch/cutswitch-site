@@ -152,16 +152,6 @@ export default function HomePage() {
                   <Link href="/demo" className="btn btn-secondary">
                     Watch the demo
                   </Link>
-                  <Link href="/pricing" className="btn btn-ghost">
-                    See pricing
-                  </Link>
-                </div>
-
-                <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-white/70">
-                  <span className="chip">Apple Silicon + Intel</span>
-                  <span className="chip">Local-first</span>
-                  <span className="chip">Exports .fcpxmld</span>
-                  <span className="chip hidden sm:inline-flex">Podcast / interview ready</span>
                 </div>
               </div>
             </div>

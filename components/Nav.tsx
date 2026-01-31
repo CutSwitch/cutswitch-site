@@ -13,7 +13,7 @@ const NAV: NavItem[] = [
   { href: "/download", label: "Download" },
   { href: "/support", label: "Support", glow: true },
   { href: "/affiliates", label: "Affiliates" },
-  ];
+];
 
 export function Nav() {
   const pathname = usePathname();
@@ -55,9 +55,6 @@ export function Nav() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          <Link className="btn btn-ghost" href="/demo">
-            Watch demo
-          </Link>
           <Link className="btn btn-primary" href="/download">
             Download
             <span className="text-white/80">→</span>
@@ -94,10 +91,7 @@ export function Nav() {
                   </Link>
                 );
               })}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <Link className="btn btn-ghost w-full" href="/demo">
-                  Watch demo
-                </Link>
+              <div className="pt-2">
                 <Link className="btn btn-primary w-full" href="/download">
                   Download
                 </Link>

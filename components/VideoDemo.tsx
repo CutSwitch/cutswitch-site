@@ -188,6 +188,7 @@ export function VideoDemo({ className, interactive = true, chrome = true }: Vide
           ref={videoRef}
           className="h-full w-full object-cover"
           src="/videos/demo.mp4"
+          poster="/videos/demo-poster.webp"
           autoPlay
           loop
           muted

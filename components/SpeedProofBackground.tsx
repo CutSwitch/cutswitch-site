@@ -13,7 +13,7 @@ type Props = {
  * - feels embedded in the section background (not a boxed card)
  * - slow, calm, continuous loop (no snappy UI effects)
  * - subtle pointer parallax on desktop only
- * - MP4 is the primary media; GIF is a reduced-motion fallback
+ * - Uses a single GIF loop for reliability and simple performance characteristics.
  */
 export function SpeedProofBackground({ className }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -80,23 +80,16 @@ export function SpeedProofBackground({ className }: Props) {
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Animated media layer (MP4; GIF fallback for reduced-motion) */}
+      {/* Animated media layer (GIF). */}
       <div className="speedproof-bg__media">
-        <video
+        <img
           className="speedproof-bg__video"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          disableRemotePlayback
-        >
-          <source src="/illust/speedproof-bg.mp4" type="video/mp4" />
-        </video>
-
-        {/* Reduced-motion fallback (or if video fails to load). */}
-        <div className="speedproof-bg__gif" />
+          src="/illust/speedproof-bg.gif"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
       </div>
 
       {/* Brand tint so the palette is consistent with CutSwitch */}

@@ -120,7 +120,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[#0e101f]/55" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <div className="container-edge relative z-10 py-16 sm:py-20">
           <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12 lg:items-start">
             {/* Copy */}
             <div className="max-w-2xl lg:col-start-1 lg:row-start-1 hero-parallax-text">

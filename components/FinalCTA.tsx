@@ -3,7 +3,7 @@ export default function FinalCTA({ embedded = false }: { embedded?: boolean }) {
   const innerPadding = embedded ? "min-h-[260px] py-14 sm:py-16" : "min-h-[340px] py-16 sm:py-20";
 
   return (
-    <section className={`mx-auto max-w-6xl px-4 sm:px-6 ${outerPadding}`}>
+    <section className={`container-edge ${outerPadding}`}>
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-ink/35 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_24px_80px_rgba(0,0,0,0.55)]">
         {/* Background loop (WebM/MP4). */}
         <div className="absolute inset-0" aria-hidden="true">

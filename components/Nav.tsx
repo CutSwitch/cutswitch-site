@@ -27,7 +27,7 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0E1020]/80 backdrop-blur">
       <div className="container-edge flex h-16 items-center justify-between gap-3">
-        <div className="flex items-center gap-6 md:gap-8">
+        <div className="flex items-center gap-6 md:gap-6">
           <Logo />
 
           <nav className="hidden md:flex items-center gap-1">

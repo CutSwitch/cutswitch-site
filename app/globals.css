@@ -830,7 +830,20 @@ body {
 
 @layer components {
   .container-edge {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+    /*
+      Single source of truth for desktop alignment.
+      Keep nav + every page section snapped to the same edge/padding.
+
+      Base width: Tailwind's max-w-7xl (1280px)
+      XL override: 1400px (matches the wider hero layout)
+    */
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  @media (min-width: 1280px) {
+    .container-edge {
+      max-width: 1400px;
+    }
   }
 
   .glass {

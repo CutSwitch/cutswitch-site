@@ -22,7 +22,13 @@ export default function FinalCTA({ embedded = false }: Props) {
             loop
             preload="auto"
           >
-            <source src="/illust/cta-loop.webm" type="video/webm" />
+            {/*
+              Prefer AV1 when supported (best compression),
+              fall back to VP9, and finally H.264 MP4.
+            */}
+            <source src="/illust/cta-loop-av1.webm" type='video/webm; codecs="av01"' />
+            <source src="/illust/cta-loop-vp9.webm" type='video/webm; codecs="vp09"' />
+            <source src="/illust/cta-loop.mp4" type="video/mp4" />
           </video>
         </div>
 

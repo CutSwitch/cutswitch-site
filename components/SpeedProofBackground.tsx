@@ -90,7 +90,20 @@ export function SpeedProofBackground({ className }: Props) {
           playsInline
           preload="metadata"
         >
-          <source src="/illust/speedproof-bg.webm" type="video/webm" />
+          {/*
+            Codec preference order:
+            1) AV1 (smallest / best quality, when supported)
+            2) VP9 (broad WebM support)
+            3) H.264 MP4 (Safari / widest fallback)
+          */}
+          <source
+            src="/illust/speedproof-bg-av1.webm"
+            type='video/webm; codecs="av01"'
+          />
+          <source
+            src="/illust/speedproof-bg-vp9.webm"
+            type='video/webm; codecs="vp09"'
+          />
           <source src="/illust/speedproof-bg.mp4" type="video/mp4" />
         </video>
       </div>

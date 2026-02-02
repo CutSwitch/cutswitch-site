@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 type FormState =
@@ -8,6 +8,14 @@ type FormState =
   | { status: "submitting" }
   | { status: "success"; message: string }
   | { status: "error"; message: string };
+
+// Some browsers render <select> option menus with a light theme even on dark sites.
+// Since our <select> uses light text, native option lists can end up as white-on-white
+// (invisible). Force a readable option palette.
+const SELECT_OPTION_STYLE: CSSProperties = {
+  color: "#0e101f",
+  backgroundColor: "#ffffff",
+};
 
 export function SupportForm() {
   const [state, setState] = useState<FormState>({ status: "idle" });
@@ -83,15 +91,23 @@ export function SupportForm() {
           <select
             name="topic"
             className={cn(
-              "rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90",
+              "rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 [color-scheme:light]",
               "focus:outline-none focus:ring-2 focus:ring-brand/50"
             )}
             defaultValue="support"
           >
-            <option value="support">Support</option>
-            <option value="feedback">Feedback</option>
-            <option value="billing">Billing</option>
-            <option value="affiliates">Affiliates</option>
+            <option style={SELECT_OPTION_STYLE} value="support">
+              Support
+            </option>
+            <option style={SELECT_OPTION_STYLE} value="feedback">
+              Feedback
+            </option>
+            <option style={SELECT_OPTION_STYLE} value="billing">
+              Billing
+            </option>
+            <option style={SELECT_OPTION_STYLE} value="affiliates">
+              Affiliates
+            </option>
           </select>
         </label>
 

@@ -6,7 +6,8 @@ import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Get help fast. Email support or send feedback. Include diagnostics from Help → Report Bug so we can troubleshoot faster.",
+  description:
+    "Get help fast. Email support or send feedback. Include a Cut Plan JSON from File → Export → Export Cut Plan (JSON)… so we can troubleshoot faster.",
 };
 
 export default function SupportPage() {
@@ -15,7 +16,7 @@ export default function SupportPage() {
       <SectionHeading
         eyebrow="Support"
         title="Support that actually helps"
-        subtitle="If something is broken, confusing, or blocking you, tell us. In the app you can also send a diagnostics zip (Help → Report Bug) so we can fix it faster."
+        subtitle="If something is broken, confusing, or blocking you, tell us. In the app you can also export a Cut Plan JSON via File → Export → Export Cut Plan (JSON)… so we can fix it faster."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -44,7 +45,7 @@ export default function SupportPage() {
               <li>What you expected vs what happened</li>
               <li>Any error message screenshots</li>
               <li>
-                Diagnostics zip from <span className="text-white/80">Help → Report Bug</span> (best)
+                Cut Plan JSON from <span className="text-white/80">File → Export → Export Cut Plan (JSON)…</span> (best)
               </li>
             </ul>
           </div>
@@ -65,7 +66,7 @@ export default function SupportPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="text-sm font-semibold text-white/90">Contact form</div>
           <p className="mt-2 text-sm text-white/65">
-            Don’t want to switch to Mail? Drop a note here and we’ll reply ASAP. Including a diagnostics zip helps us move fast.
+            Don’t want to switch to Mail? Drop a note here and we’ll reply ASAP. Including a Cut Plan JSON helps us move fast.
           </p>
 
           <div className="mt-5">

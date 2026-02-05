@@ -10,7 +10,7 @@ export default function PricingPage() {
           <SectionHeading
             eyebrow="Pricing"
             title="Simple plans. Serious speed."
-            subtitle="Subscriptions include a 7-day free trial. Taxes are calculated automatically with Stripe Tax. All purchases are final: no refunds."
+            subtitle="Start with a 7-day free trial. Taxes calculated at checkout. Final sale."
           />
         </div>
 

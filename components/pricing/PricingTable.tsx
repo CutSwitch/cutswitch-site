@@ -137,15 +137,8 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10"
         )}
       >
-        <div className={cn(embedded ? "mb-7" : "mb-8")}>
+        <div className={cn(embedded ? "mb-6" : "mb-6")}>
           <Heading className="text-3xl font-semibold tracking-tight text-white">Pricing</Heading>
-          <p className="mt-2 text-sm text-white/70">
-            Simple plans. Serious speed.
-          </p>
-          <p className="mt-2 text-sm text-white/70">
-            Subscriptions include a 7-day free trial. Taxes are calculated
-            automatically with Stripe Tax. All purchases are final: no refunds.
-          </p>
         </div>
 
         <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 sm:p-8">

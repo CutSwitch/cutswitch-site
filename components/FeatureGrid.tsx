@@ -17,6 +17,7 @@ export type FeatureGridProps = {
   subtitle?: string;
   features: Feature[];
   className?: string;
+  gridClassName?: string;
 };
 
 export function FeatureGrid({
@@ -24,6 +25,7 @@ export function FeatureGrid({
   subtitle,
   features,
   className,
+  gridClassName,
 }: FeatureGridProps) {
   return (
     <div className={cn("space-y-6", className)}>
@@ -44,7 +46,7 @@ export function FeatureGrid({
         Desktop previews felt a little cramped at 3-up.
         Keep the grid 2-up on larger screens so the media tiles stay big and readable.
       */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+      <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-2", gridClassName)}>
         {features.map((f) => (
           <div
             key={f.title}

@@ -8,14 +8,7 @@ import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import FinalCTA from "@/components/FinalCTA";
 import { SpeedProofBackground } from "@/components/SpeedProofBackground";
-import {
-  IconCamera,
-  IconExport,
-  IconLock,
-  IconScissors,
-  IconUsers,
-  IconWaveform,
-} from "@/components/icons";
+import { IconLock } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} | ${siteConfig.tagline}`,
@@ -23,46 +16,6 @@ export const metadata: Metadata = {
 };
 
 const features = [
-  {
-    icon: <IconWaveform className="h-5 w-5" />,
-    mediaSrc: "/illust/voice.gif",
-    mediaAlt: "Voice-driven multicam switching preview",
-    title: "Voice-driven multicam switching",
-    description:
-      "Use isolated, single-speaker audio files (one file per speaker). Each file should primarily contain only that speaker’s voice with minimal bleed/crosstalk. CutSwitch switches angles based on who’s actually talking.",
-  },
-  {
-    icon: <IconScissors className="h-5 w-5" />,
-    mediaSrc: "/illust/cutstyle.gif",
-    mediaAlt: "Cut style presets preview",
-    title: "Cut styles that feel edited",
-    description:
-      "Choose Calm, Normal, or Punchy. Or turn on Custom to tune sensitivity, minimum shot length, and smoothing.",
-  },
-  {
-    icon: <IconUsers className="h-5 w-5" />,
-    mediaSrc: "/illust/group.gif",
-    mediaAlt: "Group shots controls preview",
-    title: "Tasteful group shots",
-    description:
-      "Set how often we cut to wide or two-shot. Presets for speed, Custom controls for pros who want the knobs.",
-  },
-  {
-    icon: <IconCamera className="h-5 w-5" />,
-    mediaSrc: "/illust/mapping.gif",
-    mediaAlt: "Speaker to camera mapping preview",
-    title: "Simple speaker-to-camera mapping",
-    description:
-      "Match each speaker to a camera angle. Multiple speakers can share one angle, so two-shots and shared cams just work.",
-  },
-  {
-    icon: <IconExport className="h-5 w-5" />,
-    mediaSrc: "/illust/export.gif",
-    mediaAlt: "Export back into Final Cut preview",
-    title: "Export right back into Final Cut",
-    description:
-      "CutSwitch outputs a fresh .fcpxmld bundle. Import it into Final Cut Pro and keep editing like normal.",
-  },
   {
     icon: <IconLock className="h-5 w-5" />,
     mediaSrc: "/illust/local-first.gif",
@@ -185,8 +138,8 @@ export default function HomePage() {
         <div className="scene-content">
           <div className="container-edge py-16 sm:py-20">
             <FeatureGrid
-              title="Built for conversation edits"
-              subtitle="CutSwitch handles the switching so you can spend your energy on story, pacing, and punchlines."
+              className="mx-auto max-w-3xl"
+              gridClassName="sm:grid-cols-1 lg:grid-cols-1"
               features={features}
             />
           </div>

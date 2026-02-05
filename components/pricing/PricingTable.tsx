@@ -71,7 +71,6 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
   const Heading = embedded ? "h2" : "h1";
 
   const referral = useRewardfulReferral();
-  const [coupon, setCoupon] = useState("");
   const [ack, setAck] = useState(true);
   const [loading, setLoading] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +99,6 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          couponCode: coupon?.trim() || undefined,
           referral: referralId,
           acknowledgedNoRefunds: ack,
         }),
@@ -150,34 +148,15 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           </p>
         </div>
 
-        <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6">
+        <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 sm:p-8">
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
           <div className="relative">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm font-medium">Coupon code</div>
-            <Link href="/affiliates" className="text-sm text-brand-highlight hover:text-white">
-              Become an affiliate
-            </Link>
-          </div>
-
-          <p className="mt-1 text-sm text-white/65">
-            Codes are optional. You can also enter a promotion code inside Stripe
-            Checkout.
-          </p>
-
-          <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
-            <input
-              value={coupon}
-              onChange={(e) => setCoupon(e.target.value)}
-              placeholder="Enter code"
-              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/90 placeholder:text-white/40 outline-none focus:border-white/20 md:max-w-sm"
-            />
-            <label className="flex items-start gap-2 text-sm text-white/80">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-base font-medium leading-relaxed text-white/90 sm:p-5 sm:text-lg">
               <input
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-white/20 bg-black/30 text-brand focus:ring-brand/70"
+                className="mt-1 h-5 w-5 rounded border-white/20 bg-black/30 text-brand focus:ring-brand/70 sm:h-6 sm:w-6"
               />
               <span>
                 I understand CutSwitch purchases are final and we do not offer
@@ -188,18 +167,12 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
                 .
               </span>
             </label>
-          </div>
 
-          <div className="mt-2 text-xs text-white/55">
-            Tip: affiliates link you in, Rewardful tracks, Stripe closes. Clean
-            chain.
-          </div>
-
-          {error ? (
-            <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
+            {error ? (
+              <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
           </div>
         </div>
 

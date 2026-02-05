@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCheckoutPlan, findPromotionCodeId } from "@/lib/billing";
+import { getCheckoutPlan } from "@/lib/billing";
 import { getBaseUrl } from "@/lib/env";
 import { getIpHash, readJsonBody } from "@/lib/request";
 import { rateLimit, type RateLimitResult } from "@/lib/rateLimit";
@@ -12,7 +12,6 @@ export const runtime = "nodejs";
 
 type Body = {
   plan?: PlanKey;
-  couponCode?: string;
   referral?: string;
   acknowledgedNoRefunds?: boolean;
 };
@@ -82,22 +81,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid referral." }, { status: 400 });
     }
 
-    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
-    if (couponCode.length > 64) {
-      return NextResponse.json({ error: "Invalid coupon code." }, { status: 400 });
-    }
-
-    let promoId: string | null = null;
-    if (couponCode) {
-      promoId = await findPromotionCodeId(couponCode);
-      if (!promoId) {
-        return NextResponse.json(
-          { error: "Invalid or inactive coupon code." },
-          { status: 400 }
-        );
-      }
-    }
-
     const sessionMetadata: Record<string, string> = {
       plan: plan.key,
       stripe_price_id: plan.priceId,
@@ -115,9 +98,6 @@ export async function POST(req: Request) {
       billing_address_collection: "required",
       tax_id_collection: { enabled: true },
 
-      // If we pre-apply a promo code, we disable additional code entry to prevent stacking.
-      allow_promotion_codes: promoId ? false : true,
-
       // Reduce chargeback risk: make terms acceptance explicit in Checkout.
       consent_collection: { terms_of_service: "required" },
       custom_text: {
@@ -132,10 +112,6 @@ export async function POST(req: Request) {
 
       metadata: sessionMetadata,
     };
-
-    if (promoId) {
-      common.discounts = [{ promotion_code: promoId }];
-    }
 
     // Rewardful server-side checkout integration uses Stripe's client_reference_id.
     // Never set it to an empty string.

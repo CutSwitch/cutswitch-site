@@ -3,47 +3,34 @@ import type { Metadata } from "next";
 
 import { siteConfig } from "@/lib/site";
 import { VideoDemo } from "@/components/VideoDemo";
-import { FeatureGrid } from "@/components/FeatureGrid";
 import { TestimonialGrid } from "@/components/TestimonialGrid";
 import { PricingTable } from "@/components/pricing/PricingTable";
 import FinalCTA from "@/components/FinalCTA";
 import { SpeedProofBackground } from "@/components/SpeedProofBackground";
-import { IconLock } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} | ${siteConfig.tagline}`,
   description: siteConfig.description,
 };
 
-const features = [
-  {
-    icon: <IconLock className="h-5 w-5" />,
-    mediaSrc: "/illust/local-first.gif",
-    mediaAlt: "Local-first by design preview",
-    title: "Local-first by design",
-    description:
-      "Runs on your Mac. Your media stays local. No uploads, no cloud processing, no weird surprises.",
-  },
-];
-
 const testimonials = [
   {
     quote:
       "CutSwitch gets me 80% of the way there in minutes. I spend my time on story beats instead of babysitting the multicam.",
-    name: "Early Editor",
-    title: "Podcasts + Interviews",
+    name: "Peter H.",
+    title: "Early Editor · Podcasts + Interviews",
   },
   {
     quote:
       "The rhythm presets are shockingly useful. Punchy nails the “yeah / mm-hmm” moments without me chasing angles all day.",
-    name: "Post Producer",
-    title: "YouTube / Social",
+    name: "Michael R.",
+    title: "Post Producer · YouTube / Social",
   },
   {
     quote:
       "Custom mode is the pro move. I can tune the sensitivity and minimum shot length and the edit suddenly feels intentional.",
-    name: "Multicam Editor",
-    title: "Longform Conversations",
+    name: "Seth B.",
+    title: "Multicam Editor · Longform Conversations",
   },
 ];
 
@@ -136,14 +123,6 @@ export default function HomePage() {
       <section className="scene scene--flow">
 
         <div className="scene-content">
-          <div className="container-edge py-16 sm:py-20">
-            <FeatureGrid
-              className="mx-auto max-w-3xl"
-              gridClassName="sm:grid-cols-1 lg:grid-cols-1"
-              features={features}
-            />
-          </div>
-
           <div className="container-edge py-16 sm:py-20">
             <TestimonialGrid
               title="What early editors are saying"

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { siteConfig } from "@/lib/site";
 import { Logo } from "@/components/Logo";
 
 type NavItem = { href: string; label: string };
@@ -65,17 +64,6 @@ export function Footer() {
               to give you a clean first cut you can refine in Final Cut.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              <a className="chip" href={`mailto:${siteConfig.emails.support}`}>
-                {siteConfig.emails.support}
-              </a>
-              <a className="chip" href={`mailto:${siteConfig.emails.feedback}`}>
-                {siteConfig.emails.feedback}
-              </a>
-              <a className="chip" href={`mailto:${siteConfig.emails.affiliate}`}>
-                {siteConfig.emails.affiliate}
-              </a>
-            </div>
           </div>
 
           {/*

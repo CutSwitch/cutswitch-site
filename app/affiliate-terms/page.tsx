@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Affiliate Terms",
@@ -94,10 +93,10 @@ export default function AffiliateTermsPage() {
 
       <h2 className="text-white/90 font-semibold">8. Contact</h2>
       <p>
-        Affiliate support: {" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.affiliate}`}>
-          {siteConfig.emails.affiliate}
-        </a>
+        Affiliate support:{" "}
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          contact form
+        </Link>
       </p>
     </LegalPage>
   );

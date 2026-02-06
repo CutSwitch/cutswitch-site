@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Security",
@@ -70,11 +70,11 @@ export default function SecurityPage() {
 
       <h2 className="text-white/90 font-semibold">4. Responsible disclosure</h2>
       <p>
-        If you believe you&rsquo;ve found a security issue, please email{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-          {siteConfig.emails.support}
-        </a>
-        {" "}with the subject line <span className="font-mono">Security report</span>. Please include steps to reproduce
+        If you believe you&rsquo;ve found a security issue, please use the{" "}
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          support form
+        </Link>{" "}
+        with the subject line <span className="font-mono">Security report</span>. Please include steps to reproduce
         and any relevant logs.
       </p>
 

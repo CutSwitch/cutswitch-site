@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
 import { siteConfig } from "@/lib/site";
 
@@ -71,10 +72,10 @@ export default function CookiePolicyPage() {
 
       <h2 className="text-white/90 font-semibold">6. Contact</h2>
       <p>
-        Questions? Email{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-          {siteConfig.emails.support}
-        </a>
+        Questions? Use the{" "}
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          support form
+        </Link>
         .
       </p>
     </LegalPage>

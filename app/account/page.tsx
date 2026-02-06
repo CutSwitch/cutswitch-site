@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
 import { PortalLinkForm } from "@/components/account/PortalLinkForm";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -42,9 +41,6 @@ export default function AccountPage() {
             <Link className="btn btn-secondary" href="/support">
               Contact Support
             </Link>
-            <a className="btn btn-ghost" href={`mailto:${siteConfig.emails.support}`}>
-              Email support
-            </a>
           </div>
 
           <div className="mt-6 gradient-line" />

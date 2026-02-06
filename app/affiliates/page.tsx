@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Affiliates",
@@ -134,9 +133,9 @@ export default function AffiliatesPage() {
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-              <a className="btn btn-primary" href={`mailto:${siteConfig.emails.affiliate}?subject=CutSwitch%20Affiliate%20Application`}>
-                Apply via email <span className="text-white/80">→</span>
-              </a>
+              <Link className="btn btn-primary" href="/support">
+                Apply via support form <span className="text-white/80">→</span>
+              </Link>
               <Link className="btn btn-secondary" href="/pricing">
                 See pricing
               </Link>
@@ -168,10 +167,10 @@ export default function AffiliatesPage() {
           <div className="mt-6">
             <div className="text-sm font-semibold text-white/90">Need help?</div>
             <p className="mt-2 text-sm text-white/65">
-              Want custom assets, tracking guidance, or a code-based campaign? Email{" "}
-              <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.affiliate}`}>
-                {siteConfig.emails.affiliate}
-              </a>
+              Want custom assets, tracking guidance, or a code-based campaign? Use the{" "}
+              <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+                support form
+              </Link>
               .
             </p>
           </div>

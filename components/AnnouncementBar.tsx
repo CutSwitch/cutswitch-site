@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
 
 export function AnnouncementBar() {
   return (
@@ -8,9 +7,9 @@ export function AnnouncementBar() {
         <div className="flex flex-wrap items-center gap-2 text-white/70">
           <span className="chip">
             Support:{" "}
-            <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-              {siteConfig.emails.support}
-            </a>
+            <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+              contact form
+            </Link>
           </span>
           <span className="hidden sm:inline text-white/30">|</span>
           <span className="chip">

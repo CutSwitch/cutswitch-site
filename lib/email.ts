@@ -6,6 +6,11 @@ export type OutboundEmail = {
   html: string;
   text?: string;
   replyTo?: string;
+  attachments?: {
+    filename: string;
+    content: string;
+    contentType?: string;
+  }[];
 };
 
 export async function sendEmail(message: OutboundEmail): Promise<void> {
@@ -32,6 +37,13 @@ export async function sendEmail(message: OutboundEmail): Promise<void> {
       html: message.html,
       text: message.text,
       reply_to: message.replyTo,
+      attachments: message.attachments?.length
+        ? message.attachments.map((attachment) => ({
+            filename: attachment.filename,
+            content: attachment.content,
+            content_type: attachment.contentType,
+          }))
+        : undefined,
     }),
   });
 

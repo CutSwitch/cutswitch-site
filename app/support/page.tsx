@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
 import { SupportForm } from "@/components/support/SupportForm";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Support",
   description:
-    "Get help fast. Email support or send feedback. Include a Cut Plan JSON from File → Export → Export Cut Plan (JSON)… so we can troubleshoot faster.",
+    "Get help fast. Use the contact form and include a Cut Plan JSON from File → Export → Export Cut Plan (JSON)… so we can troubleshoot faster.",
 };
 
 export default function SupportPage() {
@@ -16,26 +15,15 @@ export default function SupportPage() {
       <SectionHeading
         eyebrow="Support"
         title="Support that actually helps"
-        subtitle="If something is broken, confusing, or blocking you, tell us. In the app you can also export a Cut Plan JSON via File → Export → Export Cut Plan (JSON)… so we can fix it faster."
+        subtitle="If something is broken, confusing, or blocking you, tell us. In the app you can export a Cut Plan JSON via File → Export → Export Cut Plan (JSON)… so we can fix it faster."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="card p-6">
-          <div className="text-sm font-semibold text-white/90">Email</div>
+          <div className="text-sm font-semibold text-white/90">What helps us troubleshoot fast</div>
           <p className="mt-2 text-sm text-white/65">
-            Prefer email? Great. It’s usually the fastest way to troubleshoot weird XMLs, missing angle mappings, or audio that doesn’t line up.
+            The form on this page is the fastest way to reach us. If you can, include a Cut Plan JSON and a screenshot or two.
           </p>
-
-          <div className="mt-4 grid gap-2 text-sm">
-            <a className="btn btn-secondary w-fit" href={`mailto:${siteConfig.emails.support}`}>
-              {siteConfig.emails.support}
-            </a>
-            <a className="btn btn-ghost w-fit" href={`mailto:${siteConfig.emails.feedback}`}>
-              {siteConfig.emails.feedback}
-            </a>
-          </div>
-
-          <div className="mt-6 gradient-line" />
 
           <div className="mt-6 text-sm text-white/70">
             <div className="font-semibold text-white/90">Helpful details to include</div>

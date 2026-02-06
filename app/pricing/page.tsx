@@ -33,9 +33,6 @@ export default function PricingPage() {
               <a href="/refunds" className="btn btn-secondary">
                 Read the policy
               </a>
-              <a href="mailto:support@cutswitch.com" className="btn btn-secondary">
-                Email support
-              </a>
             </div>
           </div>
         </div>

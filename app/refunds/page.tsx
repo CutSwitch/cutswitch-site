@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
-import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Refund Policy",
@@ -23,9 +22,9 @@ export default function RefundsPage() {
 
       <p>
         Support:{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-          {siteConfig.emails.support}
-        </a>
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          contact form
+        </Link>
       </p>
 
       <h2 className="text-white/90 font-semibold">What we will do instead</h2>

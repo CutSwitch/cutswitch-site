@@ -19,20 +19,11 @@ export default function TermsPage() {
 
       <h2 className="text-white/90 font-semibold">1. Contact</h2>
       <p>
-        Support:{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-          {siteConfig.emails.support}
-        </a>
-        <br />
-        Feedback:{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.feedback}`}>
-          {siteConfig.emails.feedback}
-        </a>
-        <br />
-        Affiliates:{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.affiliate}`}>
-          {siteConfig.emails.affiliate}
-        </a>
+        Contact us via the{" "}
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          support form
+        </Link>
+        .
       </p>
 
       <h2 className="text-white/90 font-semibold">2. Eligibility</h2>

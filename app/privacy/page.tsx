@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
 import { siteConfig } from "@/lib/site";
 
@@ -82,9 +83,9 @@ export default function PrivacyPage() {
       <h2 className="text-white/90 font-semibold">6. Your rights</h2>
       <p>
         Depending on your location, you may have rights to access, delete, or correct your data. Contact us at{" "}
-        <a className="underline decoration-white/20 hover:decoration-white/60" href={`mailto:${siteConfig.emails.support}`}>
-          {siteConfig.emails.support}
-        </a>{" "}
+        <Link className="underline decoration-white/20 hover:decoration-white/60" href="/support">
+          the support form
+        </Link>{" "}
         to request help.
       </p>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/Logo";
+import { siteConfig } from "@/lib/site";
 
 type NavItem = { href: string; label: string };
 

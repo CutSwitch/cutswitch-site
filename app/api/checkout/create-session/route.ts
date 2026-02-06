@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       automatic_tax: { enabled: true },
       billing_address_collection: "required",
       tax_id_collection: { enabled: true },
+      allow_promotion_codes: true,
 
       // Reduce chargeback risk: make terms acceptance explicit in Checkout.
       consent_collection: { terms_of_service: "required" },

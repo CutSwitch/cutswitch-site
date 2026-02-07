@@ -40,10 +40,27 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const rewardfulApiKey = process.env.NEXT_PUBLIC_REWARDFUL_API_KEY;
+  const themeScript = `
+    (function() {
+      try {
+        var stored = localStorage.getItem('cutswitch-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+        if (theme === 'light') {
+          document.documentElement.classList.add('theme-light');
+        } else {
+          document.documentElement.classList.remove('theme-light');
+        }
+      } catch (e) {}
+    })();
+  `;
 
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-[#0e101f] relative isolate text-white antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-[var(--bg)] relative isolate text-[var(--fg)] antialiased">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeScript}
+        </Script>
         <ScrollCSSVars />
         <div className="site-bg" aria-hidden="true" />
 

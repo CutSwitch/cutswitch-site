@@ -83,7 +83,7 @@ export function SpeedProofBackground({ className }: Props) {
       {/* Animated media layer (WebM/MP4). */}
       <div className="speedproof-bg__media" aria-hidden="true">
         <video
-          className="speedproof-bg__video"
+          className="speedproof-bg__video theme-video--dark"
           autoPlay
           muted
           loop
@@ -105,6 +105,23 @@ export function SpeedProofBackground({ className }: Props) {
             type='video/webm; codecs="vp09"'
           />
           <source src="/illust/speedproof-bg.mp4" type="video/mp4" />
+        </video>
+        <video
+          className="speedproof-bg__video theme-video--light"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        >
+          <source
+            src="/illust/speedproof-bg-vp9-lightmode.webm"
+            type='video/webm; codecs="vp09"'
+          />
+          <source
+            src="/illust/speedproof-bg-mp4-lightmode.mp4"
+            type="video/mp4"
+          />
         </video>
       </div>
 

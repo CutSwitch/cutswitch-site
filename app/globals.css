@@ -1153,6 +1153,31 @@ html.theme-light .bg-\[\#0e101f\]\/55 {
   background-color: rgba(255, 255, 255, 0.6);
 }
 
+/* Theme-specific media + logo swaps */
+.logo-light {
+  display: none;
+}
+
+html.theme-light .logo-dark {
+  display: none;
+}
+
+html.theme-light .logo-light {
+  display: inline-block;
+}
+
+.theme-video--light {
+  display: none;
+}
+
+html.theme-light .theme-video--dark {
+  display: none;
+}
+
+html.theme-light .theme-video--light {
+  display: block;
+}
+
 html.theme-light .speedproof {
   background: radial-gradient(circle at 25% 0%, rgba(101, 93, 255, 0.12), transparent 55%),
     radial-gradient(circle at 90% 70%, rgba(185, 192, 255, 0.08), transparent 60%),

@@ -1170,12 +1170,16 @@ html.theme-light .logo-light {
   display: none;
 }
 
+.theme-video--dark {
+  display: block;
+}
+
 html.theme-light .theme-video--dark {
-  display: none;
+  display: none !important;
 }
 
 html.theme-light .theme-video--light {
-  display: block;
+  display: block !important;
 }
 
 html.theme-light .speedproof {

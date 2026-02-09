@@ -35,7 +35,7 @@ export function Logo({ className, markOnly }: Props) {
           width={width}
           height={height}
           priority
-          className="logo-light h-7 w-auto"
+          className="logo-light h-7 w-[6.4rem] object-cover object-center"
         />
       ) : null}
     </Link>

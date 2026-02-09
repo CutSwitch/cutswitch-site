@@ -15,7 +15,7 @@ export default function FinalCTA({ embedded = false }: Props) {
         {/* Video */}
         <div className="absolute inset-[-18%] cta-wave-mask">
           <video
-            className="theme-video--dark h-full w-full object-cover opacity-80 [filter:brightness(1.25)_contrast(1.05)]"
+            className="theme-video--dark absolute inset-0 h-full w-full object-cover opacity-80 [filter:brightness(1.25)_contrast(1.05)]"
             autoPlay
             playsInline
             muted
@@ -31,7 +31,7 @@ export default function FinalCTA({ embedded = false }: Props) {
             <source src="/illust/cta-loop.mp4" type="video/mp4" />
           </video>
           <video
-            className="theme-video--light h-full w-full object-cover opacity-80 [filter:brightness(1.25)_contrast(1.05)]"
+            className="theme-video--light absolute inset-0 h-full w-full object-cover opacity-80 [filter:brightness(1.25)_contrast(1.05)]"
             autoPlay
             playsInline
             muted

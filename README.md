@@ -34,9 +34,16 @@ Open http://localhost:3000
 
 ## Required env vars (production)
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_*`
-- Keygen: `KEYGEN_API_KEY`, `KEYGEN_ACCOUNT_ID`, `KEYGEN_POLICY_ID`
+- Keygen: `KEYGEN_ACCOUNT_ID`, `KEYGEN_POLICY_ID`, and (`KEYGEN_API_TOKEN` or `KEYGEN_API_KEY`)
 - Rewardful: `NEXT_PUBLIC_REWARDFUL_API_KEY` (+ optional portal URL)
 - Download URL: `NEXT_PUBLIC_DOWNLOAD_URL_MAC`
+
+## Project docs (read first)
+- `AI_Context.md` (end-to-end truth: website + entitlements + Stripe/Keygen)
+- `ENV_VARS.md` (exhaustive env var list grounded in code)
+- `WEBSITE_RUNBOOK.md` (ops + debugging playbook)
+- `Decision_Log.md` (what changed + why)
+- `Prompting_Playbook.md` (how we work with AI without regressions)
 
 ## Webhooks
 - Stripe webhook endpoint:

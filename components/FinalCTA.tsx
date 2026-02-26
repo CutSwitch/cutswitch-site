@@ -51,8 +51,8 @@ export default function FinalCTA({ embedded = false }: Props) {
 
       {/* Content */}
       <div className="container-edge relative z-10">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <h2 className="text-3xl font-semibold leading-tight tracking-tight text-white drop-shadow-[0_12px_30px_rgba(0,0,0,0.45)] sm:text-4xl">
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center text-[rgba(255,255,255,0.96)]">
+          <h2 className="text-3xl font-semibold leading-tight tracking-tight drop-shadow-[0_12px_30px_rgba(0,0,0,0.45)] sm:text-4xl">
             Start using CutSwitch
             <br />
             today for free.
@@ -60,7 +60,7 @@ export default function FinalCTA({ embedded = false }: Props) {
 
           <div className="mt-8">
             <a
-              className="btn btn-primary rounded-full px-8 py-3 text-base shadow-[0_18px_50px_rgba(112,92,255,0.25)]"
+              className="btn btn-primary rounded-full px-8 py-3 text-base text-[rgba(255,255,255,0.98)] shadow-[0_18px_50px_rgba(112,92,255,0.25)]"
               href="/pricing"
             >
               Start Free Trial

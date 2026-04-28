@@ -1,35 +1,21 @@
 export const runtime = "nodejs";
 
+import { getUserFromBearerToken } from "@/lib/auth";
+import { getPlan } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type UsageEvent = {
   billable_seconds: number | null;
 };
 
-function getBearerToken(req: Request): string | null {
-  const header = req.headers.get("authorization");
-  const [scheme, token] = header?.split(" ") ?? [];
-
-  if (scheme?.toLowerCase() !== "bearer" || !token) {
-    return null;
-  }
-
-  return token;
-}
-
 export async function POST(req: Request) {
-  const token = getBearerToken(req);
+  const { user, error: authError } = await getUserFromBearerToken(req);
 
-  if (!token) {
+  if (authError === "missing_token") {
     return Response.json({ error: "Missing Authorization bearer token" }, { status: 401 });
   }
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabaseAdmin.auth.getUser(token);
-
-  if (userError || !user) {
+  if (authError || !user) {
     return Response.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
@@ -55,9 +41,15 @@ export async function POST(req: Request) {
 
   const totalUsedSeconds =
     usageEvents?.reduce((sum, e) => sum + (e.billable_seconds || 0), 0) || 0;
+  const plan = getPlan(subscription?.plan_id);
+  const remainingSeconds = plan
+    ? Math.max(0, plan.includedSeconds - totalUsedSeconds)
+    : null;
 
   return Response.json({
     subscription,
+    plan,
     totalUsedSeconds,
+    remainingSeconds,
   });
 }

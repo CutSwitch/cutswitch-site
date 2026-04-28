@@ -13,6 +13,11 @@ import {
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/env";
 import { planLabels, siteConfig, type PlanKey } from "@/lib/site";
+import { getAppPlanIdForPrice, isAppPlanId } from "@/lib/stripe";
+import {
+  subscriptionRecordFromStripe,
+  upsertSubscriptionRecord,
+} from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 
@@ -70,6 +75,11 @@ export async function POST(req: Request) {
         await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
         break;
 
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+        await handleSubscriptionUpsert(event.data.object as Stripe.Subscription);
+        break;
+
       case "customer.subscription.deleted":
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
@@ -122,6 +132,40 @@ async function handleCheckoutSessionCompleted(eventId: string, session: Stripe.C
     const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
 
     const priceId = await getPrimaryPriceId(sessionId);
+    const appPlanId = getAppPlanIdForPrice(priceId);
+    const metadataPlanId = session.metadata?.planId;
+
+    if (session.mode === "subscription" && (appPlanId || isAppPlanId(metadataPlanId))) {
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const record = subscriptionRecordFromStripe(subscription, session.metadata?.userId);
+
+        if (record) {
+          await upsertSubscriptionRecord(record);
+        }
+      }
+
+      await markCompleted(kvKey, {
+        session_id: sessionId,
+        stripe_event_id: eventId,
+        mode: session.mode,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_price_id: priceId,
+        plan_key: "unknown",
+        keygen_policy_id: null,
+        keygen_license_id: null,
+        license_created_in_this_session: false,
+        email_sent: false,
+        email_sent_at: null,
+        completed: false,
+        created_at: existing?.created_at ?? nowIso,
+        updated_at: nowIso,
+      });
+      return;
+    }
+
     const planKey = inferPlanKey(priceId, session.metadata?.plan ?? null);
     const policyId = getKeygenPolicyId(planKey);
 
@@ -474,7 +518,16 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   await suspendLicense(licenseId);
 }
 
+async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
+  const record = subscriptionRecordFromStripe(subscription);
+  if (!record) return;
+
+  await upsertSubscriptionRecord(record);
+}
+
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  await handleSubscriptionUpsert(subscription);
+
   const licenseId = subscription.metadata?.keygen_license_id;
   if (!licenseId) return;
 

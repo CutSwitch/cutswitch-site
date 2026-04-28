@@ -17,6 +17,7 @@ const baseUrl = (process.env.TEST_BACKEND_URL || DEFAULT_BASE_URL).replace(
 );
 const email = process.env.TEST_EMAIL;
 const password = process.env.TEST_PASSWORD;
+const checkoutPlanId = process.env.TEST_CHECKOUT_PLAN_ID || "starter";
 
 let failed = false;
 
@@ -124,6 +125,17 @@ if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");
   process.exitCode = 1;
 } else {
+  const unauthCheckout = await post(`${baseUrl}/api/billing/checkout`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ planId: checkoutPlanId }),
+  });
+
+  logResult("CHECKOUT_UNAUTHENTICATED", unauthCheckout);
+
+  if (unauthCheckout.status !== 401) {
+    markFailed("Unauthenticated checkout did not return 401.");
+  }
+
   const login = await post(`${baseUrl}/api/app/session`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -153,6 +165,44 @@ if (!email || !password) {
   if (!token) {
     markFailed("Login response did not include access_token.");
   } else {
+    const invalidCheckout = await post(`${baseUrl}/api/billing/checkout`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ planId: "not_a_plan" }),
+    });
+
+    logResult("CHECKOUT_INVALID_PLAN", invalidCheckout);
+
+    if (invalidCheckout.status !== 400) {
+      markFailed("Invalid checkout plan did not return 400.");
+    }
+
+    const checkout = await post(`${baseUrl}/api/billing/checkout`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ planId: checkoutPlanId }),
+    });
+
+    logResult("CHECKOUT", checkout);
+
+    const checkoutUrl =
+      checkout.body &&
+      typeof checkout.body === "object" &&
+      "checkoutUrl" in checkout.body &&
+      typeof checkout.body.checkoutUrl === "string"
+        ? checkout.body.checkoutUrl
+        : undefined;
+
+    console.log("CHECKOUT_URL_PRESENT:", Boolean(checkoutUrl));
+
+    if (!checkout.ok || !checkoutUrl?.startsWith("https://checkout.stripe.com/")) {
+      markFailed("Authenticated checkout did not return a Stripe checkout URL.");
+    }
+
     const usage = await post(`${baseUrl}/api/account/usage`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -163,6 +213,10 @@ if (!email || !password) {
 
     if (!usage.ok) {
       markFailed("Usage request failed.");
+    }
+
+    if (usage.body && typeof usage.body === "object" && !("plan" in usage.body)) {
+      markFailed("Usage response did not include plan.");
     }
   }
 

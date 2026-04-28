@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     .from("usage_events")
     .select("billable_seconds")
     .eq("user_id", user.id)
+    .eq("event_type", "transcript_succeeded")
     .returns<UsageEvent[]>();
 
   if (usageError) {
@@ -46,9 +47,9 @@ export async function POST(req: Request) {
 
   const totalUsedSeconds =
     usageEvents?.reduce((sum, e) => sum + (e.billable_seconds || 0), 0) || 0;
-  const plan = getPlan(subscription?.plan_id);
-  const remainingSeconds = plan
-    ? Math.max(0, plan.includedSeconds - totalUsedSeconds)
+  const planDetails = getPlan(subscription?.plan_id);
+  const remainingSeconds = planDetails
+    ? Math.max(0, planDetails.includedSeconds - totalUsedSeconds)
     : null;
 
   return Response.json({

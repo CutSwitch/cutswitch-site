@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { useSupabaseSession } from "@/components/auth/useSupabaseSession";
+import { getAppPlan } from "@/lib/plans";
 
 type UsageResponse = {
   subscription: null | {
@@ -11,11 +12,7 @@ type UsageResponse = {
     status?: string | null;
     stripe_customer_id?: string | null;
   };
-  plan: null | {
-    name: string;
-    transcriptHours: number;
-    includedSeconds: number;
-  };
+  plan: string | null;
   totalUsedSeconds: number;
   remainingSeconds: number | null;
   error?: string;
@@ -106,7 +103,8 @@ export function AccountDashboard() {
     );
   }
 
-  const planName = usage?.plan?.name ?? "No active plan";
+  const plan = getAppPlan(usage?.plan ?? usage?.subscription?.plan_id);
+  const planName = plan?.name ?? "No active plan";
   const status = usage?.subscription?.status ?? "No subscription";
 
   return (

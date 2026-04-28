@@ -141,10 +141,43 @@ if (!email || !password) {
     typeof login.body.access_token === "string"
       ? login.body.access_token
       : undefined;
+  const refreshToken =
+    login.body &&
+    typeof login.body === "object" &&
+    "refresh_token" in login.body &&
+    typeof login.body.refresh_token === "string"
+      ? login.body.refresh_token
+      : undefined;
 
   console.log("ACCESS_TOKEN_PRESENT:", Boolean(token));
+  console.log("REFRESH_TOKEN_PRESENT:", Boolean(refreshToken));
   if (!login.ok) markFailed("Login request failed.");
   if (!token) markFailed("Login response did not include access_token.");
+  if (!refreshToken) markFailed("Login response did not include refresh_token.");
+
+  const invalidRefresh = await post(`${baseUrl}/api/app/session/refresh`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: "not-a-valid-refresh-token" }),
+  });
+  logResult("REFRESH_INVALID", invalidRefresh);
+  if (invalidRefresh.status !== 401) markFailed("Invalid refresh token did not return 401.");
+
+  if (refreshToken) {
+    const refresh = await post(`${baseUrl}/api/app/session/refresh`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    logResult("REFRESH", refresh);
+    const refreshedToken =
+      refresh.body &&
+      typeof refresh.body === "object" &&
+      "access_token" in refresh.body &&
+      typeof refresh.body.access_token === "string"
+        ? refresh.body.access_token
+        : undefined;
+    console.log("REFRESH_ACCESS_TOKEN_PRESENT:", Boolean(refreshedToken));
+    if (!refresh.ok || !refreshedToken) markFailed("Valid refresh did not return a new access_token.");
+  }
 
   if (token) {
     const invalidCheckout = await post(`${baseUrl}/api/billing/checkout`, {

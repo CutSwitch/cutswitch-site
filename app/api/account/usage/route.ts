@@ -23,7 +23,12 @@ export async function POST(req: Request) {
     .from("subscriptions")
     .select("*")
     .eq("user_id", user.id)
-    .single();
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  console.log("SUBSCRIPTION FOUND:", subscription);
 
   if (subscriptionError && subscriptionError.code !== "PGRST116") {
     return Response.json({ error: "Subscription lookup failed" }, { status: 500 });
@@ -48,7 +53,7 @@ export async function POST(req: Request) {
 
   return Response.json({
     subscription,
-    plan,
+    plan: subscription?.plan_id ?? null,
     totalUsedSeconds,
     remainingSeconds,
   });

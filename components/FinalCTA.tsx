@@ -51,11 +51,11 @@ export default function FinalCTA({ embedded = false }: Props) {
 
       {/* Content */}
       <div className="container-edge relative z-10">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center text-[rgba(255,255,255,0.96)]">
+        <div className="cta-final-copy mx-auto flex max-w-3xl flex-col items-center text-center text-[rgba(255,255,255,0.96)]">
           <h2 className="text-3xl font-semibold leading-tight tracking-tight drop-shadow-[0_12px_30px_rgba(0,0,0,0.45)] sm:text-4xl">
-            Start using CutSwitch
+            Start editing with
             <br />
-            today for free.
+            transcript hours.
           </h2>
 
           <div className="mt-8">
@@ -63,7 +63,7 @@ export default function FinalCTA({ embedded = false }: Props) {
               className="btn btn-primary rounded-full px-8 py-3 text-base text-[rgba(255,255,255,0.98)] shadow-[0_18px_50px_rgba(112,92,255,0.25)]"
               href="/pricing"
             >
-              Start Free Trial
+Choose a plan
             </a>
           </div>
         </div>

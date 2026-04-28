@@ -60,20 +60,18 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2 className="text-white/90 font-semibold">4. License and device limits</h2>
+      <h2 className="text-white/90 font-semibold">4. Account access and device limits</h2>
       <p>
-        When you purchase CutSwitch, you receive a license key. Unless otherwise specified in
-        writing, each license is limited to{" "}
-        <strong className="text-white/90">two (2) active devices</strong>. Those limits are
-        enforced through our licensing provider, Keygen, and our app validation logic. Two
-        devices means two devices. Not two-ish.
+        When you subscribe to CutSwitch, access is tied to your CutSwitch account and subscription status. Unless
+        otherwise specified in writing, each account may be limited to{" "}
+        <strong className="text-white/90">two (2) active devices</strong>. Two devices means two devices. Not two-ish.
       </p>
       <ul className="list-disc pl-5 space-y-2">
-        <li>You may not share your license key publicly or resell it.</li>
-        <li>You may not bypass, disable, or interfere with licensing enforcement.</li>
+        <li>You may not share, resell, or transfer your account access without permission.</li>
+        <li>You may not bypass, disable, or interfere with account, subscription, or device-limit enforcement.</li>
         <li>
           If you need to transfer devices, for example because you got a new Mac, you may be
-          able to deactivate an old device or contact Support.
+          able to sign out on an old device or contact Support.
         </li>
       </ul>
 
@@ -85,14 +83,14 @@ export default function TermsPage() {
       <ul className="list-disc pl-5 space-y-2">
         <li>reverse engineer or decompile CutSwitch;</li>
         <li>modify CutSwitch in unauthorized ways;</li>
-        <li>circumvent security or licensing controls;</li>
+        <li>circumvent security, account, subscription, or usage controls;</li>
         <li>scrape the website or related services; or</li>
         <li>disrupt CutSwitch or related services.</li>
       </ul>
 
       <h2 className="text-white/90 font-semibold">6. Suspension and termination</h2>
       <p>
-        We may suspend or terminate access to CutSwitch and related licenses if we reasonably
+        We may suspend or terminate access to CutSwitch if we reasonably
         believe you violated these Terms, engaged in fraud, or initiated a chargeback or payment
         dispute. If that dispute is resolved in your favor, we may restore access.
       </p>
@@ -108,7 +106,7 @@ export default function TermsPage() {
       <p>
         CutSwitch and all related intellectual property are owned by {siteConfig.name}. These
         Terms give you a limited, non-exclusive, non-transferable right to use CutSwitch during
-        the term of your license or subscription. That is a right to use the product, not a
+        the term of your subscription. That is a right to use the product, not a
         transfer of ownership.
       </p>
 

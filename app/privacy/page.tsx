@@ -33,8 +33,8 @@ export default function PrivacyPage() {
           provide (name, email, message, and any attachments you send by email).
         </li>
         <li>
-          <strong className="text-white/90">Licensing:</strong> We use Keygen to issue and validate license keys. Keygen
-          may process device identifiers and activation events to enforce the 2-device limit.
+          <strong className="text-white/90">Account and usage:</strong> Supabase stores account, subscription, and
+          usage-ledger records needed for app access and transcript-hour tracking.
         </li>
         <li>
           <strong className="text-white/90">Affiliate attribution:</strong> If you arrive via an affiliate link,
@@ -44,9 +44,9 @@ export default function PrivacyPage() {
 
       <h2 className="text-white/90 font-semibold">2. How we use information</h2>
       <ul className="list-disc pl-5 space-y-2">
-        <li>To deliver licenses and enable app access.</li>
+        <li>To enable app access and track subscription usage.</li>
         <li>To provide customer support and troubleshoot issues.</li>
-        <li>To prevent fraud, abuse, and chargebacks (e.g., dispute handling may suspend licenses).</li>
+        <li>To prevent fraud, abuse, and chargebacks (e.g., dispute handling may suspend access).</li>
         <li>To attribute affiliate referrals and calculate commissions.</li>
         <li>To improve the product and website (in aggregate).</li>
       </ul>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
           <strong className="text-white/90">Rewardful</strong> for affiliate tracking and attribution.
         </li>
         <li>
-          <strong className="text-white/90">Keygen</strong> for licensing and device activation limits.
+          <strong className="text-white/90">Supabase</strong> for authentication, subscription records, and usage data.
         </li>
         <li>
           <strong className="text-white/90">Vercel</strong> for hosting and analytics logs (standard server logs).

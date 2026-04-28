@@ -60,7 +60,7 @@ export function SuccessClient({ sessionId }: { sessionId: string }) {
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
         <div className="text-sm font-semibold text-emerald-100">Payment successful</div>
         <p className="mt-2 text-sm text-emerald-100/80">
-          Thanks for supporting CutSwitch. Your license will be delivered by email shortly.
+          Thanks for supporting CutSwitch. Your subscription is active when Stripe confirms payment.
         </p>
 
         {info?.email ? (
@@ -78,9 +78,9 @@ export function SuccessClient({ sessionId }: { sessionId: string }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card p-6">
-          <div className="text-sm font-semibold text-white/90">Next: download and activate</div>
+          <div className="text-sm font-semibold text-white/90">Next: download and sign in</div>
           <p className="mt-2 text-sm text-white/65">
-            Download the macOS app, open it, and paste your license key from the email. If you do not receive it within
+            Download the macOS app, open it, and sign in with your CutSwitch account. If your subscription does not appear within
             a couple minutes, contact Support.
           </p>
 

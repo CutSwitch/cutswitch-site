@@ -1,12 +1,13 @@
 import Stripe from "stripe";
 
-import { getAppPlanIdForPrice, type AppPlanId } from "@/lib/stripe";
+import { getAppPlanIdForPrice } from "@/lib/stripe";
+import { APP_PLANS, getAppPlan, type AppPlanId } from "@/lib/plans";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const PLAN_SECONDS: Record<AppPlanId, number> = {
-  starter: 2 * 60 * 60,
-  creator_pro: 10 * 60 * 60,
-  studio: 40 * 60 * 60,
+  starter: APP_PLANS.starter.transcriptHours * 60 * 60,
+  creator_pro: APP_PLANS.creator_pro.transcriptHours * 60 * 60,
+  studio: APP_PLANS.studio.transcriptHours * 60 * 60,
 };
 
 export type SubscriptionRecord = {
@@ -20,11 +21,12 @@ export type SubscriptionRecord = {
 };
 
 export function getPlan(planId: string | null | undefined) {
-  if (!planId || !(planId in PLAN_SECONDS)) return null;
+  const plan = getAppPlan(planId);
+  if (!plan) return null;
 
   return {
-    id: planId as AppPlanId,
-    includedSeconds: PLAN_SECONDS[planId as AppPlanId],
+    ...plan,
+    includedSeconds: PLAN_SECONDS[plan.id],
   };
 }
 

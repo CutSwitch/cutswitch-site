@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavAuth } from "@/components/auth/NavAuth";
 
 type NavItem = { href: string; label: string; glow?: boolean };
 
@@ -56,17 +57,7 @@ export function Nav() {
 
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
-          <Link
-            href="/support"
-            className="text-sm text-white/70 transition hover:text-white"
-          >
-            Contact Us
-          </Link>
-
-          <Link className="btn btn-primary" href="/download">
-            Try It Free
-            <span className="text-white/80">→</span>
-          </Link>
+          <NavAuth />
         </div>
 
         <div className="md:hidden flex items-center gap-2">
@@ -102,16 +93,8 @@ export function Nav() {
                   </Link>
                 );
               })}
-              <div className="pt-2 grid gap-2">
-                <Link
-                  href="/support"
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-center text-sm text-white/80 hover:bg-white/10 hover:text-white"
-                >
-                  Contact Us
-                </Link>
-                <Link className="btn btn-primary w-full" href="/download">
-                  Try It Free
-                </Link>
+              <div className="pt-2">
+                <NavAuth mobile />
               </div>
             </div>
           </div>

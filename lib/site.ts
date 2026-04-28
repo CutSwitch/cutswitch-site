@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "CutSwitch",
   tagline: "Switch cuts. Stay in flow.",
   description:
-    "CutSwitch is a premium Mac app for editors who want the speed of muscle memory with the polish of automation. Download, try it free, and buy a license in minutes.",
+    "CutSwitch auto-switches Final Cut Pro multicam edits by who's speaking, with subscription plans based on transcript hours.",
   domain: "cutswitch.com",
   emails: {
     support: "support@cutswitch.com",

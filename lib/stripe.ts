@@ -1,7 +1,8 @@
 import Stripe from "stripe";
 import { requireEnv } from "@/lib/env";
+import { APP_PLAN_IDS, isAppPlanId, type AppPlanId } from "@/lib/plans";
 
-export type AppPlanId = "starter" | "creator_pro" | "studio";
+export { isAppPlanId, type AppPlanId };
 
 // Stripe's Node SDK expects to run in the Node.js runtime (not Edge).
 export const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"), {
@@ -18,27 +19,37 @@ export function getStripePrices() {
   } as const;
 }
 
-export function getStripeAppPrices(): Record<AppPlanId, string> {
-  return {
-    starter: requireEnv("STRIPE_PRICE_STARTER"),
-    creator_pro: requireEnv("STRIPE_PRICE_CREATOR_PRO"),
-    studio: requireEnv("STRIPE_PRICE_STUDIO"),
-  };
+export const STRIPE_APP_PRICE_ENV: Record<AppPlanId, string> = {
+  starter: "STRIPE_PRICE_STARTER",
+  creator_pro: "STRIPE_PRICE_CREATOR_PRO",
+  studio: "STRIPE_PRICE_STUDIO",
+};
+
+export function getStripeAppPrice(planId: AppPlanId) {
+  const envName = STRIPE_APP_PRICE_ENV[planId];
+  const priceId = process.env[envName]?.trim() || null;
+
+  return { envName, priceId };
 }
 
-export function isAppPlanId(value: unknown): value is AppPlanId {
-  return value === "starter" || value === "creator_pro" || value === "studio";
+export function getStripeAppPrices(): Record<AppPlanId, string> {
+  return Object.fromEntries(
+    APP_PLAN_IDS.map((planId) => {
+      const { envName, priceId } = getStripeAppPrice(planId);
+      if (!priceId) {
+        throw new Error(`Missing Stripe price env for plan: ${envName}`);
+      }
+
+      return [planId, priceId];
+    })
+  ) as Record<AppPlanId, string>;
 }
 
 export function getAppPlanIdForPrice(priceId: string | null | undefined): AppPlanId | null {
   if (!priceId) return null;
 
-  const prices = getStripeAppPrices();
-  const match = (Object.entries(prices) as Array<[AppPlanId, string]>).find(
-    ([, value]) => value === priceId
-  );
-
-  return match?.[0] ?? null;
+  const match = APP_PLAN_IDS.find((planId) => getStripeAppPrice(planId).priceId === priceId);
+  return match ?? null;
 }
 
 export function getStripeWebhookSecret() {

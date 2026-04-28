@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
 import { getUserFromBearerToken } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/env";
 import { readJsonBody } from "@/lib/request";
-import { getStripeAppPrices, isAppPlanId } from "@/lib/stripe";
-import { stripe } from "@/lib/stripe";
+import { isAppPlanId } from "@/lib/plans";
+import { getStripeAppPrice, stripe } from "@/lib/stripe";
 
 type CheckoutBody = {
   planId?: unknown;
@@ -33,7 +33,13 @@ export async function POST(req: Request) {
   }
 
   const planId = parsed.data.planId;
-  const priceId = getStripeAppPrices()[planId];
+  const { envName, priceId } = getStripeAppPrice(planId);
+
+  if (!priceId) {
+    console.error("[billing:checkout] Missing Stripe price env for plan", { planId, envName });
+    return NextResponse.json({ error: "Missing Stripe price env for plan" }, { status: 500 });
+  }
+
   const baseUrl = getBaseUrl();
 
   try {
@@ -65,8 +71,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
+    const stripeError = error as { type?: string; code?: string; message?: string };
     console.error("[billing:checkout] Stripe checkout session failed", {
-      message: error instanceof Error ? error.message : "Unknown error",
+      type: stripeError?.type,
+      code: stripeError?.code,
+      message: stripeError?.message || (error instanceof Error ? error.message : "Unknown error"),
     });
     return NextResponse.json({ error: "Unable to create checkout session." }, { status: 500 });
   }

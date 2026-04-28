@@ -10,7 +10,7 @@ export default function PricingPage() {
           <SectionHeading
             eyebrow="Pricing"
             title="Simple plans. Serious speed."
-            subtitle="Start with a 7-day free trial. Taxes calculated at checkout. Final sale."
+            subtitle="Start with included trial transcript minutes. Taxes calculated at checkout. Final sale."
           />
         </div>
 

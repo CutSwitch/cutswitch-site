@@ -136,6 +136,16 @@ if (!email || !password) {
     markFailed("Unauthenticated checkout did not return 401.");
   }
 
+  const unauthPortal = await post(`${baseUrl}/api/billing/portal`, {
+    headers: {},
+  });
+
+  logResult("BILLING_PORTAL_UNAUTHENTICATED", unauthPortal);
+
+  if (unauthPortal.status !== 401) {
+    markFailed("Unauthenticated billing portal did not return 401.");
+  }
+
   const login = await post(`${baseUrl}/api/app/session`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -217,6 +227,41 @@ if (!email || !password) {
 
     if (usage.body && typeof usage.body === "object" && !("plan" in usage.body)) {
       markFailed("Usage response did not include plan.");
+    }
+
+
+    const portal = await post(`${baseUrl}/api/billing/portal`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    logResult("BILLING_PORTAL", portal);
+
+    const portalUrl =
+      portal.body &&
+      typeof portal.body === "object" &&
+      "portalUrl" in portal.body &&
+      typeof portal.body.portalUrl === "string"
+        ? portal.body.portalUrl
+        : undefined;
+
+    const portalError =
+      portal.body &&
+      typeof portal.body === "object" &&
+      "error" in portal.body &&
+      typeof portal.body.error === "string"
+        ? portal.body.error
+        : undefined;
+
+    console.log("BILLING_PORTAL_URL_PRESENT:", Boolean(portalUrl));
+
+    if (portal.ok) {
+      if (!portalUrl?.startsWith("https://")) {
+        markFailed("Billing portal did not return a URL.");
+      }
+    } else if (portal.status !== 400 || portalError !== "No active billing account found.") {
+      markFailed("Billing portal did not return a portal URL or friendly no-customer error.");
     }
   }
 

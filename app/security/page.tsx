@@ -17,7 +17,7 @@ export default function SecurityPage() {
 
       <p>
         CutSwitch is built to be <strong className="text-white/90">local-first</strong>. Your media stays on your Mac.
-        We aim to keep data collection minimal and focused on what&rsquo;s necessary to deliver licenses, billing, and
+        We aim to keep data collection minimal and focused on what&rsquo;s necessary to deliver account access, billing, transcript-hour usage, and
         support.
       </p>
 
@@ -42,8 +42,8 @@ export default function SecurityPage() {
           <strong className="text-white/90">Billing:</strong> Stripe processes payments and subscriptions.
         </li>
         <li>
-          <strong className="text-white/90">Licensing:</strong> Keygen validates license keys and may record device
-          activations to enforce limits.
+          <strong className="text-white/90">Account and usage:</strong> Supabase handles sign-in, subscription records,
+          and transcript-hour usage events.
         </li>
         <li>
           <strong className="text-white/90">Affiliate attribution:</strong> Rewardful may set a referral cookie and

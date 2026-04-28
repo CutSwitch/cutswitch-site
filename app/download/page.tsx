@@ -179,7 +179,7 @@ return (
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <Link className="btn btn-secondary" href="/pricing">
-              View pricing
+              Choose a plan
             </Link>
             <Link className="btn btn-ghost" href="/demo">
               Watch the demo

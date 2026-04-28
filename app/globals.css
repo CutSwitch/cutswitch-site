@@ -1196,3 +1196,9 @@ html.theme-light .speedproof-copy::before {
     rgba(246, 247, 251, 0.0) 100%
   );
 }
+
+html.theme-light .cta-final-copy,
+html.theme-light .cta-final-copy .text-white,
+html.theme-light .cta-final-copy .text-white\/80 {
+  color: rgba(255, 255, 255, 0.96) !important;
+}

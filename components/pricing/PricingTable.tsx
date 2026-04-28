@@ -1,144 +1,81 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { cn, formatUsd } from "@/lib/utils";
-import { PlanKey } from "@/lib/site";
-import { useRewardfulReferral } from "@/components/rewardful/useRewardfulReferral";
+import { useRouter } from "next/navigation";
 
-type Plan = {
-  key: PlanKey;
-  name: string;
-  priceLabel: string;
-  priceNote: string;
-  highlights: string[];
-  featured?: boolean;
-  cta: string;
-};
+import { useSupabaseSession } from "@/components/auth/useSupabaseSession";
+import { APP_PLANS, APP_PLAN_IDS, isAppPlanId, type AppPlanId } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
-const MONTHLY_PRICE = 19.99;
-const YEARLY_PRICE = 199;
-
-/**
- * NOTE:
- * We intentionally export BOTH:
- *  - named export: { PricingTable }
- *  - default export: PricingTable
- * so existing imports like `import { PricingTable } from ...` keep working,
- * and default imports also work.
- */
 type PricingTableProps = {
-  /** Use tighter spacing when PricingTable is embedded inside another section (e.g. home page final act). */
   embedded?: boolean;
 };
 
 export function PricingTable({ embedded = false }: PricingTableProps) {
-  const plans = useMemo<Plan[]>(
-    () => [
-      {
-        key: "monthly",
-        name: "Monthly",
-        priceLabel: `${formatUsd(MONTHLY_PRICE)}`,
-        priceNote: "per month, billed monthly",
-        highlights: [
-          "7-day free trial (card required)",
-          "All core features",
-          "License for 2 Macs",
-          "Cancel anytime",
-          "Stripe Tax calculated at checkout",
-        ],
-        cta: "Start trial",
-      },
-      {
-        key: "yearly",
-        name: "Yearly",
-        priceLabel: `${formatUsd(YEARLY_PRICE)}`,
-        priceNote: "per year, billed annually",
-        highlights: [
-          "Save vs monthly",
-          "7-day free trial (card required)",
-          "All core features",
-          "License for 2 Macs",
-          "Priority support",
-        ],
-        featured: true,
-        cta: "Start trial",
-      },
-    ],
-    []
-  );
-
-  const Heading = embedded ? "h2" : "h1";
-
-  const referral = useRewardfulReferral();
+  const router = useRouter();
+  const { session, user, loading: authLoading } = useSupabaseSession();
   const [ack, setAck] = useState(true);
-  const [loading, setLoading] = useState<PlanKey | null>(null);
+  const [loading, setLoading] = useState<AppPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const autoStarted = useRef(false);
 
-  async function startCheckout(plan: PlanKey) {
+  async function startCheckout(planId: AppPlanId) {
     if (!ack) {
       setError("Please acknowledge the no-refunds policy before continuing.");
       return;
     }
 
     setError(null);
-    setLoading(plan);
 
-    // Rewardful referral can be either a string (common) or an object with an `id`.
-    // Normalize it to a clean string or undefined.
-    const referralIdRaw =
-      typeof referral === "string" ? referral : (referral as any)?.id;
-    const referralId =
-      typeof referralIdRaw === "string"
-        ? referralIdRaw.trim() || undefined
-        : undefined;
+    if (!user || !session?.access_token) {
+      router.push(`/login?next=/pricing&plan=${planId}`);
+      return;
+    }
+
+    setLoading(planId);
 
     try {
-      const res = await fetch("/api/checkout/create-session", {
+      const res = await fetch("/api/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          referral: referralId,
-          acknowledgedNoRefunds: ack,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ planId }),
       });
 
-      // Robust parsing: API should return JSON, but on misroutes or errors
-      // it may return empty/HTML. Handle gracefully so UI shows a real error.
-      const raw = await res.text();
-      let data: { url?: string; error?: string } = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch {
-        data = {};
+      const data = (await res.json().catch(() => ({}))) as { checkoutUrl?: string; error?: string };
+
+      if (!res.ok || !data.checkoutUrl) {
+        throw new Error(data.error || "Unable to start checkout.");
       }
 
-      if (!res.ok || !data.url) {
-        throw new Error(
-          data.error ||
-            (raw?.slice(0, 140) ? `Checkout error: ${raw.slice(0, 140)}` : "Unable to start checkout.")
-        );
-      }
-
-      window.location.href = data.url;
-    } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
+      window.location.href = data.checkoutUrl;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setLoading(null);
     }
   }
 
+  useEffect(() => {
+    if (autoStarted.current || authLoading || !user) return;
+    const plan = new URLSearchParams(window.location.search).get("plan");
+    if (!isAppPlanId(plan)) return;
+
+    autoStarted.current = true;
+    void startCheckout(plan);
+  }, [authLoading, user]);
+
   return (
     <div className={cn("w-full pricing-block", embedded ? "pricing-block--embedded" : "")}>
-      <div
-        className={cn(
-          "container-edge relative z-10",
-          embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10"
-        )}
-      >
-        <div className={cn(embedded ? "mb-6" : "mb-6")}>
-          <Heading className="text-3xl font-semibold tracking-tight text-white">Pricing</Heading>
+      <div className={cn("container-edge relative z-10", embedded ? "pt-14 pb-4 sm:pt-16 sm:pb-6" : "py-10")}>
+        <div className="mb-6">
+          <h2 className="text-3xl font-semibold tracking-tight text-white">Pricing</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
+            Start with included trial transcript minutes. Transcript hours reset monthly.
+          </p>
         </div>
 
         <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 sm:p-8">
@@ -148,12 +85,11 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
               <input
                 type="checkbox"
                 checked={ack}
-                onChange={(e) => setAck(e.target.checked)}
+                onChange={(event) => setAck(event.target.checked)}
                 className="mt-1 h-5 w-5 rounded border-white/20 bg-black/30 text-brand focus:ring-brand/70 sm:h-6 sm:w-6"
               />
               <span>
-                I understand CutSwitch purchases are final and we do not offer
-                refunds. If I have issues, I will contact{" "}
+                I understand CutSwitch purchases are final and we do not offer refunds. If I have issues, I will contact{" "}
                 <Link className="underline" href="/support">
                   Support
                 </Link>
@@ -169,96 +105,88 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {plans.map((p) => (
-            <div
-              key={p.key}
-              className={cn(
-                "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 transition hover:-translate-y-0.5 hover:border-white/20",
-                p.featured ? "border-brand/40 ring-brand" : ""
-              )}
-            >
-              <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
-              <div className="relative">
-              {p.featured ? (
-                <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-white/80">
-                  Best value
-                </div>
-              ) : null}
-
-              <div className="text-lg font-semibold">{p.name}</div>
-              <div className="mt-2 text-4xl font-semibold tracking-tight">
-                {p.priceLabel}
-              </div>
-              <div className="mt-1 text-sm text-white/65">
-                {p.priceNote}
-              </div>
-
-              <ul className="mt-4 space-y-2 text-sm text-white/70">
-                {p.highlights.map((h) => (
-                  <li key={h} className="flex gap-2">
-                    <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
-                    <span>{h}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => startCheckout(p.key)}
-                disabled={loading !== null}
+        <div className="grid gap-4 lg:grid-cols-3">
+          {APP_PLAN_IDS.map((planId) => {
+            const plan = APP_PLANS[planId];
+            return (
+              <div
+                key={plan.id}
                 className={cn(
-                  "mt-6 w-full rounded-xl px-4 py-2 text-sm font-medium",
-                  p.featured
-                    ? "btn btn-primary"
-                    : "btn btn-secondary"
+                  "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 transition hover:-translate-y-0.5 hover:border-white/20",
+                  plan.featured ? "border-brand/40 ring-brand" : ""
                 )}
               >
-                {loading === p.key ? "Starting…" : p.cta}
-              </button>
+                <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
+                <div className="relative flex h-full flex-col">
+                  {plan.featured ? (
+                    <div className="mb-3 inline-flex w-fit rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-white/80">
+                      Most popular
+                    </div>
+                  ) : null}
 
-              <div className="mt-3 text-xs text-white/55">
-                By purchasing, you agree to our{" "}
-                <Link className="underline" href="/terms">
-                  Terms
-                </Link>{" "}
-                and{" "}
-                <Link className="underline" href="/privacy">
-                  Privacy Policy
-                </Link>
-                .
+                  <div className="text-lg font-semibold text-white">{plan.name}</div>
+                  <div className="mt-2 text-4xl font-semibold tracking-tight text-white">{plan.priceLabel}</div>
+                  <div className="mt-1 text-sm text-white/65">{plan.audience}</div>
+
+                  <ul className="mt-5 space-y-2 text-sm text-white/70">
+                    <li className="flex gap-2">
+                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
+                      <span>{plan.transcriptHours} transcript hours/month</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
+                      <span>{plan.description}</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
+                      <span>Editable Final Cut timelines</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
+                      <span>Cancel anytime</span>
+                    </li>
+                  </ul>
+
+                  <button
+                    onClick={() => startCheckout(plan.id)}
+                    disabled={loading !== null}
+                    className={cn("btn mt-6 w-full", plan.featured ? "btn-primary" : "btn-secondary")}
+                  >
+                    {loading === plan.id ? "Starting..." : user ? "Choose plan" : "Log in to start"}
+                  </button>
+
+                  <div className="mt-3 text-xs text-white/55">
+                    By purchasing, you agree to our{" "}
+                    <Link className="underline" href="/terms">
+                      Terms
+                    </Link>{" "}
+                    and{" "}
+                    <Link className="underline" href="/privacy">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </div>
+                </div>
               </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        <div
-          className={cn(
-            "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6",
-            embedded ? "mt-8" : "mt-10"
-          )}
-        >
+        <div className={cn("relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6", embedded ? "mt-8" : "mt-10")}>
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
           <div className="relative">
-          <div className="text-lg font-semibold">Questions before you buy?</div>
-          <p className="mt-2 text-sm text-white/65">
-            We do not do refunds, but we do fix problems fast. If something feels
-            off, reach out and we will help you get running.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/support"
-              className="btn btn-secondary"
-            >
-              Contact Support
-            </Link>
-            <Link
-              href="/refunds"
-              className="btn btn-ghost"
-            >
-              No-refunds policy
-            </Link>
-          </div>
+            <div className="text-lg font-semibold text-white">How transcript hours work</div>
+            <p className="mt-2 text-sm text-white/65">
+              Transcript hours are used only when CutSwitch creates a new transcript. Reused transcripts do not count again.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/support" className="btn btn-secondary">
+                Contact Support
+              </Link>
+              <Link href="/refunds" className="btn btn-ghost">
+                No-refunds policy
+              </Link>
+            </div>
           </div>
         </div>
       </div>

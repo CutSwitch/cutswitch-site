@@ -29,7 +29,7 @@ export default function RefundsPage() {
 
       <h2 className="text-white/90 font-semibold">What we will do instead</h2>
       <ul className="list-disc pl-5 space-y-2">
-        <li>Help you troubleshoot installation and licensing issues.</li>
+        <li>Help you troubleshoot installation, sign-in, and subscription issues.</li>
         <li>Fix product bugs and ship updates.</li>
         <li>
          If you're stuck, we'll work with you to get CutSwitch behaving the way it's supposed to.
@@ -38,8 +38,7 @@ export default function RefundsPage() {
 
       <h2 className="text-white/90 font-semibold">Subscriptions</h2>
       <p>
-        Subscription plans include a 7-day trial. If you cancel during the trial, you will not be charged. After the
-        trial, canceling stops future renewals. It does not trigger refunds for past charges.
+        Subscription plans may include trial transcript minutes. Canceling stops future renewals. It does not trigger refunds for past charges.
       </p>
 
       <p>

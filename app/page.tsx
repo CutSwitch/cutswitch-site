@@ -72,7 +72,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML, and instantly edit a multi-cam interview or podcast.
+                Import a Final Cut XML and get a clean multicam first pass. Transcript hours are used only when CutSwitch creates a new transcript.
               </p>
             </div>
 
@@ -85,8 +85,8 @@ export default function HomePage() {
             <div className="lg:col-start-1 lg:row-start-2 hero-parallax-actions">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Link href="/download" className="btn btn-primary">
-                    Get CutSwitch
+                  <Link href="/pricing" className="btn btn-primary">
+                    Choose a plan
                     <span aria-hidden>→</span>
                   </Link>
                   <Link href="/demo" className="btn btn-secondary">

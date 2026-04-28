@@ -1,37 +1,62 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+export const runtime = "nodejs";
 
-type UsageRequest = {
-  userId?: string;
-};
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type UsageEvent = {
   billable_seconds: number | null;
 };
 
-export async function POST(req: Request) {
-  const { userId } = (await req.json()) as UsageRequest;
+function getBearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization");
+  const [scheme, token] = header?.split(" ") ?? [];
 
-  if (!userId) {
-    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
+    return null;
   }
 
-  const { data: subscription } = await supabaseAdmin
+  return token;
+}
+
+export async function POST(req: Request) {
+  const token = getBearerToken(req);
+
+  if (!token) {
+    return Response.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabaseAdmin.auth.getUser(token);
+
+  if (userError || !user) {
+    return Response.json({ error: "Invalid or expired token" }, { status: 401 });
+  }
+
+  const { data: subscription, error: subscriptionError } = await supabaseAdmin
     .from("subscriptions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .single();
 
-  const { data: usageEvents } = await supabaseAdmin
+  if (subscriptionError && subscriptionError.code !== "PGRST116") {
+    return Response.json({ error: "Subscription lookup failed" }, { status: 500 });
+  }
+
+  const { data: usageEvents, error: usageError } = await supabaseAdmin
     .from("usage_events")
     .select("billable_seconds")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .returns<UsageEvent[]>();
+
+  if (usageError) {
+    return Response.json({ error: "Usage lookup failed" }, { status: 500 });
+  }
 
   const totalUsedSeconds =
     usageEvents?.reduce((sum, e) => sum + (e.billable_seconds || 0), 0) || 0;
 
-  return NextResponse.json({
+  return Response.json({
     subscription,
     totalUsedSeconds,
   });

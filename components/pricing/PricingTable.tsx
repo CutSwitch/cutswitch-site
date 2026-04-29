@@ -12,6 +12,42 @@ type PricingTableProps = {
   embedded?: boolean;
 };
 
+const PLAN_FEATURE_COPY: Record<AppPlanId, { heading: string; features: string[] }> = {
+  starter: {
+    heading: "Starter includes",
+    features: [
+      "15 hours of editing/month",
+      "Built for a weekly podcast cadence",
+      "Speaker-based multicam switching",
+      "Editable Final Cut timelines",
+      "Cancel anytime",
+    ],
+  },
+  creator_pro: {
+    heading: "Everything in Starter, plus",
+    features: [
+      "50 hours of editing/month",
+      "Room for 25+ podcast or event edits/month",
+      "Better fit for roundtables and multi-speaker shows",
+      "Built for client and full-time creator workflows",
+    ],
+  },
+  studio: {
+    heading: "Everything in Pro, plus",
+    features: [
+      "120 hours of editing/month",
+      "High-volume podcast, interview, and event workflows",
+      "More editing time for production teams",
+      "Built for teams and agencies",
+    ],
+  },
+};
+
+function getPriceParts(priceLabel: string) {
+  const [price] = priceLabel.split("/");
+  return { price, cadence: "per month" };
+}
+
 export function PricingTable({ embedded = false }: PricingTableProps) {
   const router = useRouter();
   const { session, user, loading: authLoading } = useSupabaseSession();
@@ -74,7 +110,10 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         <div className="mb-6">
           <h2 className="text-3xl font-semibold tracking-tight text-white">Pricing</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
-            Start with included trial transcript minutes. Transcript hours reset monthly.
+            7-day free trial. Includes 4 hours of editing.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+            Editing time is based on the length of your source footage.
           </p>
         </div>
 
@@ -105,57 +144,71 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid items-stretch gap-4 lg:grid-cols-3">
           {APP_PLAN_IDS.map((planId) => {
             const plan = APP_PLANS[planId];
+            const price = getPriceParts(plan.priceLabel);
+            const featureCopy = PLAN_FEATURE_COPY[plan.id];
             return (
               <div
                 key={plan.id}
                 className={cn(
                   "relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 transition hover:-translate-y-0.5 hover:border-white/20",
-                  plan.featured ? "border-brand/40 ring-brand" : ""
+                  plan.featured
+                    ? "border-brand/60 bg-[linear-gradient(180deg,rgba(112,92,255,0.14),rgba(18,20,34,0.72))] shadow-[0_24px_80px_rgba(112,92,255,0.18)] ring-1 ring-brand/60"
+                    : ""
                 )}
               >
                 <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
                 <div className="relative flex h-full flex-col">
-                  {plan.featured ? (
-                    <div className="mb-3 inline-flex w-fit rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-white/80">
-                      Most popular
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-light">
+                      {plan.audience}
                     </div>
-                  ) : null}
+                    {plan.featured ? (
+                      <div className="shrink-0 rounded-full border border-brand/30 bg-brand/15 px-2 py-1 text-[11px] font-medium text-white/85">
+                        Most popular
+                      </div>
+                    ) : null}
+                  </div>
 
-                  <div className="text-lg font-semibold text-white">{plan.name}</div>
-                  <div className="mt-2 text-4xl font-semibold tracking-tight text-white">{plan.priceLabel}</div>
-                  <div className="mt-1 text-sm text-white/65">{plan.audience}</div>
+                  <div className="mt-7 text-4xl font-semibold leading-none tracking-tight text-white sm:text-5xl">
+                    {plan.name}
+                  </div>
+                  <div className="mt-3 flex items-end gap-3">
+                    <div className="text-4xl font-semibold leading-none tracking-tight text-white/70">{price.price}</div>
+                    <div className="pb-1 text-sm leading-tight text-white/50">{price.cadence}</div>
+                  </div>
 
-                  <ul className="mt-5 space-y-2 text-sm text-white/70">
-                    <li className="flex gap-2">
-                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
-                      <span>{plan.transcriptHours} transcript hours/month</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
-                      <span>{plan.description}</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
-                      <span>Editable Final Cut timelines</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="mt-[2px] inline-block h-4 w-4 rounded-full bg-white/5 ring-1 ring-white/10" />
-                      <span>Cancel anytime</span>
-                    </li>
+                  <div className="my-7 h-px bg-white/10" />
+
+                  <p className="min-h-[72px] text-base leading-relaxed text-white/70">{plan.description}</p>
+
+                  <div className="my-7 h-px bg-white/10" />
+
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">
+                    {featureCopy.heading}
+                  </div>
+                  <ul className="mt-4 space-y-3 text-sm leading-relaxed text-white/68">
+                    {featureCopy.features.map((feature) => (
+                      <li key={feature} className="flex gap-3">
+                        <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-light/80 shadow-[0_0_16px_rgba(136,153,255,0.45)]" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
                   </ul>
 
-                  <button
-                    onClick={() => startCheckout(plan.id)}
-                    disabled={loading !== null}
-                    className={cn("btn mt-6 w-full", plan.featured ? "btn-primary" : "btn-secondary")}
-                  >
-                    {loading === plan.id ? "Starting..." : user ? "Choose plan" : "Log in to start"}
-                  </button>
+                  <div className="mt-auto pt-8">
+                    <button
+                      onClick={() => startCheckout(plan.id)}
+                      disabled={loading !== null}
+                      className={cn("btn w-full", plan.featured ? "btn-primary" : "btn-secondary")}
+                    >
+                      {loading === plan.id ? "Starting..." : user ? "Choose plan" : "Start Free Trial"}
+                    </button>
+                  </div>
 
-                  <div className="mt-3 text-xs text-white/55">
+                  <div className="mt-3 text-xs leading-relaxed text-white/55">
                     By purchasing, you agree to our{" "}
                     <Link className="underline" href="/terms">
                       Terms
@@ -175,9 +228,9 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         <div className={cn("relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6", embedded ? "mt-8" : "mt-10")}>
           <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
           <div className="relative">
-            <div className="text-lg font-semibold text-white">How transcript hours work</div>
+            <div className="text-lg font-semibold text-white">How editing time works</div>
             <p className="mt-2 text-sm text-white/65">
-              Transcript hours are used only when CutSwitch creates a new transcript. Reused transcripts do not count again.
+              Editing time is based on the length of your source footage. Reused transcripts do not count again.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href="/support" className="btn btn-secondary">

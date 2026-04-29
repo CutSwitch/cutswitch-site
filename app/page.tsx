@@ -72,7 +72,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML and get a clean multicam first pass. Transcript hours are used only when CutSwitch creates a new transcript.
+                Import a Final Cut XML and get a clean multicam first pass. Editing time is based on the length of your source footage.
               </p>
             </div>
 

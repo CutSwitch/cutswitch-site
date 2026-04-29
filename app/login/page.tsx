@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Sign in to CutSwitch",
-  description: "Manage your CutSwitch subscription, transcript hours, and app access.",
+  description: "Manage your CutSwitch subscription, editing time, and app access.",
 };
 
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
       <SectionHeading
         eyebrow="Account"
         title="Sign in to CutSwitch"
-        subtitle="Manage your subscription, transcript hours, and app access."
+        subtitle="Manage your subscription, editing time, and app access."
         className="mx-auto text-center"
       />
       <div className="mt-8">

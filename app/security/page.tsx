@@ -17,7 +17,7 @@ export default function SecurityPage() {
 
       <p>
         CutSwitch is built to be <strong className="text-white/90">local-first</strong>. Your media stays on your Mac.
-        We aim to keep data collection minimal and focused on what&rsquo;s necessary to deliver account access, billing, transcript-hour usage, and
+        We aim to keep data collection minimal and focused on what&rsquo;s necessary to deliver account access, billing, editing-time usage, and
         support.
       </p>
 
@@ -43,7 +43,7 @@ export default function SecurityPage() {
         </li>
         <li>
           <strong className="text-white/90">Account and usage:</strong> Supabase handles sign-in, subscription records,
-          and transcript-hour usage events.
+          and editing-time usage events.
         </li>
         <li>
           <strong className="text-white/90">Affiliate attribution:</strong> Rewardful may set a referral cookie and

@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your CutSwitch subscription, transcript hours, and app access.",
+  description: "Manage your CutSwitch subscription, editing time, and app access.",
 };
 
 export default function AccountPage() {
@@ -14,7 +14,7 @@ export default function AccountPage() {
       <SectionHeading
         eyebrow="Account"
         title="Your CutSwitch dashboard"
-        subtitle="See your plan, transcript-hour usage, billing, and Mac app access in one place."
+        subtitle="See your plan, editing time, billing, and Mac app access in one place."
       />
 
       <div className="mt-8">

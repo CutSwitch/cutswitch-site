@@ -12,10 +12,12 @@ import {
 } from "@/lib/keygen";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/env";
+import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { planLabels, siteConfig, type PlanKey } from "@/lib/site";
 import { getAppPlanIdForPrice, isAppPlanId } from "@/lib/stripe";
 import {
   subscriptionRecordFromStripe,
+  type SubscriptionRecord,
   upsertSubscriptionRecord,
 } from "@/lib/subscriptions";
 
@@ -142,6 +144,7 @@ async function handleCheckoutSessionCompleted(eventId: string, session: Stripe.C
 
         if (record) {
           await upsertSubscriptionRecord(record);
+          await emitSubscriptionLifecycle(record);
         }
       }
 
@@ -523,6 +526,7 @@ async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
   if (!record) return;
 
   await upsertSubscriptionRecord(record);
+  await emitSubscriptionLifecycle(record);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -533,6 +537,31 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   console.log("[stripe] subscription.deleted -> suspend license", { licenseLast6: licenseId.slice(-6) });
   await suspendLicense(licenseId);
+}
+
+async function emitSubscriptionLifecycle(record: SubscriptionRecord) {
+  const eventName =
+    record.status === "trialing"
+      ? "trial_started"
+      : record.status === "active"
+        ? "paid_subscription_started"
+        : record.status === "canceled"
+          ? "canceled_subscription"
+          : null;
+  if (!eventName) return;
+
+  await emitLifecycleEvent({
+    user: { id: record.user_id },
+    eventName,
+    properties: {
+      plan_id: record.plan_id,
+      subscription_status: record.status,
+      stripe_customer_id_present: Boolean(record.stripe_customer_id),
+      stripe_subscription_id_present: Boolean(record.stripe_subscription_id),
+      current_period_end: record.current_period_end,
+    },
+    dedupeKey: `${eventName}:${record.stripe_subscription_id}`,
+  });
 }
 
 async function handleChargeRefunded(charge: Stripe.Charge) {

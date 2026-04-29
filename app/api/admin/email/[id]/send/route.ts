@@ -1,0 +1,35 @@
+export const runtime = "nodejs";
+
+import { z } from "zod";
+
+import { requireAdminApi } from "@/lib/admin/auth";
+import { sendReviewedCampaign } from "@/lib/admin/emailCampaigns";
+import { readJsonBody } from "@/lib/request";
+
+const schema = z.object({
+  confirmation: z.string(),
+});
+
+type Context = { params: { id: string } };
+
+export async function POST(req: Request, context: Context) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+
+  const parsedBody = await readJsonBody(req, 4 * 1024);
+  if (!parsedBody.ok) {
+    return Response.json({ error: parsedBody.message || "Invalid request." }, { status: parsedBody.status, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const parsed = schema.safeParse(parsedBody.data);
+  if (!parsed.success) {
+    return Response.json({ error: "Invalid send payload." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const result = await sendReviewedCampaign({ id: context.params.id, confirmation: parsed.data.confirmation, adminUserId: auth.admin.user.id });
+  if (!result.ok) {
+    return Response.json({ error: result.error }, { status: result.status, headers: { "Cache-Control": "no-store" } });
+  }
+
+  return Response.json({ ok: true, sent: result.sent, failed: result.failed }, { headers: { "Cache-Control": "no-store" } });
+}

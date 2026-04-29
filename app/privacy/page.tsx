@@ -34,7 +34,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong className="text-white/90">Account and usage:</strong> Supabase stores account, subscription, and
-          usage-ledger records needed for app access and transcript-hour tracking.
+          usage-ledger records needed for app access and editing-time tracking.
         </li>
         <li>
           <strong className="text-white/90">Affiliate attribution:</strong> If you arrive via an affiliate link,

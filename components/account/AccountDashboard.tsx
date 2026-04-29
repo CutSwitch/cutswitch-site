@@ -10,11 +10,15 @@ type UsageResponse = {
   subscription: null | {
     plan_id?: string | null;
     status?: string | null;
-    stripe_customer_id?: string | null;
+    current_period_start?: string | null;
+    current_period_end?: string | null;
+    created_at?: string | null;
   };
   plan: string | null;
   totalUsedSeconds: number;
   remainingSeconds: number | null;
+  isTrial?: boolean;
+  trialIncludedSeconds?: number;
   error?: string;
 };
 
@@ -27,6 +31,7 @@ function hours(seconds: number | null | undefined) {
 export function AccountDashboard() {
   const { supabase, session, user, loading, configError } = useSupabaseSession();
   const [usage, setUsage] = useState<UsageResponse | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [usageError, setUsageError] = useState<string | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,6 +57,31 @@ export function AccountDashboard() {
       })
       .catch((error) => {
         if (alive) setUsageError(error instanceof Error ? error.message : "Unable to load usage.");
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    const token = session?.access_token;
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+
+    let alive = true;
+    fetch("/api/account/admin-status", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as { isAdmin?: boolean };
+        if (alive) setIsAdmin(res.ok && data.isAdmin === true);
+      })
+      .catch(() => {
+        if (alive) setIsAdmin(false);
       });
 
     return () => {
@@ -95,7 +125,7 @@ export function AccountDashboard() {
     return (
       <div className="card p-6">
         <div className="text-lg font-semibold text-white">Sign in required</div>
-        <p className="mt-2 text-sm text-white/65">Use your CutSwitch account to view transcript hours and billing.</p>
+        <p className="mt-2 text-sm text-white/65">Use your CutSwitch account to view editing time and billing.</p>
         <Link className="btn btn-primary mt-5" href="/login?next=/account">
           Log In
         </Link>
@@ -106,6 +136,7 @@ export function AccountDashboard() {
   const plan = getAppPlan(usage?.plan ?? usage?.subscription?.plan_id);
   const planName = plan?.name ?? "No active plan";
   const status = usage?.subscription?.status ?? "No subscription";
+  const isTrial = usage?.isTrial === true;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -116,6 +147,12 @@ export function AccountDashboard() {
         {usageError ? <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{usageError}</div> : null}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {isTrial ? (
+            <div className="rounded-2xl border border-brand/30 bg-brand/10 p-4 sm:col-span-2">
+              <div className="text-xs uppercase tracking-wide text-white/55">Trial active</div>
+              <div className="mt-2 text-lg font-semibold text-white">4 hours of editing included</div>
+            </div>
+          ) : null}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="text-xs uppercase tracking-wide text-white/45">Current plan</div>
             <div className="mt-2 text-lg font-semibold text-white">{planName}</div>
@@ -125,17 +162,17 @@ export function AccountDashboard() {
             <div className="mt-2 text-lg font-semibold capitalize text-white">{status.replace(/_/g, " ")}</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-wide text-white/45">Used this period</div>
+            <div className="text-xs uppercase tracking-wide text-white/45">Used editing time</div>
             <div className="mt-2 text-lg font-semibold text-white">{hours(usage?.totalUsedSeconds)}</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs uppercase tracking-wide text-white/45">Remaining</div>
+            <div className="text-xs uppercase tracking-wide text-white/45">Remaining editing time</div>
             <div className="mt-2 text-lg font-semibold text-white">{hours(usage?.remainingSeconds)}</div>
           </div>
         </div>
 
         <p className="mt-5 text-sm text-white/60">
-          Transcript hours are used only when CutSwitch creates a new transcript. Reused transcripts do not count again.
+          Editing time is based on the length of your source footage. Reused transcripts do not count again.
         </p>
       </div>
 
@@ -148,6 +185,11 @@ export function AccountDashboard() {
           <Link className="btn btn-secondary w-full" href="/download">
             Download Mac App
           </Link>
+          {isAdmin ? (
+            <Link className="btn btn-secondary w-full" href="/admin">
+              Admin Dashboard
+            </Link>
+          ) : null}
           <button className="btn btn-ghost w-full" type="button" onClick={() => supabase?.auth.signOut()}>
             Sign Out
           </button>

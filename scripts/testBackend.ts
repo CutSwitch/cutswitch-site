@@ -16,6 +16,7 @@ const email = process.env.TEST_EMAIL;
 const password = process.env.TEST_PASSWORD;
 const checkoutPlanId = process.env.TEST_CHECKOUT_PLAN_ID || "starter";
 const transcriptDuration = Number(process.env.TEST_TRANSCRIPT_DURATION_SECONDS || 7);
+const testProductEvents = process.env.TEST_PRODUCT_EVENTS === "1";
 
 let failed = false;
 
@@ -94,6 +95,12 @@ function numberField(body: unknown, key: string): number | null {
   return typeof value === "number" ? value : null;
 }
 
+function booleanField(body: unknown, key: string): boolean | null {
+  if (!body || typeof body !== "object" || !(key in body)) return null;
+  const value = (body as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : null;
+}
+
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");
   process.exitCode = 1;
@@ -123,6 +130,15 @@ if (!email || !password) {
   logResult("TRANSCRIPT_UNAUTHENTICATED", unauthTranscript);
   if (unauthTranscript.status !== 401) markFailed("Unauthenticated transcript completion did not return 401.");
 
+  if (testProductEvents) {
+    const unauthProductEvent = await post(`${baseUrl}/api/product-events`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_type: "app_opened" }),
+    });
+    logResult("PRODUCT_EVENT_UNAUTHENTICATED", unauthProductEvent);
+    if (unauthProductEvent.status !== 401) markFailed("Unauthenticated product event did not return 401.");
+  }
+
   const login = await post(`${baseUrl}/api/app/session`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -141,12 +157,69 @@ if (!email || !password) {
     typeof login.body.access_token === "string"
       ? login.body.access_token
       : undefined;
+  const refreshToken =
+    login.body &&
+    typeof login.body === "object" &&
+    "refresh_token" in login.body &&
+    typeof login.body.refresh_token === "string"
+      ? login.body.refresh_token
+      : undefined;
 
   console.log("ACCESS_TOKEN_PRESENT:", Boolean(token));
+  console.log("REFRESH_TOKEN_PRESENT:", Boolean(refreshToken));
   if (!login.ok) markFailed("Login request failed.");
   if (!token) markFailed("Login response did not include access_token.");
+  if (!refreshToken) markFailed("Login response did not include refresh_token.");
+
+  const invalidRefresh = await post(`${baseUrl}/api/app/session/refresh`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: "not-a-valid-refresh-token" }),
+  });
+  logResult("REFRESH_INVALID", invalidRefresh);
+  if (invalidRefresh.status !== 401) markFailed("Invalid refresh token did not return 401.");
+
+  if (refreshToken) {
+    const refresh = await post(`${baseUrl}/api/app/session/refresh`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    logResult("REFRESH", refresh);
+    const refreshedToken =
+      refresh.body &&
+      typeof refresh.body === "object" &&
+      "access_token" in refresh.body &&
+      typeof refresh.body.access_token === "string"
+        ? refresh.body.access_token
+        : undefined;
+    console.log("REFRESH_ACCESS_TOKEN_PRESENT:", Boolean(refreshedToken));
+    if (!refresh.ok || !refreshedToken) markFailed("Valid refresh did not return a new access_token.");
+  }
 
   if (token) {
+    if (testProductEvents) {
+      const invalidProductEvent = await post(`${baseUrl}/api/product-events`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ event_type: "not_a_product_event" }),
+      });
+      logResult("PRODUCT_EVENT_INVALID", invalidProductEvent);
+      if (invalidProductEvent.status !== 400) markFailed("Invalid product event did not return 400.");
+
+      const productEvent = await post(`${baseUrl}/api/product-events`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          event_type: "app_opened",
+          screen: "Codex Smoke",
+          app_version: "codex-test",
+          project_fingerprint: `codex-product-${Date.now()}`,
+          metadata_json: { source: "testBackend" },
+        }),
+      });
+      logResult("PRODUCT_EVENT", productEvent);
+      if (!productEvent.ok) markFailed("Valid product event did not insert successfully.");
+    } else {
+      console.log("PRODUCT_EVENTS: skipped. Set TEST_PRODUCT_EVENTS=1 after applying the product_events migration.");
+    }
+
     const invalidCheckout = await post(`${baseUrl}/api/billing/checkout`, {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ planId: "not_a_plan" }),
@@ -184,6 +257,11 @@ if (!email || !password) {
 
     const usageBefore = numberField(usage.body, "totalUsedSeconds");
     const remainingBefore = numberField(usage.body, "remainingSeconds");
+    const isTrial = booleanField(usage.body, "isTrial");
+    if (isTrial === null) markFailed("Usage response did not include isTrial.");
+    if (isTrial && numberField(usage.body, "trialIncludedSeconds") !== 14400) {
+      markFailed("Trial usage response did not include 4 hours of editing time.");
+    }
     const transcriptKey = `codex-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const transcriptPayload = {
       projectFingerprint: `${transcriptKey}-project`,
@@ -254,7 +332,33 @@ if (!email || !password) {
     }
 
     if (remainingBefore !== null && remainingAfter !== remainingBefore - transcriptDuration) {
-      markFailed("Remaining transcript seconds did not decrease by the successful transcript duration only.");
+      markFailed("Remaining editing seconds did not decrease by the successful transcript duration only.");
+    }
+
+    if (isTrial && remainingAfter !== null) {
+      const overageDuration = Math.max(1, remainingAfter + 1);
+      const trialOverage = await post(`${baseUrl}/api/transcripts/complete`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          projectFingerprint: `${transcriptKey}-trial-overage-project`,
+          audioFingerprint: `${transcriptKey}-trial-overage-audio`,
+          durationSeconds: overageDuration,
+          speakerCount: 2,
+          providerJobId: null,
+          status: "succeeded",
+        }),
+      });
+      logResult("TRANSCRIPT_TRIAL_OVERAGE", trialOverage);
+      const trialOverageError =
+        trialOverage.body &&
+        typeof trialOverage.body === "object" &&
+        "error" in trialOverage.body &&
+        trialOverage.body.error === "Trial editing time exhausted";
+      if (trialOverage.status !== 402 || !trialOverageError) {
+        markFailed("Trial overage did not return Trial editing time exhausted.");
+      }
+    } else {
+      console.log("TRANSCRIPT_TRIAL_OVERAGE: skipped because test account is not trialing.");
     }
 
     const portal = await post(`${baseUrl}/api/billing/portal`, {

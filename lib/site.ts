@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "CutSwitch",
   tagline: "Switch cuts. Stay in flow.",
   description:
-    "CutSwitch auto-switches Final Cut Pro multicam edits by who's speaking, with subscription plans based on transcript hours.",
+    "CutSwitch auto-switches Final Cut Pro multicam edits by who's speaking, with subscription plans based on editing time.",
   domain: "cutswitch.com",
   emails: {
     support: "support@cutswitch.com",

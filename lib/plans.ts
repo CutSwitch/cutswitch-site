@@ -18,16 +18,16 @@ export const APP_PLANS: Record<AppPlanId, AppPlan> = {
     name: "Starter",
     priceLabel: "$29/mo",
     transcriptHours: 15,
-    audience: "For solo podcasters",
-    description: "Enough room for a steady solo show or interview workflow.",
+    audience: "For weekly shows",
+    description: "For podcasters publishing consistently without spending hours angle-switching.",
   },
   creator_pro: {
     id: "creator_pro",
-    name: "Creator Pro",
+    name: "Pro",
     priceLabel: "$79/mo",
     transcriptHours: 50,
-    audience: "For weekly creators/editors",
-    description: "Built for regular releases and client edits without angle-chasing.",
+    audience: "For full-time creators",
+    description: "For creators, editors, and producers turning around many multi-speaker edits each month.",
     featured: true,
   },
   studio: {
@@ -35,8 +35,8 @@ export const APP_PLANS: Record<AppPlanId, AppPlan> = {
     name: "Studio",
     priceLabel: "$149/mo",
     transcriptHours: 120,
-    audience: "For teams/agencies",
-    description: "More transcript hours for high-volume teams and agencies.",
+    audience: "For teams & agencies",
+    description: "For teams handling high-volume podcasts, roundtables, interviews, and client productions.",
   },
 };
 

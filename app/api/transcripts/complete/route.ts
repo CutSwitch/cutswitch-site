@@ -3,7 +3,9 @@ export const runtime = "nodejs";
 import crypto from "crypto";
 
 import { getUserFromBearerToken } from "@/lib/auth";
+import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { readJsonBody } from "@/lib/request";
+import { getPlan, TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type TranscriptStatus = "succeeded" | "failed" | "reused";
@@ -22,6 +24,10 @@ type SupabaseLikeError = {
   message?: string;
   details?: string;
   hint?: string;
+};
+
+type UsageEvent = {
+  billable_seconds: number | null;
 };
 
 function stableHash(input: string) {
@@ -122,6 +128,115 @@ async function hasSuccessfulUsageEvent(input: { userId: string; idempotencyKey: 
 
   if (error) throw error;
   return Boolean(data);
+}
+
+async function getTrialUsage(userId: string) {
+  const { data: subscription, error: subscriptionError } = await supabaseAdmin
+    .from("subscriptions")
+    .select("status")
+    .eq("user_id", userId)
+    .in("status", ["trialing", "active"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (subscriptionError && subscriptionError.code !== "PGRST116") throw subscriptionError;
+
+  const isTrial = subscription?.status === "trialing";
+  if (!isTrial) {
+    return { isTrial, totalUsedSeconds: 0 };
+  }
+
+  const { data: usageEvents, error: usageError } = await supabaseAdmin
+    .from("usage_events")
+    .select("billable_seconds")
+    .eq("user_id", userId)
+    .eq("event_type", "transcript_succeeded")
+    .returns<UsageEvent[]>();
+
+  if (usageError) throw usageError;
+
+  return {
+    isTrial,
+    totalUsedSeconds: usageEvents?.reduce((sum, e) => sum + (e.billable_seconds || 0), 0) || 0,
+  };
+}
+
+async function getTotalSuccessfulUsage(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("usage_events")
+    .select("billable_seconds")
+    .eq("user_id", userId)
+    .eq("event_type", "transcript_succeeded")
+    .returns<UsageEvent[]>();
+  if (error) throw error;
+  return data?.reduce((sum, e) => sum + (e.billable_seconds || 0), 0) || 0;
+}
+
+async function maybeEmitNearQuota(user: { id: string; email?: string | null }) {
+  const { data: subscription, error } = await supabaseAdmin
+    .from("subscriptions")
+    .select("status,plan_id,stripe_subscription_id,current_period_end")
+    .eq("user_id", user.id)
+    .in("status", ["trialing", "active"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      status: string;
+      plan_id: string | null;
+      stripe_subscription_id: string | null;
+      current_period_end: string | null;
+    }>();
+  if (error && error.code !== "PGRST116") throw error;
+  if (!subscription) return;
+
+  const totalUsedSeconds = await getTotalSuccessfulUsage(user.id);
+  const includedSeconds = subscription.status === "trialing" ? TRIAL_EDITING_SECONDS : getPlan(subscription.plan_id)?.includedSeconds;
+  if (!includedSeconds) return;
+
+  const remainingSeconds = Math.max(0, includedSeconds - totalUsedSeconds);
+  const threshold = subscription.status === "trialing" ? 30 * 60 : includedSeconds * 0.1;
+  if (remainingSeconds > threshold) return;
+
+  await emitLifecycleEvent({
+    user,
+    eventName: "near_quota",
+    properties: {
+      plan_id: subscription.plan_id,
+      subscription_status: subscription.status,
+      total_used_seconds: totalUsedSeconds,
+      remaining_seconds: remainingSeconds,
+      included_seconds: includedSeconds,
+    },
+    dedupeKey: `near_quota:${user.id}:${subscription.stripe_subscription_id || subscription.current_period_end || subscription.status}`,
+  });
+}
+
+async function maybeEmitRepeatedFailure(user: { id: string; email?: string | null }, projectFingerprint: string, appProviderJobId: string | null) {
+  const { data, error } = await supabaseAdmin
+    .from("transcript_jobs")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "failed")
+    .limit(2)
+    .returns<Array<{ id: string }>>();
+  if (error) {
+    if (isMissingTranscriptJobsSchema(error)) return;
+    throw error;
+  }
+  if ((data || []).length < 2) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  await emitLifecycleEvent({
+    user,
+    eventName: "repeated_failure",
+    properties: {
+      failed_job_count_seen: data?.length || 0,
+      project_fingerprint: projectFingerprint,
+      job_id_present: Boolean(appProviderJobId),
+    },
+    dedupeKey: `repeated_failure:${user.id}:${today}`,
+  });
 }
 
 async function upsertTranscriptJob(input: {
@@ -255,6 +370,8 @@ export async function POST(req: Request) {
         reuseKey,
       });
 
+      await maybeEmitRepeatedFailure(user, projectFingerprint, providerJobId);
+
       return Response.json({ ok: true, status, billableSeconds: 0, reused: false });
     }
 
@@ -267,6 +384,21 @@ export async function POST(req: Request) {
       });
 
       return Response.json({ ok: true, status, billableSeconds: 0, reused: true });
+    }
+
+    const trialUsage = await getTrialUsage(user.id);
+    if (trialUsage.isTrial && trialUsage.totalUsedSeconds + durationSeconds > TRIAL_EDITING_SECONDS) {
+      await emitLifecycleEvent({
+        user,
+        eventName: "trial_exhausted",
+        properties: {
+          total_used_seconds: trialUsage.totalUsedSeconds,
+          attempted_duration_seconds: durationSeconds,
+          trial_included_seconds: TRIAL_EDITING_SECONDS,
+        },
+        dedupeKey: `trial_exhausted:${user.id}`,
+      });
+      return Response.json({ error: "Trial editing time exhausted" }, { status: 402 });
     }
 
     await upsertTranscriptJob({
@@ -286,6 +418,19 @@ export async function POST(req: Request) {
       billableSeconds: durationSeconds,
       idempotencyKey,
     });
+
+    await emitLifecycleEvent({
+      user,
+      eventName: "first_run_succeeded",
+      properties: {
+        duration_seconds: durationSeconds,
+        speaker_count: speakerCount,
+        job_id_present: Boolean(providerJobId),
+      },
+      dedupeKey: `first_run_succeeded:${user.id}`,
+    });
+
+    await maybeEmitNearQuota(user);
 
     return Response.json({ ok: true, status, billableSeconds: durationSeconds, reused: false });
   } catch (error) {

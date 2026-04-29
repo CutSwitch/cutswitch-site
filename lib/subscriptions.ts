@@ -10,6 +10,9 @@ export const PLAN_SECONDS: Record<AppPlanId, number> = {
   studio: APP_PLANS.studio.transcriptHours * 60 * 60,
 };
 
+export const TRIAL_DAYS = 7;
+export const TRIAL_EDITING_SECONDS = 4 * 60 * 60;
+
 export type SubscriptionRecord = {
   user_id: string;
   plan_id: AppPlanId;

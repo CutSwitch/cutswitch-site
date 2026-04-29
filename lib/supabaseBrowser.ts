@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 export function createSupabaseBrowserClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,5 +10,5 @@ export function createSupabaseBrowserClient() {
     return null;
   }
 
-  return createClient(url, anonKey);
+  return createBrowserClient(url, anonKey);
 }

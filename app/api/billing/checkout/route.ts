@@ -7,10 +7,51 @@ import { getBaseUrl } from "@/lib/env";
 import { readJsonBody } from "@/lib/request";
 import { isAppPlanId } from "@/lib/plans";
 import { getStripeAppPrice, stripe } from "@/lib/stripe";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { TRIAL_DAYS } from "@/lib/subscriptions";
 
 type CheckoutBody = {
   planId?: unknown;
 };
+
+function escapeStripeSearch(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+async function hasPriorSupabaseSubscription(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") throw error;
+  return Boolean(data);
+}
+
+async function hasPriorStripeSubscription(userId: string, email: string | null | undefined) {
+  const byMetadata = await stripe.subscriptions.search({
+    query: `metadata['userId']:'${escapeStripeSearch(userId)}'`,
+    limit: 1,
+  });
+
+  if (byMetadata.data.length > 0) return true;
+
+  if (!email) return false;
+
+  const customers = await stripe.customers.list({ email, limit: 10 });
+  for (const customer of customers.data) {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: "all",
+      limit: 1,
+    });
+    if (subscriptions.data.length > 0) return true;
+  }
+
+  return false;
+}
 
 export async function POST(req: Request) {
   const { user, error: authError } = await getUserFromBearerToken(req);
@@ -43,6 +84,10 @@ export async function POST(req: Request) {
   const baseUrl = getBaseUrl();
 
   try {
+    const hasPriorSubscription =
+      (await hasPriorSupabaseSubscription(user.id)) ||
+      (await hasPriorStripeSubscription(user.id, user.email));
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -57,6 +102,7 @@ export async function POST(req: Request) {
         stripe_price_id: priceId,
       },
       subscription_data: {
+        ...(hasPriorSubscription ? {} : { trial_period_days: TRIAL_DAYS }),
         metadata: {
           userId: user.id,
           planId,

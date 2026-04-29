@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -13,8 +13,34 @@ type Props = {
 export function NavAuth({ mobile = false }: Props) {
   const { supabase, session, user, loading } = useSupabaseSession();
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const email = user?.email ?? "Account";
+
+  useEffect(() => {
+    const token = session?.access_token;
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+
+    let alive = true;
+    fetch("/api/account/admin-status", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as { isAdmin?: boolean };
+        if (alive) setIsAdmin(res.ok && data.isAdmin === true);
+      })
+      .catch(() => {
+        if (alive) setIsAdmin(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [session?.access_token]);
 
   async function signOut() {
     setOpen(false);
@@ -69,6 +95,11 @@ export function NavAuth({ mobile = false }: Props) {
         <Link className="btn btn-secondary w-full" href="/account">
           Dashboard
         </Link>
+        {isAdmin ? (
+          <Link className="btn btn-secondary w-full" href="/admin">
+            Admin
+          </Link>
+        ) : null}
         <button className="btn btn-secondary w-full" type="button" onClick={openBilling}>
           Billing
         </button>
@@ -97,6 +128,11 @@ export function NavAuth({ mobile = false }: Props) {
           <Link className="block rounded-xl px-3 py-2 text-sm text-white/75 hover:bg-white/5 hover:text-white" href="/account">
             Dashboard
           </Link>
+          {isAdmin ? (
+            <Link className="block rounded-xl px-3 py-2 text-sm text-white/75 hover:bg-white/5 hover:text-white" href="/admin">
+              Admin
+            </Link>
+          ) : null}
           <button
             className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/75 hover:bg-white/5 hover:text-white"
             type="button"

@@ -38,7 +38,7 @@ export default function RefundsPage() {
 
       <h2 className="text-white/90 font-semibold">Subscriptions</h2>
       <p>
-        Subscription plans may include trial transcript minutes. Canceling stops future renewals. It does not trigger refunds for past charges.
+        Subscription plans may include trial editing time. Canceling stops future renewals. It does not trigger refunds for past charges.
       </p>
 
       <p>

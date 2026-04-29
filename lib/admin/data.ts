@@ -317,7 +317,10 @@ async function fetchSubscriptions(userIds?: string[]) {
     .order("created_at", { ascending: false });
   if (userIds?.length) query = query.in("user_id", userIds);
   const { data, error } = await query.returns<DbSubscription[]>();
-  if (error) throw error;
+  if (error) {
+    if (isMissingOptionalSchema(error)) return [];
+    throw error;
+  }
   return data || [];
 }
 
@@ -329,7 +332,10 @@ async function fetchUsageEvents(userIds?: string[], since?: string) {
   if (userIds?.length) query = query.in("user_id", userIds);
   if (since) query = query.gte("created_at", since);
   const { data, error } = await query.returns<UsageEvent[]>();
-  if (error) throw error;
+  if (error) {
+    if (isMissingOptionalSchema(error)) return [];
+    throw error;
+  }
   return data || [];
 }
 
@@ -341,7 +347,10 @@ async function fetchTranscriptJobs(userIds?: string[], since?: string) {
   if (userIds?.length) query = query.in("user_id", userIds);
   if (since) query = query.gte("created_at", since);
   const { data, error } = await query.returns<TranscriptJob[]>();
-  if (error) throw error;
+  if (error) {
+    if (isMissingOptionalSchema(error)) return [];
+    throw error;
+  }
   return data || [];
 }
 
@@ -351,6 +360,45 @@ function isMissingProductEventsSchema(error: { code?: string; message?: string }
 
 function isMissingOptionalSchema(error: { code?: string; message?: string } | null | undefined) {
   return error?.code === "42P01" || error?.code === "42703" || error?.code === "PGRST204" || error?.code === "PGRST205";
+}
+
+async function fetchUsers(options?: { search?: string; id?: string; limit?: number }) {
+  const fullSelect = "id,email,created_at,last_seen_at,first_project_imported_at,first_run_started_at,first_successful_edit_at";
+  let query = supabaseAdmin
+    .from("users")
+    .select(fullSelect)
+    .order("created_at", { ascending: false })
+    .limit(options?.limit || 1000);
+
+  if (options?.id) query = query.eq("id", options.id);
+  if (options?.search?.trim()) query = query.ilike("email", `%${options.search.trim()}%`);
+
+  const { data, error } = await query.returns<DbUser[]>();
+  if (!error) return data || [];
+  if (!isMissingOptionalSchema(error)) throw error;
+
+  let fallback = supabaseAdmin
+    .from("users")
+    .select("id,email,created_at")
+    .order("created_at", { ascending: false })
+    .limit(options?.limit || 1000);
+
+  if (options?.id) fallback = fallback.eq("id", options.id);
+  if (options?.search?.trim()) fallback = fallback.ilike("email", `%${options.search.trim()}%`);
+
+  const { data: fallbackData, error: fallbackError } = await fallback.returns<Array<{ id: string; email: string | null; created_at: string | null }>>();
+  if (fallbackError) {
+    if (isMissingOptionalSchema(fallbackError)) return [];
+    throw fallbackError;
+  }
+
+  return (fallbackData || []).map((user) => ({
+    ...user,
+    last_seen_at: null,
+    first_project_imported_at: null,
+    first_run_started_at: null,
+    first_successful_edit_at: null,
+  })) satisfies DbUser[];
 }
 
 async function fetchProductEvents(userIds?: string[], since?: string) {
@@ -423,7 +471,10 @@ async function fetchTranscriptJobRows(options?: {
   const { data: fallbackData, error: fallbackError } = await fallback.returns<
     Array<Pick<AdminJobRow, "id" | "user_id" | "status" | "duration_seconds" | "created_at">>
   >();
-  if (fallbackError) throw fallbackError;
+  if (fallbackError) {
+    if (isMissingOptionalSchema(fallbackError)) return [];
+    throw fallbackError;
+  }
   return (fallbackData || []).map((job) => ({
     ...job,
     user_email: null,
@@ -483,20 +534,10 @@ function severityRank(severity: string | null | undefined) {
 export async function getAdminUsers(options?: { search?: string; signal?: string; page?: number }) {
   noStore();
   const page = Math.max(1, options?.page || 1);
-
-  let query = supabaseAdmin
-    .from("users")
-    .select("id,email,created_at,last_seen_at,first_project_imported_at,first_run_started_at,first_successful_edit_at")
-    .order("created_at", { ascending: false })
-    .limit(1000);
-
   const search = options?.search?.trim();
-  if (search) query = query.ilike("email", `%${search}%`);
+  const users = await fetchUsers({ search, limit: 1000 });
 
-  const { data: users, error } = await query.returns<DbUser[]>();
-  if (error) throw error;
-
-  const userIds = (users || []).map((user) => user.id);
+  const userIds = users.map((user) => user.id);
   const [subscriptions, usageEvents, transcriptJobs, productEvents] = await Promise.all([
     fetchSubscriptions(userIds),
     fetchUsageEvents(userIds),
@@ -504,7 +545,7 @@ export async function getAdminUsers(options?: { search?: string; signal?: string
     fetchProductEvents(userIds),
   ]);
 
-  const allRows = buildUserRows({ users: users || [], subscriptions, usageEvents, transcriptJobs, productEvents })
+  const allRows = buildUserRows({ users, subscriptions, usageEvents, transcriptJobs, productEvents })
     .filter((row) => (options?.signal ? row.signal === options.signal : true))
     .sort((a, b) => String(b.last_active_at || "").localeCompare(String(a.last_active_at || "")));
   const from = (page - 1) * PAGE_SIZE;
@@ -521,12 +562,7 @@ export async function getAdminUsers(options?: { search?: string; signal?: string
 
 export async function getAdminUserDetail(id: string) {
   noStore();
-  const { data: user, error } = await supabaseAdmin
-    .from("users")
-    .select("id,email,created_at,last_seen_at,first_project_imported_at,first_run_started_at,first_successful_edit_at")
-    .eq("id", id)
-    .maybeSingle<DbUser>();
-  if (error) throw error;
+  const [user] = await fetchUsers({ id, limit: 1 });
   if (!user) return null;
 
   const [subscriptions, usageEvents, basicTranscriptJobs, detailedJobs, detailedProductEvents, feedbackRows] = await Promise.all([
@@ -561,21 +597,15 @@ export async function getAdminUserDetail(id: string) {
 
 export async function getAllAdminUserRows() {
   noStore();
-  const { data: users, error } = await supabaseAdmin
-    .from("users")
-    .select("id,email,created_at,last_seen_at,first_project_imported_at,first_run_started_at,first_successful_edit_at")
-    .order("created_at", { ascending: false })
-    .limit(1000)
-    .returns<DbUser[]>();
-  if (error) throw error;
-  const userIds = (users || []).map((user) => user.id);
+  const users = await fetchUsers({ limit: 1000 });
+  const userIds = users.map((user) => user.id);
   const [subscriptions, usageEvents, transcriptJobs, productEvents] = await Promise.all([
     fetchSubscriptions(userIds),
     fetchUsageEvents(userIds),
     fetchTranscriptJobs(userIds),
     fetchProductEvents(userIds),
   ]);
-  return buildUserRows({ users: users || [], subscriptions, usageEvents, transcriptJobs, productEvents });
+  return buildUserRows({ users, subscriptions, usageEvents, transcriptJobs, productEvents });
 }
 
 async function fetchProductEventDetails(options: { userId?: string; limit?: number }) {
@@ -739,7 +769,10 @@ export async function getFeedbackRows(filters?: {
   if (filters?.branchReady) query = query.or("status.eq.branch_ready,codex_ready.eq.true,ai_should_be_codex_task.eq.true");
 
   const { data, error } = await query.returns<Omit<FeedbackRow, "user_email">[]>();
-  if (error) throw error;
+  if (error) {
+    if (isMissingOptionalSchema(error)) return [];
+    throw error;
+  }
 
   const userIds = [...new Set((data || []).map((row) => row.user_id).filter(Boolean) as string[])];
   const emails = new Map<string, string | null>();

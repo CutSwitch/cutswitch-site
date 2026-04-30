@@ -37,7 +37,7 @@ export default async function AdminSegmentsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {featured.map((segment) => (
-          <Link key={segment.key} href={`/admin/segments/${segment.slug}`} className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand/45 hover:bg-brand/10">
+          <div key={segment.key} className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand/45 hover:bg-brand/10" title={segment.description}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-3xl font-semibold text-white">{segment.count.toLocaleString()}</div>
@@ -46,8 +46,12 @@ export default async function AdminSegmentsPage() {
               <SegmentBadge keyName={segment.key} />
             </div>
             <p className="mt-3 text-sm leading-6 text-white/55">{segment.description}</p>
-            <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/35">View users &rarr;</p>
-          </Link>
+            <p className="mt-2 text-xs text-white/35">Last updated: live on refresh</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href={`/admin/segments/${segment.slug}`} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 hover:text-white">View segment →</Link>
+              <Link href={usersFilterHref(segment.key)} className="rounded-full border border-brand/25 bg-brand/10 px-3 py-1.5 text-xs text-brand-highlight hover:bg-brand/20">View users →</Link>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -60,8 +64,32 @@ export default async function AdminSegmentsPage() {
           <Badge tone="brand">Phase 2A</Badge>
         </div>
       </div>
+
+      <div className="card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Custom segment builder MVP</h3>
+            <p className="mt-1 text-sm text-white/55">Pick a saved filter shape now; persistent custom segments can come later without turning this into Salesforce in a trench coat.</p>
+          </div>
+          <Link href="/admin/users?status=trialing&range=7d" className="btn btn-secondary">Trial users active 7d</Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          {["plan", "status", "editing time used", "last active"].map((item) => (
+            <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm capitalize text-white/65">{item}</div>
+          ))}
+        </div>
+      </div>
     </div>
   );
+}
+
+function usersFilterHref(key: string) {
+  if (key === "trial_never_ran") return "/admin/users?status=trialing&signal=Trial+inactive";
+  if (key === "imported_not_completed" || key === "failed_twice") return "/admin/users?signal=Stuck";
+  if (key === "near_quota" || key === "trial_exhausted" || key === "paid_user_near_limit") return "/admin/users?signal=Near+quota";
+  if (key === "heavy_user") return "/admin/users?signal=Heavy+user";
+  if (key === "positive_feedback") return "/admin/segments/love-signals";
+  return "/admin/users";
 }
 
 function SegmentBadge({ keyName }: { keyName: string }) {

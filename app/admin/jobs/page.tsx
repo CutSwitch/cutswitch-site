@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import Link from "next/link";
 
 import { Badge, StatCard } from "@/components/admin/AdminShell";
 import { formatHours, getAdminJobs } from "@/lib/admin/data";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const STATUSES = ["", "succeeded", "failed", "reused", "queued", "running"];
-const RANGES = ["7d", "30d", "all"];
+const RANGES = ["all", "7d", "30d", "90d"];
 const PLANS = ["", "starter", "creator_pro", "studio"];
 
 type Props = {
@@ -25,11 +26,18 @@ export default async function AdminJobsPage({ searchParams }: Props) {
   const filters = {
     status: searchParams?.status || undefined,
     plan: searchParams?.plan || undefined,
-    range: searchParams?.range || "30d",
+    range: searchParams?.range || "all",
     errorCode: searchParams?.error_code || undefined,
     q: searchParams?.q || undefined,
   };
   const jobs = await getAdminJobs(filters);
+  const params = new URLSearchParams({
+    ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.plan ? { plan: filters.plan } : {}),
+    ...(filters.range ? { range: filters.range } : {}),
+    ...(filters.errorCode ? { error_code: filters.errorCode } : {}),
+  });
 
   return (
     <div className="grid gap-6">
@@ -41,7 +49,7 @@ export default async function AdminJobsPage({ searchParams }: Props) {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="flex flex-col justify-between gap-4 border-b border-white/10 p-5 xl:flex-row xl:items-end">
+        <div className="sticky top-[104px] z-10 flex flex-col justify-between gap-4 border-b border-white/10 bg-[#111426]/95 p-5 backdrop-blur xl:flex-row xl:items-end">
           <div>
             <h2 className="text-xl font-semibold text-white">Jobs & errors</h2>
             <p className="mt-1 text-sm text-white/55">Recent analyze/transcript jobs, failures, and safe error clues.</p>
@@ -53,13 +61,21 @@ export default async function AdminJobsPage({ searchParams }: Props) {
             </label>
             <Select name="status" label="Status" value={filters.status || ""} values={STATUSES} />
             <Select name="plan" label="Plan" value={filters.plan || ""} values={PLANS} />
-            <Select name="range" label="Range" value={filters.range || "30d"} values={RANGES} />
+            <Select name="range" label="Range" value={filters.range || "all"} values={RANGES} />
             <label className="grid gap-1 text-xs text-white/45">
               <span>Error code</span>
               <input className="w-40 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-brand/60" name="error_code" defaultValue={filters.errorCode || ""} placeholder="Any" />
             </label>
             <button className="btn btn-secondary self-end" type="submit">Filter</button>
+            <Link className="btn btn-secondary self-end" href="/admin/jobs">Clear</Link>
           </form>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4 text-sm text-white/55">
+          <div>Showing {jobs.rows.length.toLocaleString()} jobs. Default is all history so quiet weeks do not look broken.</div>
+          <div className="flex flex-wrap gap-2">
+            <Link className="btn btn-secondary" href={`/api/admin/export/jobs.csv?${params.toString()}`}>Export CSV</Link>
+            <Link className="btn btn-secondary" href={`/api/admin/export/jobs.json?${params.toString()}`}>Export JSON</Link>
+          </div>
         </div>
 
         <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-4">
@@ -99,7 +115,16 @@ export default async function AdminJobsPage({ searchParams }: Props) {
             </tbody>
           </table>
         </div>
-        {jobs.rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No jobs match these filters.</div> : null}
+        {jobs.rows.length === 0 ? (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-white">No jobs match these filters.</h3>
+            <p className="mt-2 text-sm text-white/55">Try range “all”, remove the error code, or clear filters. No jobs in a quiet period is good news, but terrible UI if we do not say so.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Link href="/admin/jobs?range=all" className="btn btn-secondary">Try all history</Link>
+              <Link href="/admin/jobs" className="btn btn-secondary">Clear filters</Link>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

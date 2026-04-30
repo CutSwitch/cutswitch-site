@@ -1,15 +1,24 @@
 export const runtime = "nodejs";
 
 import { requireAdminApi } from "@/lib/admin/auth";
-import { getAllAdminUserRows } from "@/lib/admin/data";
-import { downloadResponse, toCsv } from "@/lib/admin/export";
+import { getFilteredAdminUserRows } from "@/lib/admin/data";
+import { downloadResponse, toCsvWithMetadata } from "@/lib/admin/export";
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  const users = await getAllAdminUserRows();
-  const csv = toCsv(
+  const params = new URL(req.url).searchParams;
+  const filters = {
+    search: params.get("q") || undefined,
+    signal: params.get("signal") || undefined,
+    status: params.get("status") || undefined,
+    plan: params.get("plan") || undefined,
+    range: params.get("range") || undefined,
+    sort: params.get("sort") || undefined,
+  };
+  const users = await getFilteredAdminUserRows(filters);
+  const csv = toCsvWithMetadata(
     ["user_id", "email", "plan", "subscription_status", "editing_hours_used", "editing_hours_remaining", "failed_jobs", "successful_jobs", "last_product_event", "last_active", "signal"],
     users.map((user) => [
       user.id,
@@ -23,7 +32,8 @@ export async function GET() {
       user.last_product_event,
       user.last_active_at,
       user.signal,
-    ])
+    ]),
+    { exported_at: new Date().toISOString(), ...filters, row_count: users.length }
   );
 
   return downloadResponse(csv, "cutswitch-admin-users.csv", "text/csv");

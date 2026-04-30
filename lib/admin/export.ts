@@ -9,6 +9,10 @@ export function toCsv(headers: string[], rows: unknown[][]) {
   return [headers.map(csvCell).join(","), ...rows.map((row) => row.map(csvCell).join(","))].join("\n") + "\n";
 }
 
+export function toCsvWithMetadata(headers: string[], rows: unknown[][], metadata: Record<string, unknown>) {
+  return `${toCsv(headers, rows)}\n# export_metadata\n${toCsv(["key", "value"], Object.entries(metadata))}`;
+}
+
 export function downloadResponse(body: string, filename: string, contentType: string) {
   return new Response(body, {
     headers: {
@@ -17,6 +21,10 @@ export function downloadResponse(body: string, filename: string, contentType: st
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
+}
+
+export function jsonDownloadResponse(value: unknown, filename: string) {
+  return downloadResponse(JSON.stringify(value, null, 2), filename, "application/json");
 }
 
 export function jsonlLine(value: unknown) {

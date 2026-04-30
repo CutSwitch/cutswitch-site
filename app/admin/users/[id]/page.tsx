@@ -43,6 +43,18 @@ export default async function AdminUserDetailPage({ params }: Props) {
         <StatCard label="Last active" value={row.last_active_at ? new Date(row.last_active_at).toLocaleDateString() : "—"} />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
+        <Panel title="Editing time by month">
+          <MiniBars rows={editingByMonth(detail.jobs)} suffix="h" />
+        </Panel>
+        <Panel title="Admin actions">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ActionBox title="Add tag" detail="Phase 3: case-study, VIP, beta, support-watch." />
+            <ActionBox title="Internal note" detail="Phase 3: admin-only notes and follow-up history." />
+          </div>
+        </Panel>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel title="Recent product events">
           <TimelineEmpty show={!detail.productEvents.length} label="No product events yet." />
@@ -94,6 +106,45 @@ function TimelineItem({ title, date, meta, tone = "default" }: { title: string; 
         <span className="text-xs text-white/40">{date ? new Date(date).toLocaleString() : "—"}</span>
       </div>
       {meta ? <div className="mt-2 text-sm text-white/55">{meta}</div> : null}
+    </div>
+  );
+}
+
+function editingByMonth(jobs: Array<{ created_at: string | null; duration_seconds: number | null; status: string | null }>) {
+  const map = new Map<string, number>();
+  for (const job of jobs) {
+    if (!job.created_at || job.status !== "succeeded") continue;
+    const key = job.created_at.slice(0, 7);
+    map.set(key, (map.get(key) || 0) + (job.duration_seconds || 0) / 3600);
+  }
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, value]) => ({ label, value }));
+}
+
+function MiniBars({ rows, suffix = "" }: { rows: Array<{ label: string; value: number }>; suffix?: string }) {
+  const max = Math.max(1, ...rows.map((row) => row.value));
+  if (!rows.length) return <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/50">No successful job history yet.</div>;
+  return (
+    <div className="grid gap-3">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="mb-1 flex justify-between text-sm">
+            <span className="text-white/65">{row.label}</span>
+            <span className="text-white/45">{row.value.toLocaleString(undefined, { maximumFractionDigits: 1 })}{suffix}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-brand-highlight" style={{ width: `${Math.max(4, (row.value / max) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActionBox({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="font-medium text-white">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-white/50">{detail}</p>
     </div>
   );
 }

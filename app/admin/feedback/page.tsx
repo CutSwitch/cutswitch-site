@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import Link from "next/link";
 
 import { Badge } from "@/components/admin/AdminShell";
 import { FeedbackIntelligenceEditor } from "@/components/admin/FeedbackIntelligenceEditor";
@@ -12,13 +13,14 @@ export const revalidate = 0;
 const TYPES = ["", "bug", "idea", "confusion", "praise", "pricing", "onboarding", "performance", "export", "account"];
 const SEVERITIES = ["", "low", "normal", "high", "urgent"];
 const STATUSES = ["", "new", "reviewed", "branch_ready", "resolved", "ignored"];
+const RANGES = ["", "7d", "30d", "90d"];
 
 type Props = {
   searchParams?: {
     type?: string;
     severity?: string;
     status?: string;
-    branchReady?: string;
+    range?: string;
     q?: string;
   };
 };
@@ -29,16 +31,23 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
     type: searchParams?.type || undefined,
     severity: searchParams?.severity || undefined,
     status: searchParams?.status || undefined,
-    branchReady: searchParams?.branchReady === "1",
+    range: searchParams?.range || undefined,
     q: searchParams?.q || undefined,
   };
   const feedback = await getFeedbackRows(filters);
   const themes = getRepeatedThemes(feedback);
+  const params = new URLSearchParams({
+    ...(filters.q ? { q: filters.q } : {}),
+    ...(filters.type ? { type: filters.type } : {}),
+    ...(filters.severity ? { severity: filters.severity } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.range ? { range: filters.range } : {}),
+  });
 
   return (
     <div className="grid gap-6">
     <div className="card overflow-hidden">
-      <div className="border-b border-white/10 p-5">
+      <div className="sticky top-[104px] z-10 border-b border-white/10 bg-[#111426]/95 p-5 backdrop-blur">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <h2 className="text-xl font-semibold text-white">Feedback</h2>
@@ -52,12 +61,17 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
             <Select name="type" label="Type" value={searchParams?.type || ""} values={TYPES} />
             <Select name="severity" label="Severity" value={searchParams?.severity || ""} values={SEVERITIES} />
             <Select name="status" label="Status" value={searchParams?.status || ""} values={STATUSES} />
-            <label className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
-              <input type="checkbox" name="branchReady" value="1" defaultChecked={filters.branchReady} />
-              Branch-ready
-            </label>
+            <Select name="range" label="Range" value={searchParams?.range || ""} values={RANGES} />
             <button className="btn btn-secondary" type="submit">Filter</button>
+            <Link className="btn btn-secondary" href="/admin/feedback">Clear</Link>
           </form>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-white/55">
+          <div>{feedback.length.toLocaleString()} feedback items match current filters.</div>
+          <div className="flex flex-wrap gap-2">
+            <Link className="btn btn-secondary" href={`/api/admin/export/feedback.csv?${params.toString()}`}>Export CSV</Link>
+            <Link className="btn btn-secondary" href={`/api/admin/export/feedback.json?${params.toString()}`}>Export JSON</Link>
+          </div>
         </div>
       </div>
 
@@ -98,7 +112,13 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
         </table>
       </div>
 
-      {feedback.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No feedback matches these filters.</div> : null}
+      {feedback.length === 0 ? (
+        <div className="p-8 text-center">
+          <h3 className="text-lg font-semibold text-white">No feedback matches these filters.</h3>
+          <p className="mt-2 text-sm text-white/55">Try a wider date range, clear status, or search a shorter keyword.</p>
+          <Link className="btn btn-secondary mt-4" href="/admin/feedback">Clear filters</Link>
+        </div>
+      ) : null}
     </div>
       <div className="grid gap-4 xl:grid-cols-3">
         <ThemePanel title="By type" rows={themes.byType} />

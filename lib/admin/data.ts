@@ -150,6 +150,15 @@ function startOfMonthIso() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
+function startOfPreviousMonthIso() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
+}
+
+function startOfWindowIso(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 function secondsToHours(seconds: number | null | undefined) {
   return (seconds || 0) / 3600;
 }
@@ -519,6 +528,7 @@ function dateRangeToSince(range: string | undefined) {
   const now = Date.now();
   if (range === "7d") return new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
   if (range === "30d") return new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  if (range === "90d") return new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString();
   if (range === "24h") return new Date(now - 24 * 60 * 60 * 1000).toISOString();
   return undefined;
 }
@@ -531,7 +541,7 @@ function severityRank(severity: string | null | undefined) {
   return 0;
 }
 
-export async function getAdminUsers(options?: { search?: string; signal?: string; page?: number }) {
+export async function getAdminUsers(options?: { search?: string; signal?: string; status?: string; plan?: string; range?: string; sort?: string; page?: number }) {
   noStore();
   const page = Math.max(1, options?.page || 1);
   const search = options?.search?.trim();
@@ -547,7 +557,24 @@ export async function getAdminUsers(options?: { search?: string; signal?: string
 
   const allRows = buildUserRows({ users, subscriptions, usageEvents, transcriptJobs, productEvents })
     .filter((row) => (options?.signal ? row.signal === options.signal : true))
-    .sort((a, b) => String(b.last_active_at || "").localeCompare(String(a.last_active_at || "")));
+    .filter((row) => {
+      if (!options?.status) return true;
+      if (options.status === "inactive") return !row.subscription_status;
+      if (options.status === "churn-risk") return row.signal === "Stuck" || row.signal === "Trial inactive";
+      return row.subscription_status === options.status;
+    })
+    .filter((row) => (options?.plan ? row.plan === options.plan : true))
+    .filter((row) => {
+      const since = dateRangeToSince(options?.range);
+      if (!since || !row.last_active_at) return true;
+      return row.last_active_at >= since;
+    })
+    .sort((a, b) => {
+      if (options?.sort === "used") return b.editing_seconds_used - a.editing_seconds_used;
+      if (options?.sort === "plan") return String(a.plan || "").localeCompare(String(b.plan || ""));
+      if (options?.sort === "email") return String(a.email || "").localeCompare(String(b.email || ""));
+      return String(b.last_active_at || "").localeCompare(String(a.last_active_at || ""));
+    });
   const from = (page - 1) * PAGE_SIZE;
   const rows = allRows.slice(from, from + PAGE_SIZE);
 
@@ -608,6 +635,19 @@ export async function getAllAdminUserRows() {
   return buildUserRows({ users, subscriptions, usageEvents, transcriptJobs, productEvents });
 }
 
+export async function getFilteredAdminUserRows(options?: { search?: string; signal?: string; status?: string; plan?: string; range?: string; sort?: string }) {
+  const result = await getAdminUsers({ ...options, page: 1 });
+  const pages = Math.ceil(result.total / result.pageSize);
+  if (pages <= 1) return result.rows;
+
+  const rows = [...result.rows];
+  for (let page = 2; page <= pages; page += 1) {
+    const next = await getAdminUsers({ ...options, page });
+    rows.push(...next.rows);
+  }
+  return rows;
+}
+
 async function fetchProductEventDetails(options: { userId?: string; limit?: number }) {
   let query = supabaseAdmin
     .from("product_events")
@@ -646,7 +686,7 @@ export async function getAdminJobs(filters?: {
   q?: string;
 }) {
   noStore();
-  const since = dateRangeToSince(filters?.range || "30d");
+  const since = dateRangeToSince(filters?.range || "all");
   const rows = await enrichJobRows(await fetchTranscriptJobRows({
     since,
     status: filters?.status || undefined,
@@ -692,13 +732,19 @@ export async function getAdminJobs(filters?: {
 export async function getAdminOverview() {
   noStore();
   const monthStart = startOfMonthIso();
+  const previousMonthStart = startOfPreviousMonthIso();
+  const last30 = startOfWindowIso(30);
+  const previous30 = startOfWindowIso(60);
   const yesterday = dateRangeToSince("24h");
-  const [pageOne, allUsers, subscriptions, usageThisMonth, jobsThisMonth, productEventsThisMonth, feedback, productEvents24h, jobRows] = await Promise.all([
+  const [pageOne, allUsers, subscriptions, usageThisMonth, usageSincePreviousMonth, jobsThisMonth, jobs90d, jobs60d, productEventsThisMonth, feedback, productEvents24h, jobRows] = await Promise.all([
     getAdminUsers({ page: 1 }),
     getAllAdminUserRows(),
     fetchSubscriptions(),
     fetchUsageEvents(undefined, monthStart),
+    fetchUsageEvents(undefined, previousMonthStart),
     fetchTranscriptJobs(undefined, monthStart),
+    fetchTranscriptJobs(undefined, startOfWindowIso(90)),
+    fetchTranscriptJobs(undefined, previous30),
     fetchProductEvents(undefined, monthStart),
     getFeedbackRows({ limit: 1000 }),
     fetchProductEvents(undefined, yesterday),
@@ -712,12 +758,25 @@ export async function getAdminOverview() {
   const editingSecondsThisMonth = usageThisMonth
     .filter((event) => event.event_type === "transcript_succeeded")
     .reduce((sum, event) => sum + (event.billable_seconds || 0), 0);
+  const editingSecondsPreviousMonth = usageSincePreviousMonth
+    .filter((event) => event.event_type === "transcript_succeeded" && event.created_at && event.created_at < monthStart)
+    .reduce((sum, event) => sum + (event.billable_seconds || 0), 0);
   const reusedJobs = usageThisMonth.filter((event) => event.event_type === "transcript_reused").length;
   const failedJobs =
     jobsThisMonth.filter((job) => job.status === "failed").length +
     productEventsThisMonth.filter((event) => event.event_type === "run_failed").length;
+  const current30Jobs = jobs60d.filter((job) => job.created_at && job.created_at >= last30);
+  const previous30Jobs = jobs60d.filter((job) => job.created_at && job.created_at < last30);
+  const current30Failures = current30Jobs.filter((job) => job.status === "failed").length;
+  const previous30Failures = previous30Jobs.filter((job) => job.status === "failed").length;
+  const failureRate = current30Jobs.length ? current30Failures / current30Jobs.length : 0;
+  const previousFailureRate = previous30Jobs.length ? previous30Failures / previous30Jobs.length : 0;
   const rate = Number(process.env.PYANNOTE_COST_PER_HOUR || "");
   const hasCostRate = Number.isFinite(rate) && rate > 0;
+  const jobsByDay = buildJobsByDay(jobs90d);
+  const usageByPlan = buildUsageByPlan(allUsers);
+  const feedbackByType = countStrings(feedback.map((item) => item.type || "unknown"));
+  const feedbackByArea = countStrings(feedback.map((item) => item.product_area || item.ai_category || "unclear"));
 
   return {
     totalUsers: total,
@@ -727,6 +786,17 @@ export async function getAdminOverview() {
     failedJobs,
     reusedJobs,
     estimatedProviderCost: hasCostRate ? secondsToHours(editingSecondsThisMonth) * rate : null,
+    trends: {
+      activePaidUsers: { value: activePaidUsers, deltaLabel: "current active" },
+      editingTime: { value: editingSecondsThisMonth, previousValue: editingSecondsPreviousMonth },
+      failureRate: { value: failureRate, previousValue: previousFailureRate },
+    },
+    charts: {
+      jobsByDay,
+      usageByPlan,
+      feedbackByType,
+      feedbackByArea,
+    },
     branchReadyFeedback: feedback.filter((item) => item.status === "branch_ready" || item.codex_ready === true || item.ai_should_be_codex_task === true).length,
     loveSignals: feedback.filter((item) => item.type === "praise").length,
     dataHealth: {
@@ -748,12 +818,51 @@ export async function getAdminOverview() {
   };
 }
 
+function buildJobsByDay(jobs: TranscriptJob[]) {
+  const days = new Map<string, { date: string; total: number; succeeded: number; failed: number }>();
+  for (let index = 89; index >= 0; index -= 1) {
+    const date = new Date(Date.now() - index * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    days.set(date, { date, total: 0, succeeded: 0, failed: 0 });
+  }
+  for (const job of jobs) {
+    if (!job.created_at) continue;
+    const date = job.created_at.slice(0, 10);
+    const row = days.get(date);
+    if (!row) continue;
+    row.total += 1;
+    if (job.status === "succeeded") row.succeeded += 1;
+    if (job.status === "failed") row.failed += 1;
+  }
+  return [...days.values()];
+}
+
+function buildUsageByPlan(users: AdminUserRow[]) {
+  const map = new Map<string, number>();
+  for (const user of users) {
+    const key = user.plan || "none";
+    map.set(key, (map.get(key) || 0) + user.editing_seconds_used);
+  }
+  return [...map.entries()]
+    .map(([label, seconds]) => ({ label, seconds, hours: secondsToHours(seconds) }))
+    .sort((a, b) => b.seconds - a.seconds);
+}
+
+function countStrings(values: string[]) {
+  const map = new Map<string, number>();
+  for (const value of values) map.set(value, (map.get(value) || 0) + 1);
+  return [...map.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+}
+
 export async function getFeedbackRows(filters?: {
   type?: string;
   severity?: string;
   status?: string;
   branchReady?: boolean;
   q?: string;
+  range?: string;
   limit?: number;
 }) {
   noStore();
@@ -767,6 +876,8 @@ export async function getFeedbackRows(filters?: {
   if (filters?.severity) query = query.eq("severity", filters.severity);
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.branchReady) query = query.or("status.eq.branch_ready,codex_ready.eq.true,ai_should_be_codex_task.eq.true");
+  const since = dateRangeToSince(filters?.range);
+  if (since) query = query.gte("created_at", since);
 
   const { data, error } = await query.returns<Omit<FeedbackRow, "user_email">[]>();
   if (error) {

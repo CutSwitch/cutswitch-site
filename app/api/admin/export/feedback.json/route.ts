@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { requireAdminApi } from "@/lib/admin/auth";
 import { getFeedbackRows } from "@/lib/admin/data";
-import { downloadResponse, toCsvWithMetadata } from "@/lib/admin/export";
+import { jsonDownloadResponse } from "@/lib/admin/export";
 
 export async function GET(req: Request) {
   const auth = await requireAdminApi();
@@ -17,11 +17,16 @@ export async function GET(req: Request) {
     range: params.get("range") || undefined,
   };
   const feedback = await getFeedbackRows({ ...filters, limit: 1000 });
-  const csv = toCsvWithMetadata(
-    ["id", "user_email", "type", "severity", "status", "screen", "message", "created_at"],
-    feedback.map((item) => [item.id, item.user_email, item.type, item.severity, item.status, item.screen, item.message, item.created_at]),
-    { exported_at: new Date().toISOString(), ...filters, row_count: feedback.length }
-  );
 
-  return downloadResponse(csv, "cutswitch-admin-feedback.csv", "text/csv");
+  return jsonDownloadResponse(
+    {
+      metadata: {
+        exported_at: new Date().toISOString(),
+        filters,
+        row_count: feedback.length,
+      },
+      rows: feedback,
+    },
+    "cutswitch-admin-feedback.json"
+  );
 }

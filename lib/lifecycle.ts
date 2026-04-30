@@ -269,24 +269,50 @@ export async function emitLifecycleEvent(input: LifecycleInput) {
   }
 }
 
-export async function getLifecycleEvents(limit = 100) {
-  const { data, error } = await supabaseAdmin
+type LifecycleFilters = {
+  limit?: number;
+  range?: string;
+  eventName?: string;
+  provider?: string;
+  status?: string;
+  q?: string;
+};
+
+function lifecycleSince(range: string | undefined) {
+  const now = Date.now();
+  if (range === "24h") return new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  if (range === "7d") return new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  if (range === "30d") return new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  if (range === "90d") return new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString();
+  return undefined;
+}
+
+export async function getLifecycleEvents(limitOrFilters: number | LifecycleFilters = 100) {
+  const filters = typeof limitOrFilters === "number" ? { limit: limitOrFilters } : limitOrFilters;
+  let query = supabaseAdmin
     .from("lifecycle_events")
     .select("id,user_id,event_name,provider,status,metadata_json,created_at,sent_at,error_message")
     .order("created_at", { ascending: false })
-    .limit(limit)
-    .returns<Array<{
-      id: string;
-      user_id: string | null;
-      event_name: LifecycleEventName;
-      provider: LifecycleProvider | null;
-      status: LifecycleStatus;
-      metadata_json: Record<string, unknown> | null;
-      created_at: string | null;
-      sent_at: string | null;
-      error_message: string | null;
-      user_email?: string | null;
-    }>>();
+    .limit(filters.limit || 100);
+
+  const since = lifecycleSince(filters.range);
+  if (since) query = query.gte("created_at", since);
+  if (filters.eventName) query = query.eq("event_name", filters.eventName);
+  if (filters.provider) query = query.eq("provider", filters.provider);
+  if (filters.status) query = query.eq("status", filters.status);
+
+  const { data, error } = await query.returns<Array<{
+    id: string;
+    user_id: string | null;
+    event_name: LifecycleEventName;
+    provider: LifecycleProvider | null;
+    status: LifecycleStatus;
+    metadata_json: Record<string, unknown> | null;
+    created_at: string | null;
+    sent_at: string | null;
+    error_message: string | null;
+    user_email?: string | null;
+  }>>();
 
   if (error) {
     if (isMissingLifecycleSchema(error)) return { rows: [], schemaMissing: true };
@@ -309,7 +335,13 @@ export async function getLifecycleEvents(limit = 100) {
     rows: (data || []).map((row) => ({
       ...row,
       user_email: row.user_id ? emails.get(row.user_id) ?? null : null,
-    })),
+    })).filter((row) => {
+      const q = filters.q?.trim().toLowerCase();
+      if (!q) return true;
+      return [row.user_email, row.user_id, row.event_name, row.provider, row.status, row.error_message]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q));
+    }),
     schemaMissing: false,
   };
 }

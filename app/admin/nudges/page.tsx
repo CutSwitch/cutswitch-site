@@ -26,9 +26,13 @@ export default async function AdminNudgesPage() {
       </div>
 
       {queue.schemaMissing || generation.schemaMissing ? (
-        <div className="rounded-3xl border border-amber-300/20 bg-amber-300/10 p-5 text-sm text-amber-50">
-          Apply the Phase 2C nudge_events migration before using the nudge queue.
-        </div>
+        <SetupChecklist
+          items={[
+            { label: "Phase 2C migration applied", state: "missing", detail: "nudge_events is not available yet." },
+            { label: "Draft review workflow", state: "ready", detail: "Review/suppress/copy actions are built." },
+            { label: "Email sending", state: "watch", detail: "One-off reviewed sends only; no bulk sending." },
+          ]}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Draft" value={rows.filter((row) => row.status === "draft").length} />
@@ -81,6 +85,25 @@ export default async function AdminNudgesPage() {
           </table>
         </div>
         {rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No nudge drafts yet.</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function SetupChecklist({ items }: { items: Array<{ label: string; state: "ready" | "watch" | "missing"; detail: string }> }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+      <h3 className="text-lg font-semibold text-white">Setup checklist</h3>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {items.map((item) => (
+          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center gap-2 font-medium text-white">
+              <span>{item.state === "ready" ? "✅" : item.state === "watch" ? "⚠️" : "❌"}</span>
+              <span>{item.label}</span>
+            </div>
+            <p className="mt-2 text-sm leading-5 text-white/50">{item.detail}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

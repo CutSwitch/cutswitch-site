@@ -72,7 +72,7 @@ export default function HomePage() {
               </h1>
 
               <p className="mt-6 text-base leading-relaxed text-white/70 sm:text-lg">
-                Import a Final Cut XML and get a clean multicam first pass. Editing time is based on the length of your source footage.
+                Import a Final Cut XML and get a clean multicam first pass.
               </p>
             </div>
 
@@ -93,9 +93,6 @@ export default function HomePage() {
                     Watch Demo
                   </Link>
                 </div>
-                <p className="text-sm leading-6 text-white/60">
-                  7 days free. 4 hours included. Then choose the plan that fits.
-                </p>
               </div>
             </div>
           </div>

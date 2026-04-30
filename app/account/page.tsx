@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AccountDashboard } from "@/components/account/AccountDashboard";
+import { AccountUtilityRail } from "@/components/account/AccountUtilityRail";
 import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function AccountPage() {
   return (
     <main className="container-edge py-16 sm:py-24">
+      <AccountUtilityRail />
       <SectionHeading
         eyebrow="Account"
         title="Your CutSwitch dashboard"

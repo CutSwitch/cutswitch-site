@@ -80,10 +80,6 @@ export function NavAuth({ mobile = false }: Props) {
         <Link className={mobile ? "btn btn-secondary w-full" : "btn btn-secondary"} href="/login">
           Log In
         </Link>
-        <Link className={mobile ? "btn btn-primary w-full" : "btn btn-primary"} href="/pricing">
-          Try It Free
-          <span className="text-white/80">→</span>
-        </Link>
       </div>
     );
   }
@@ -114,17 +110,19 @@ export function NavAuth({ mobile = false }: Props) {
   return (
     <div className="relative">
       <button
-        className="inline-flex max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand/60"
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-label={`Account menu for ${email}`}
+        title={email}
       >
-        <span className="h-2 w-2 rounded-full bg-brand" />
-        <span className="truncate">{email}</span>
+        <AccountGlyph />
       </button>
 
       {open ? (
         <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#0E1020]/95 p-2 shadow-soft backdrop-blur">
+          <div className="truncate px-3 py-2 text-xs text-white/45">{email}</div>
           <Link className="block rounded-xl px-3 py-2 text-sm text-white/75 hover:bg-white/5 hover:text-white" href="/account">
             Dashboard
           </Link>
@@ -151,5 +149,17 @@ export function NavAuth({ mobile = false }: Props) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function AccountGlyph() {
+  return (
+    <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_20%,rgba(185,192,255,0.35),rgba(101,93,255,0.18),rgba(255,255,255,0.06))]">
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3.5 13.8 9l5.7-1.1-3.9 4.2 3.9 4.2-5.7-1.1L12 20.5l-1.8-5.3-5.7 1.1 3.9-4.2-3.9-4.2L10.2 9 12 3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+      <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-[#0E1020] bg-brand" />
+    </span>
   );
 }

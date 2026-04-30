@@ -50,11 +50,10 @@ export function buildAuthCallbackPath(input: {
   const params = new URLSearchParams();
   const plan = sanitizeStartPlan(input.plan);
   const source = sanitizeStartSource(input.source);
-  const next = sanitizeInternalPath(input.next);
 
-  params.set("next", next);
   if (plan) params.set("plan", plan);
   if (source) params.set("source", source);
 
-  return `/auth/callback?${params.toString()}`;
+  const query = params.toString();
+  return query ? `/auth/callback?${query}` : "/auth/callback";
 }

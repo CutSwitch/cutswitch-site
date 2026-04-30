@@ -11,7 +11,7 @@ import { NavAuth } from "@/components/auth/NavAuth";
 type NavItem = { href: string; label: string; glow?: boolean };
 
 const NAV: NavItem[] = [
-  { href: "/pricing", label: "Pricing", glow: true },
+  { href: "/pricing", label: "Pricing" },
   { href: "/support", label: "Support", glow: true },
   { href: "/affiliates", label: "Affiliates" },
 ];
@@ -57,6 +57,12 @@ export function Nav() {
 
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
+          <Link href="/demo" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white">
+            Watch Demo
+          </Link>
+          <Link href="/pricing" className="btn btn-primary rounded-full px-5 py-2 text-sm">
+            Start Free Trial
+          </Link>
           <NavAuth />
         </div>
 
@@ -93,6 +99,12 @@ export function Nav() {
                   </Link>
                 );
               })}
+              <Link href="/demo" className="rounded-xl px-3 py-3 text-sm text-white/75 hover:bg-white/5 hover:text-white">
+                Watch Demo
+              </Link>
+              <Link href="/pricing" className="btn btn-primary mt-2 justify-center rounded-full">
+                Start Free Trial
+              </Link>
               <div className="pt-2">
                 <NavAuth mobile />
               </div>

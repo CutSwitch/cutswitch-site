@@ -12,56 +12,55 @@ type PricingTableProps = {
   embedded?: boolean;
 };
 
-const PLAN_FEATURE_COPY: Record<AppPlanId, { heading: string; features: string[] }> = {
+const PLAN_FEATURE_COPY: Record<AppPlanId, { features: string[]; billingNote: string }> = {
   starter: {
-    heading: "Starter includes",
     features: [
-      "15 hours of editing/month",
+      "4 trial hours included",
+      "15 hours of editing/month after trial",
       "Built for a weekly podcast cadence",
       "Speaker-based multicam switching",
       "Editable Final Cut timelines",
       "Cancel anytime",
     ],
+    billingNote: "Then $29/month unless canceled.",
   },
   creator_pro: {
-    heading: "Everything in Starter, plus",
     features: [
-      "50 hours of editing/month",
+      "4 trial hours included",
+      "50 hours of editing/month after trial",
       "Room for 25+ podcast or event edits/month",
       "Better fit for roundtables and multi-speaker shows",
       "Built for client and full-time creator workflows",
+      "Cancel anytime",
     ],
+    billingNote: "Then $79/month unless canceled.",
   },
   studio: {
-    heading: "Everything in Pro, plus",
     features: [
-      "120 hours of editing/month",
+      "4 trial hours included",
+      "120 hours of editing/month after trial",
       "High-volume podcast, interview, and event workflows",
       "More editing time for production teams",
       "Built for teams and agencies",
+      "Cancel anytime",
     ],
+    billingNote: "Then $149/month unless canceled.",
   },
 };
 
 function getPriceParts(priceLabel: string) {
   const [price] = priceLabel.split("/");
-  return { price, cadence: "per month" };
+  return { price, cadence: "/ month" };
 }
 
 export function PricingTable({ embedded = false }: PricingTableProps) {
   const router = useRouter();
   const { session, user, loading: authLoading } = useSupabaseSession();
-  const [ack, setAck] = useState(true);
   const [loading, setLoading] = useState<AppPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoStarted = useRef(false);
 
   async function startCheckout(planId: AppPlanId) {
-    if (!ack) {
-      setError("Please acknowledge the no-refunds policy before continuing.");
-      return;
-    }
-
     setError(null);
 
     if (!user || !session?.access_token) {
@@ -110,39 +109,21 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         <div className="mb-6">
           <h2 className="text-3xl font-semibold tracking-tight text-white">Pricing</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
-            7-day free trial. Includes 4 hours of editing.
+            Every plan starts with a 7-day free trial.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
+            Your trial includes 4 hours of editing. After 7 days, your selected plan begins unless canceled.
           </p>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
             Editing time is based on the length of your source footage.
           </p>
         </div>
 
-        <div className="relative mb-6 overflow-hidden rounded-2xl border border-line bg-surface-2 p-6 sm:p-8">
-          <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-40" />
-          <div className="relative">
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-base font-medium leading-relaxed text-white/90 sm:p-5 sm:text-lg">
-              <input
-                type="checkbox"
-                checked={ack}
-                onChange={(event) => setAck(event.target.checked)}
-                className="mt-1 h-5 w-5 rounded border-white/20 bg-black/30 text-brand focus:ring-brand/70 sm:h-6 sm:w-6"
-              />
-              <span>
-                I understand CutSwitch purchases are final and we do not offer refunds. If I have issues, I will contact{" "}
-                <Link className="underline" href="/support">
-                  Support
-                </Link>
-                .
-              </span>
-            </label>
-
-            {error ? (
-              <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {error}
-              </div>
-            ) : null}
+        {error ? (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {error}
           </div>
-        </div>
+        ) : null}
 
         <div className="grid items-stretch gap-4 lg:grid-cols-3">
           {APP_PLAN_IDS.map((planId) => {
@@ -179,6 +160,9 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
                     <div className="text-4xl font-semibold leading-none tracking-tight text-white/70">{price.price}</div>
                     <div className="pb-1 text-sm leading-tight text-white/50">{price.cadence}</div>
                   </div>
+                  <div className="mt-4 w-fit rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-100">
+                    7-day free trial included
+                  </div>
 
                   <div className="my-7 h-px bg-white/10" />
 
@@ -186,9 +170,6 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
 
                   <div className="my-7 h-px bg-white/10" />
 
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">
-                    {featureCopy.heading}
-                  </div>
                   <ul className="mt-4 space-y-3 text-sm leading-relaxed text-white/68">
                     {featureCopy.features.map((feature) => (
                       <li key={feature} className="flex gap-3">
@@ -204,12 +185,13 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
                       disabled={loading !== null}
                       className={cn("btn w-full", plan.featured ? "btn-primary" : "btn-secondary")}
                     >
-                      {loading === plan.id ? "Starting..." : user ? "Choose plan" : "Start Free Trial"}
+                      {loading === plan.id ? "Starting..." : "Start Free Trial"}
                     </button>
+                    <p className="mt-3 text-center text-xs text-white/50">{featureCopy.billingNote}</p>
                   </div>
 
                   <div className="mt-3 text-xs leading-relaxed text-white/55">
-                    By purchasing, you agree to our{" "}
+                    By starting a trial, you agree to our{" "}
                     <Link className="underline" href="/terms">
                       Terms
                     </Link>{" "}
@@ -218,6 +200,7 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
                       Privacy Policy
                     </Link>
                     .
+                    <span className="block">Billing begins after your trial unless canceled.</span>
                   </div>
                 </div>
               </div>
@@ -230,14 +213,11 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           <div className="relative">
             <div className="text-lg font-semibold text-white">How editing time works</div>
             <p className="mt-2 text-sm text-white/65">
-              Editing time is based on the length of your source footage. Reused transcripts do not count again.
+              Editing time is based on the length of your source footage, not the time CutSwitch takes to process it. A 60-minute multicam edit uses 60 minutes of editing time. Reused transcripts do not count again.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href="/support" className="btn btn-secondary">
                 Contact Support
-              </Link>
-              <Link href="/refunds" className="btn btn-ghost">
-                No-refunds policy
               </Link>
             </div>
           </div>

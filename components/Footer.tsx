@@ -29,7 +29,7 @@ const legal: NavItem[] = [
 
 const getStarted: NavItem[] = [
   { href: "/download", label: "Download" },
-  { href: "/pricing", label: "Choose a plan" },
+  { href: "/pricing", label: "Start free trial" },
   { href: "/account", label: "Manage subscription" },
   { href: "/support", label: "Contact support" },
 ];

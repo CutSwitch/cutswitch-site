@@ -86,13 +86,16 @@ export default function HomePage() {
               <div className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <Link href="/pricing" className="btn btn-primary">
-                    Choose a plan
+                    Start Free Trial
                     <span aria-hidden>→</span>
                   </Link>
                   <Link href="/demo" className="btn btn-secondary">
-                    Watch the demo
+                    Watch Demo
                   </Link>
                 </div>
+                <p className="text-sm leading-6 text-white/60">
+                  7 days free. 4 hours included. Then choose the plan that fits.
+                </p>
               </div>
             </div>
           </div>
@@ -111,7 +114,7 @@ export default function HomePage() {
             </h2>
             <div className="mt-7 flex justify-center">
               <Link href="/pricing" className="btn btn-primary">
-                Explore plans <span aria-hidden>→</span>
+                Start Free Trial <span aria-hidden>→</span>
               </Link>
             </div>
           </div>

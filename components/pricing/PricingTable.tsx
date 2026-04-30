@@ -109,13 +109,9 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
         <div className="mb-6">
           <h2 className="text-3xl font-semibold tracking-tight text-white">Pricing</h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
-            Every plan starts with a 7-day free trial.
-          </p>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
-            Your trial includes 4 hours of editing. After 7 days, your selected plan begins unless canceled.
-          </p>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-            Editing time is based on the length of your source footage.
+            7-day free trial
+            <br />
+            4 hours included
           </p>
         </div>
 
@@ -208,20 +204,7 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
           })}
         </div>
 
-        <div className={cn("relative overflow-hidden rounded-2xl border border-line bg-surface-2 p-6", embedded ? "mt-8" : "mt-10")}>
-          <div className="pointer-events-none absolute inset-0 bg-card-sheen opacity-35" />
-          <div className="relative">
-            <div className="text-lg font-semibold text-white">How editing time works</div>
-            <p className="mt-2 text-sm text-white/65">
-              Editing time is based on the length of your source footage, not the time CutSwitch takes to process it. A 60-minute multicam edit uses 60 minutes of editing time. Reused transcripts do not count again.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/support" className="btn btn-secondary">
-                Contact Support
-              </Link>
-            </div>
-          </div>
-        </div>
+        <div className={embedded ? "h-8" : "h-10"} aria-hidden />
       </div>
     </div>
   );

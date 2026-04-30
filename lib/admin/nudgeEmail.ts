@@ -28,19 +28,27 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function emailFooter() {
+function getUnsubscribeUrl(email: string) {
   const baseUrl = getBaseUrl();
+  return `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`;
+}
+
+function emailFooter(email: string) {
+  const baseUrl = getBaseUrl();
+  const unsubscribeUrl = getUnsubscribeUrl(email);
   return {
-    text: `\n\n---\nYou're receiving this because you use CutSwitch. Need help or want to opt out? Contact support: ${baseUrl}/support`,
-    html: `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" /><p style="color:#6b7280;font-size:13px;line-height:20px">You're receiving this because you use CutSwitch. Need help or want to opt out? <a href="${baseUrl}/support">Contact support</a>.</p>`,
+    text: `\n\n---\nYou're receiving this because you use CutSwitch.\nNeed help? ${baseUrl}/support\nOpt out of nonessential emails: ${unsubscribeUrl}`,
+    html: `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" /><p style="color:#6b7280;font-size:13px;line-height:20px">You're receiving this because you use CutSwitch. <a href="${baseUrl}/support">Contact support</a> or <a href="${unsubscribeUrl}">opt out of nonessential emails</a>.</p>`,
   };
 }
 
-function campaignFooter() {
+function campaignFooter(email: string) {
   const baseUrl = getBaseUrl();
+  const unsubscribeUrl = getUnsubscribeUrl(email);
+  const address = process.env.BUSINESS_POSTAL_ADDRESS?.trim();
   return {
-    text: `\n\n---\nYou're receiving this CutSwitch update because you use CutSwitch. Need help or want to opt out? Contact support: ${baseUrl}/support`,
-    html: `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" /><p style="color:#6b7280;font-size:13px;line-height:20px">You're receiving this CutSwitch update because you use CutSwitch. Need help or want to opt out? <a href="${baseUrl}/support">Contact support</a>.</p>`,
+    text: `\n\n---\nYou're receiving this CutSwitch update because you use CutSwitch.\nNeed help? ${baseUrl}/support\nOpt out: ${unsubscribeUrl}${address ? `\n${address}` : ""}`,
+    html: `<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" /><p style="color:#6b7280;font-size:13px;line-height:20px">You're receiving this CutSwitch update because you use CutSwitch. <a href="${baseUrl}/support">Contact support</a> or <a href="${unsubscribeUrl}">opt out</a>.</p>${address ? `<p style="color:#6b7280;font-size:12px;line-height:18px">${escapeHtml(address)}</p>` : ""}`,
   };
 }
 
@@ -62,7 +70,8 @@ export async function sendAdminEmail(input: AdminEmailInput) {
     return { ok: false as const, error: "RESEND_FROM_EMAIL is missing or invalid." };
   }
 
-  const footer = input.kind === "campaign" ? campaignFooter() : emailFooter();
+  const unsubscribeUrl = getUnsubscribeUrl(input.to);
+  const footer = input.kind === "campaign" ? campaignFooter(input.to) : emailFooter(input.to);
   const text = `${input.message}${footer.text}`;
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;line-height:1.6;max-width:620px"><p>${markdownToHtml(input.message)}</p>${footer.html}</div>`;
 
@@ -78,6 +87,9 @@ export async function sendAdminEmail(input: AdminEmailInput) {
       subject: input.subject,
       text,
       html,
+      headers: {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      },
     }),
   });
 

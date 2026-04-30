@@ -8,6 +8,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { ScrollCSSVars } from "@/components/ScrollCSSVars";
 import { AccountUtilityRail } from "@/components/account/AccountUtilityRail";
+import { CookieConsent } from "@/components/privacy/CookieConsent";
 
 const baseUrl = getBaseUrl();
 
@@ -65,26 +66,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ScrollCSSVars />
         <div className="site-bg" aria-hidden="true" />
 
-        {rewardfulApiKey ? (
-          <>
-            <Script id="rewardful-init" strategy="beforeInteractive">
-              {`(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');`}
-            </Script>
-            <Script
-              id="rewardful-script"
-              strategy="afterInteractive"
-              src="https://r.wdfl.co/rw.js"
-              data-rewardful={rewardfulApiKey}
-            />
-          </>
-        ) : null}
-
         <Nav />
         <AccountUtilityRail />
 
         <main className="py-10">{children}</main>
 
         <Footer />
+        <CookieConsent rewardfulApiKey={rewardfulApiKey || null} />
       </body>
     </html>
   );

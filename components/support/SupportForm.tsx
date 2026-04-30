@@ -200,6 +200,9 @@ export function SupportForm() {
             <option style={SELECT_OPTION_STYLE} value="affiliates">
               Affiliates
             </option>
+            <option style={SELECT_OPTION_STYLE} value="privacy">
+              Privacy / data request
+            </option>
           </select>
         </label>
 

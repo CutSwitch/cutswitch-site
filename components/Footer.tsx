@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/Logo";
+import { CookieSettingsLink } from "@/components/privacy/CookieSettingsLink";
 import { siteConfig } from "@/lib/site";
 
 type NavItem = { href: string; label: string };
@@ -85,6 +86,9 @@ export function Footer() {
             <div>
               <div className="text-sm font-semibold text-white/90">Legal</div>
               <FooterLinks items={legal} />
+              <div className="mt-3 text-sm">
+                <CookieSettingsLink />
+              </div>
             </div>
 
             <div>

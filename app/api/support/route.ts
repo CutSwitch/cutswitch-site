@@ -14,7 +14,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const MAX_IMAGE_COUNT = 5
 const MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
-const TOPICS = new Set(['support', 'feedback', 'billing', 'affiliates'])
+const TOPICS = new Set(['support', 'feedback', 'billing', 'affiliates', 'privacy'])
 
 const SupportSchema = z.object({
   name: z.string().trim().max(160).optional(),

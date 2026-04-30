@@ -334,7 +334,7 @@ export async function sendReviewedNudge(input: { id: string; adminUserId: string
       metadata_json: {
         ...(nudge.metadata_json || {}),
         resend_id_present: Boolean(result.providerId),
-        unsubscribe_route: "unresolved",
+        unsubscribe_route: "/unsubscribe",
       },
     })
     .eq("id", input.id)

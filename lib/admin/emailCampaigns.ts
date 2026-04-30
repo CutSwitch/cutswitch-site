@@ -300,6 +300,13 @@ async function refreshSuppressedRecipients(campaignId: string, recipients: Email
 export async function sendReviewedCampaign(input: { id: string; confirmation: string; adminUserId: string }) {
   noStore();
   if (input.confirmation !== "SEND") return { ok: false as const, status: 400, error: "Confirmation text must be SEND." };
+  if (!process.env.BUSINESS_POSTAL_ADDRESS?.trim()) {
+    return {
+      ok: false as const,
+      status: 500,
+      error: "BUSINESS_POSTAL_ADDRESS is required before sending marketing campaigns.",
+    };
+  }
   const result = await getCampaign(input.id);
   if (!result) return { ok: false as const, status: 404, error: "Campaign not found." };
   if (result.campaign.status !== "reviewed") return { ok: false as const, status: 400, error: "Campaign must be reviewed before sending." };

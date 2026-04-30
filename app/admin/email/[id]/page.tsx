@@ -56,7 +56,7 @@ export default async function EmailCampaignDetailPage({ params }: Props) {
               <div className="mt-5 text-sm uppercase tracking-[0.16em] text-white/35">Body</div>
               <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-6 text-white/70">{campaign.body_markdown}</pre>
               <div className="mt-5 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50">
-                Compliance footer is appended automatically with support/contact opt-out language. Dedicated unsubscribe route remains unresolved.
+                Compliance footer is appended automatically with support and unsubscribe links. BUSINESS_POSTAL_ADDRESS must be configured before final campaign send.
               </div>
             </div>
           </div>

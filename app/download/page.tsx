@@ -178,7 +178,7 @@ return (
           </div>
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-            <Link className="btn btn-secondary" href="/pricing">
+            <Link className="btn btn-secondary" href="/start?source=download">
               Start Free Trial
             </Link>
             <Link className="btn btn-ghost" href="/demo">

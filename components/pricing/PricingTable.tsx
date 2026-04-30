@@ -64,7 +64,7 @@ export function PricingTable({ embedded = false }: PricingTableProps) {
     setError(null);
 
     if (!user || !session?.access_token) {
-      router.push(`/login?next=/pricing&plan=${planId}`);
+      router.push(`/start?source=pricing&plan=${planId}`);
       return;
     }
 

@@ -85,7 +85,7 @@ export default function HomePage() {
             <div className="lg:col-start-1 lg:row-start-2 hero-parallax-actions">
               <div className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Link href="/pricing" className="btn btn-primary">
+                  <Link href="/start?source=hero" className="btn btn-primary">
                     Start Free Trial
                     <span aria-hidden>→</span>
                   </Link>
@@ -110,7 +110,7 @@ export default function HomePage() {
               Cut in minutes — not hours.
             </h2>
             <div className="mt-7 flex justify-center">
-              <Link href="/pricing" className="btn btn-primary">
+              <Link href="/start?source=hero" className="btn btn-primary">
                 Start Free Trial <span aria-hidden>→</span>
               </Link>
             </div>

@@ -20,6 +20,16 @@ body {
   background-color: var(--bg);
 }
 
+body:has([data-start-page]) > header,
+body:has([data-start-page]) > footer,
+body:has([data-start-page]) .account-utility-rail {
+  display: none;
+}
+
+body:has([data-start-page]) > main {
+  padding-block: 0;
+}
+
 /* --- Speed-proof background (Frame-ish, embedded, calm) --- */
 
 @keyframes speedproofDrift {

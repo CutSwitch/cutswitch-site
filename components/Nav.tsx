@@ -60,7 +60,7 @@ export function Nav() {
           <Link href="/demo" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white">
             Watch Demo
           </Link>
-          <Link href="/pricing" className="btn btn-primary rounded-full px-5 py-2 text-sm">
+          <Link href="/start?source=header" className="btn btn-primary rounded-full px-5 py-2 text-sm">
             Start Free Trial
           </Link>
           <NavAuth />
@@ -102,7 +102,7 @@ export function Nav() {
               <Link href="/demo" className="rounded-xl px-3 py-3 text-sm text-white/75 hover:bg-white/5 hover:text-white">
                 Watch Demo
               </Link>
-              <Link href="/pricing" className="btn btn-primary mt-2 justify-center rounded-full">
+              <Link href="/start?source=header" className="btn btn-primary mt-2 justify-center rounded-full">
                 Start Free Trial
               </Link>
               <div className="pt-2">

@@ -61,7 +61,7 @@ export default function FinalCTA({ embedded = false }: Props) {
           <div className="mt-8">
             <a
               className="btn btn-primary rounded-full px-8 py-3 text-base text-[rgba(255,255,255,0.98)] shadow-[0_18px_50px_rgba(112,92,255,0.25)]"
-              href="/pricing"
+              href="/start?source=final_cta"
             >
               Start Free Trial
             </a>

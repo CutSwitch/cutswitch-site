@@ -76,7 +76,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         </form>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4 text-sm text-white/55">
-        <div>{result.total.toLocaleString()} users match current filters.</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{result.total.toLocaleString()} users match current filters.</span>
+          <QuickChip href="/admin/users?signal=Near+quota">Near quota</QuickChip>
+          <QuickChip href="/admin/users?signal=Trial+inactive">Trial inactive</QuickChip>
+          <QuickChip href="/admin/users?signal=Stuck">Churn-risk</QuickChip>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Link className="btn btn-secondary" href={`/api/admin/export/users.csv?${params.toString()}`}>Export CSV</Link>
           <Link className="btn btn-secondary" href={`/api/admin/export/users.json?${params.toString()}`}>Export JSON</Link>
@@ -90,8 +95,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
               <th className="px-5 py-3">Email</th>
               <th className="px-5 py-3">Plan</th>
               <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Used</th>
-              <th className="px-5 py-3">Remaining</th>
+              <th className="px-5 py-3">Usage</th>
               <th className="px-5 py-3">Last event</th>
               <th className="px-5 py-3">Last active</th>
               <th className="px-5 py-3">Signal</th>
@@ -102,15 +106,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           <tbody className="divide-y divide-white/10">
             {result.rows.map((user) => (
               <tr key={user.id} className="text-white/75 hover:bg-white/[0.025]">
-                <td className="max-w-[260px] truncate px-5 py-4 font-medium text-white">
+                <td className="sticky left-0 z-[1] max-w-[260px] truncate bg-[#101323] px-5 py-4 font-medium text-white shadow-[12px_0_24px_rgba(0,0,0,0.12)]">
                   <Link className="underline decoration-white/20 underline-offset-4 hover:decoration-white/70" href={`/admin/users/${user.id}`}>
                     {user.email || "—"}
                   </Link>
                 </td>
                 <td className="px-5 py-4 capitalize">{(user.plan || "none").replace(/_/g, " ")}</td>
                 <td className="px-5 py-4 capitalize">{(user.subscription_status || "none").replace(/_/g, " ")}</td>
-                <td className="px-5 py-4">{formatHours(user.editing_seconds_used)}</td>
-                <td className="px-5 py-4">{formatHours(user.editing_seconds_remaining)}</td>
+                <td className="min-w-[220px] px-5 py-4"><UsageBar used={user.editing_seconds_used} remaining={user.editing_seconds_remaining} /></td>
                 <td className="px-5 py-4">{user.last_product_event ? user.last_product_event.replace(/_/g, " ") : "—"}</td>
                 <td className="px-5 py-4">{user.last_active_at ? new Date(user.last_active_at).toLocaleDateString() : "—"}</td>
                 <td className="px-5 py-4"><SignalBadge signal={user.signal} /></td>
@@ -123,9 +126,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 </td>
                 <td className="min-w-[220px] px-5 py-4">
                   <div className="flex flex-wrap gap-2">
-                    <CopyButton value={user.email} label="Copy email" />
-                    <Link className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white" href={`/admin/users/${user.id}`}>Open</Link>
-                    <Link className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white" href={`/admin/nudges?q=${encodeURIComponent(user.email || user.id)}`}>Nudge</Link>
+                    <span title="Copy email"><CopyButton value={user.email} label="Copy" /></span>
+                    <Link title="Open user detail" className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white" href={`/admin/users/${user.id}`}>Open</Link>
+                    <Link title="Open nudge queue for this user" className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white" href={`/admin/nudges?q=${encodeURIComponent(user.email || user.id)}`}>Nudge</Link>
                   </div>
                 </td>
               </tr>
@@ -152,6 +155,10 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   );
 }
 
+function QuickChip({ href, children }: { href: string; children: React.ReactNode }) {
+  return <Link href={href} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/65 transition hover:border-brand/40 hover:bg-brand/15 hover:text-white">{children}</Link>;
+}
+
 function Select({ name, label, value, values }: { name: string; label: string; value: string; values: string[] }) {
   return (
     <label className="grid gap-1 text-xs text-white/45">
@@ -169,8 +176,35 @@ function PageLink({ href, disabled, children }: { href: string; disabled: boolea
 }
 
 function SignalBadge({ signal }: { signal: string }) {
-  if (signal === "Stuck") return <Badge tone="danger">Stuck</Badge>;
-  if (signal === "Near quota" || signal === "Trial inactive") return <Badge tone="warning">{signal}</Badge>;
-  if (signal === "Heavy user") return <Badge tone="brand">Heavy user</Badge>;
-  return <Badge tone="good">Active</Badge>;
+  const descriptions: Record<string, string> = {
+    Active: "Recent useful activity and no urgent usage/failure signal.",
+    Stuck: "Imported without success, repeated failures, or similar friction signal.",
+    "Near quota": "Low remaining editing time for the current allowance.",
+    "Heavy user": "High editing-time use or repeated successful jobs.",
+    "Trial inactive": "Trial user who has not reached a successful run.",
+  };
+  const badge =
+    signal === "Stuck" ? <Badge tone="danger">Stuck</Badge> :
+    signal === "Near quota" || signal === "Trial inactive" ? <Badge tone="warning">{signal}</Badge> :
+    signal === "Heavy user" ? <Badge tone="brand">Heavy user</Badge> :
+    <Badge tone="good">Active</Badge>;
+  return <span title={descriptions[signal] || descriptions.Active}>{badge}</span>;
+}
+
+function UsageBar({ used, remaining }: { used: number; remaining: number | null }) {
+  const total = remaining === null ? null : used + remaining;
+  const usedPct = total && total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0;
+  const remainingPct = total && total > 0 ? Math.max(0, Math.round((remaining! / total) * 100)) : null;
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="text-white/70">{formatHours(used)} used</span>
+        <span className="text-white/45">{remaining === null ? "no allowance" : `${remainingPct}% left`}</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-brand-highlight" style={{ width: `${Math.max(3, usedPct)}%` }} />
+      </div>
+      <div className="mt-1 text-xs text-white/40">{remaining === null ? "Remaining unknown" : `${formatHours(remaining)} remaining`}</div>
+    </div>
+  );
 }

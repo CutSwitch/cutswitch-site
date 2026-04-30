@@ -31,6 +31,7 @@ export default async function AdminJobsPage({ searchParams }: Props) {
     q: searchParams?.q || undefined,
   };
   const jobs = await getAdminJobs(filters);
+  const errorCodeOptions = jobs.summary.topErrorCodes.map((item) => item.code);
   const params = new URLSearchParams({
     ...(filters.q ? { q: filters.q } : {}),
     ...(filters.status ? { status: filters.status } : {}),
@@ -64,14 +65,22 @@ export default async function AdminJobsPage({ searchParams }: Props) {
             <Select name="range" label="Range" value={filters.range || "all"} values={RANGES} />
             <label className="grid gap-1 text-xs text-white/45">
               <span>Error code</span>
-              <input className="w-40 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-brand/60" name="error_code" defaultValue={filters.errorCode || ""} placeholder="Any" />
+              <input className="w-40 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-brand/60" name="error_code" defaultValue={filters.errorCode || ""} placeholder="Any" list="recent-error-codes" />
+              <datalist id="recent-error-codes">
+                {errorCodeOptions.map((code) => <option key={code} value={code} />)}
+              </datalist>
             </label>
             <button className="btn btn-secondary self-end" type="submit">Filter</button>
             <Link className="btn btn-secondary self-end" href="/admin/jobs">Clear</Link>
           </form>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4 text-sm text-white/55">
-          <div>Showing {jobs.rows.length.toLocaleString()} jobs. Default is all history so quiet weeks do not look broken.</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Showing {jobs.rows.length.toLocaleString()} jobs. Default is all history so quiet weeks do not look broken.</span>
+            <QuickChip href="/admin/jobs?status=failed&range=all">Failed</QuickChip>
+            <QuickChip href="/admin/jobs?status=running&range=all">Running</QuickChip>
+            <QuickChip href="/admin/jobs?status=reused&range=all">Reused</QuickChip>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Link className="btn btn-secondary" href={`/api/admin/export/jobs.csv?${params.toString()}`}>Export CSV</Link>
             <Link className="btn btn-secondary" href={`/api/admin/export/jobs.json?${params.toString()}`}>Export JSON</Link>
@@ -128,6 +137,10 @@ export default async function AdminJobsPage({ searchParams }: Props) {
       </div>
     </div>
   );
+}
+
+function QuickChip({ href, children }: { href: string; children: React.ReactNode }) {
+  return <Link href={href} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/65 transition hover:border-brand/40 hover:bg-brand/15 hover:text-white">{children}</Link>;
 }
 
 function Select({ name, label, value, values }: { name: string; label: string; value: string; values: string[] }) {

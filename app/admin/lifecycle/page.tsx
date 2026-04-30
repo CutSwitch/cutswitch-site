@@ -60,6 +60,15 @@ export default async function AdminLifecyclePage({ searchParams }: Props) {
         </div>
       ) : null}
 
+      <details className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+        <summary className="cursor-pointer text-sm font-semibold text-white">Supported events</summary>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/60">
+          {["user_signed_up", "trial_started", "first_project_imported", "first_run_started", "first_run_succeeded", "trial_exhausted", "paid_subscription_started", "near_quota", "canceled_subscription", "feedback_praise_received", "repeated_failure"].map((event) => (
+            <span key={event} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{event}</span>
+          ))}
+        </div>
+      </details>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Recent events" value={rows.length.toLocaleString()} detail="Latest lifecycle records." />
         <StatCard label="Sent" value={sent.toLocaleString()} detail="Delivered to the configured provider." tone="good" />
@@ -120,8 +129,26 @@ export default async function AdminLifecyclePage({ searchParams }: Props) {
             </tbody>
           </table>
         </div>
-        {rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No lifecycle events yet.</div> : null}
+        {rows.length === 0 ? (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-white">No lifecycle events yet.</h3>
+            <p className="mt-2 text-sm text-white/55">Once instrumented flows run, records will look like the examples below. Provider failures should never block checkout or app usage.</p>
+            <div className="mx-auto mt-4 grid max-w-3xl gap-2 text-left text-sm md:grid-cols-2">
+              <ExampleEvent event="trial_started" status="skipped" />
+              <ExampleEvent event="first_run_succeeded" status="sent" />
+            </div>
+          </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function ExampleEvent({ event, status }: { event: string; status: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4">
+      <div className="font-medium text-white">{event}</div>
+      <div className="mt-1 text-xs text-white/45">provider: none · status: {status} · safe metadata only</div>
     </div>
   );
 }

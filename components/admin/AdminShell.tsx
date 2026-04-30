@@ -27,7 +27,14 @@ const COMMANDS = [
   { label: "Praise candidates", hint: "Love signals", href: () => "/admin/segments/love-signals" },
 ];
 
-export function AdminShell({ children, newFeedbackCount = 0 }: { children: React.ReactNode; newFeedbackCount?: number }) {
+type NavCounts = {
+  newFeedback: number;
+  branchReadyFeedback: number;
+  failedJobs: number;
+  configWarnings: string[];
+};
+
+export function AdminShell({ children, navCounts }: { children: React.ReactNode; navCounts: NavCounts }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -76,7 +83,7 @@ export function AdminShell({ children, newFeedbackCount = 0 }: { children: React
               onClick={() => setOpen(true)}
               className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-white/60 transition hover:bg-white/[0.07] hover:text-white"
             >
-              <span>Search admin...</span>
+              <span>Command palette</span>
               <kbd className="rounded-md border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] text-white/45">⌘K</kbd>
             </button>
 
@@ -96,9 +103,12 @@ export function AdminShell({ children, newFeedbackCount = 0 }: { children: React
                   >
                     <span className="flex items-center justify-between gap-2">
                       <span>{item.label}</span>
-                      {item.href === "/admin/feedback" && newFeedbackCount > 0 ? (
+                      {item.href === "/admin/jobs" && navCounts.failedJobs > 0 ? (
+                        <CountBadge tone="danger">{navCounts.failedJobs}</CountBadge>
+                      ) : null}
+                      {item.href === "/admin/feedback" && (navCounts.newFeedback + navCounts.branchReadyFeedback) > 0 ? (
                         <span className="rounded-full border border-brand/35 bg-brand/25 px-2 py-0.5 text-[10px] font-semibold text-brand-highlight">
-                          {newFeedbackCount > 99 ? "99+" : newFeedbackCount}
+                          {navCounts.newFeedback + navCounts.branchReadyFeedback > 99 ? "99+" : navCounts.newFeedback + navCounts.branchReadyFeedback}
                         </span>
                       ) : null}
                     </span>
@@ -123,14 +133,24 @@ export function AdminShell({ children, newFeedbackCount = 0 }: { children: React
                 <p className="mt-1 text-sm text-white/58">Fast read first. Drill down second. No dashboard confetti.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Link href="/admin/jobs?status=failed&range=all" className="btn btn-secondary">Failed jobs</Link>
+                <Link href="/admin/jobs?status=failed&range=all" className="btn btn-secondary">Failed jobs{navCounts.failedJobs ? ` (${navCounts.failedJobs})` : ""}</Link>
                 <Link href="/admin/feedback?status=new" className="btn btn-secondary">
-                  New feedback{newFeedbackCount > 0 ? ` (${newFeedbackCount})` : ""}
+                  New feedback{navCounts.newFeedback > 0 ? ` (${navCounts.newFeedback})` : ""}
                 </Link>
-                <Link href="/admin/feedback?status=branch_ready" className="btn btn-secondary">Branch-ready</Link>
+                <Link href="/admin/feedback?status=branch_ready" className="btn btn-secondary">Branch-ready{navCounts.branchReadyFeedback ? ` (${navCounts.branchReadyFeedback})` : ""}</Link>
                 <Link href="/admin/segments/love-signals" className="btn btn-secondary">Praise</Link>
               </div>
             </div>
+            {navCounts.configWarnings.length ? (
+              <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-50">
+                <div className="font-medium">Operational status needs attention</div>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-amber-50/75">
+                  {navCounts.configWarnings.map((warning) => <span key={warning}>{warning}</span>)}
+                  <Link href="/admin/lifecycle" className="underline underline-offset-4">Check lifecycle setup</Link>
+                  <Link href="/admin/nudges" className="underline underline-offset-4">Check nudge setup</Link>
+                </div>
+              </div>
+            ) : null}
           </div>
           {children}
         </div>
@@ -169,6 +189,13 @@ export function AdminShell({ children, newFeedbackCount = 0 }: { children: React
       ) : null}
     </section>
   );
+}
+
+function CountBadge({ children, tone = "brand" }: { children: React.ReactNode; tone?: "brand" | "danger" }) {
+  const className = tone === "danger"
+    ? "border-red-300/35 bg-red-400/20 text-red-100"
+    : "border-brand/35 bg-brand/25 text-brand-highlight";
+  return <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold", className)}>{children}</span>;
 }
 
 export function AdminForbidden() {

@@ -77,7 +77,16 @@ export default async function AdminSegmentPage({ params }: Props) {
             </tbody>
           </table>
         </div>
-        {rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No users currently match this segment.</div> : null}
+        {rows.length === 0 ? (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-white">No users currently match this segment.</h3>
+            <p className="mt-2 text-sm text-white/55">That is usually good news. Try all users, export segments, or check feedback for softer signals.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Link href="/admin/users" className="btn btn-secondary">View all users</Link>
+              <Link href="/admin/feedback" className="btn btn-secondary">Check feedback</Link>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -929,6 +929,39 @@ export async function getNewFeedbackCount() {
   return count || 0;
 }
 
+export async function getAdminNavCounts() {
+  noStore();
+  const [newFeedback, branchReady, failedJobs] = await Promise.all([
+    supabaseAdmin
+      .from("feedback_events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new"),
+    supabaseAdmin
+      .from("feedback_events")
+      .select("id", { count: "exact", head: true })
+      .or("status.eq.branch_ready,codex_ready.eq.true,ai_should_be_codex_task.eq.true"),
+    supabaseAdmin
+      .from("transcript_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "failed")
+      .gte("created_at", startOfMonthIso()),
+  ]);
+
+  for (const result of [newFeedback, branchReady, failedJobs]) {
+    if (result.error && !isMissingOptionalSchema(result.error)) throw result.error;
+  }
+
+  return {
+    newFeedback: newFeedback.error ? 0 : newFeedback.count || 0,
+    branchReadyFeedback: branchReady.error ? 0 : branchReady.count || 0,
+    failedJobs: failedJobs.error ? 0 : failedJobs.count || 0,
+    configWarnings: [
+      !process.env.PYANNOTE_COST_PER_HOUR ? "Set PYANNOTE_COST_PER_HOUR for cost estimates." : null,
+      !process.env.RESEND_API_KEY ? "Set RESEND_API_KEY before sending reviewed nudges or campaigns." : null,
+    ].filter(Boolean) as string[],
+  };
+}
+
 function sanitizeContext(value: Record<string, unknown> | null | undefined) {
   if (!value) return null;
   const output: Record<string, unknown> = {};

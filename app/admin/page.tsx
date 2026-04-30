@@ -37,20 +37,20 @@ export default async function AdminOverviewPage() {
         </div>
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <div className="text-xs uppercase tracking-[0.18em] text-white/45">Fast read</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <QuickLink href="/admin/jobs?status=failed&range=all">Failed jobs</QuickLink>
-            <QuickLink href="/admin/segments/trial-never-ran">Trial inactivity</QuickLink>
-            <QuickLink href="/admin/feedback?status=branch_ready">Branch-ready feedback</QuickLink>
-            <QuickLink href="/admin/segments/love-signals">Praise candidates</QuickLink>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <ActionPill tone="urgent" icon="!" href="/admin/jobs?status=failed&range=all" label="Failed jobs" count={overview.failedJobs} />
+            <ActionPill tone="action" icon="?" href="/admin/segments/trial-never-ran" label="Trial inactivity" count={overview.stuckSignals.trialNoActivity7d} />
+            <ActionPill tone="action" icon="↗" href="/admin/feedback?status=branch_ready" label="Branch-ready" count={overview.branchReadyFeedback} />
+            <ActionPill tone="good" icon="♡" href="/admin/segments/love-signals" label="Praise candidates" count={overview.loveSignals} />
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <ChartPanel title="Jobs per day" detail="Last 90 days · successes vs failures">
+        <ChartPanel title="Jobs per day" detail={`Last 30 days · ${trendLabel(overview.trends.failureRate.value, overview.trends.failureRate.previousValue, "failure rate", true)}`}>
           <JobsChart rows={overview.charts.jobsByDay.slice(-30)} />
         </ChartPanel>
-        <ChartPanel title="Usage by plan" detail="Lifetime editing hours by current plan">
+        <ChartPanel title="Usage by plan" detail={trendLabel(overview.trends.editingTime.value, overview.trends.editingTime.previousValue, "editing time MoM")}>
           <BarList rows={overview.charts.usageByPlan.map((item) => ({ label: item.label.replace(/_/g, " "), value: item.hours, suffix: "h" }))} />
         </ChartPanel>
       </div>
@@ -116,8 +116,21 @@ function trendLabel(current: number, previous: number, label: string, lowerIsBet
   return `${label}: ${sign}${Math.round(delta * 100)}%${good ? "" : " watch"}`;
 }
 
-function QuickLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return <a className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75 hover:border-brand/40 hover:bg-brand/15 hover:text-white" href={href}>{children}</a>;
+function ActionPill({ href, label, count, tone, icon }: { href: string; label: string; count: number; tone: "urgent" | "action" | "good"; icon: string }) {
+  const toneClass = {
+    urgent: "border-red-300/25 bg-red-400/10 text-red-50",
+    action: "border-amber-300/25 bg-amber-300/10 text-amber-50",
+    good: "border-emerald-300/25 bg-emerald-400/10 text-emerald-50",
+  }[tone];
+  return (
+    <a className={`rounded-2xl border p-3 transition hover:-translate-y-0.5 ${toneClass}`} href={href}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm font-semibold">{icon}</span>
+        <span className="text-lg font-semibold text-white">{count.toLocaleString()}</span>
+      </div>
+      <div className="mt-2 text-sm font-medium text-white/80">{label}</div>
+    </a>
+  );
 }
 
 function StuckSignal({ label, value, href }: { label: string; value: number; href: string }) {

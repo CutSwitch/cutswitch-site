@@ -22,6 +22,11 @@ export default async function AdminSegmentsPage() {
   noStore();
   const segments = await getAdminSegments();
   const featured = segments.filter((segment) => FEATURED.has(segment.key));
+  const groups = [
+    { title: "Action", subtitle: "People who may need help today.", rows: featured.filter((segment) => segmentGroup(segment.key) === "Action") },
+    { title: "Upside", subtitle: "Power users, praise, and upgrade/testimonial chances.", rows: featured.filter((segment) => segmentGroup(segment.key) === "Upside") },
+    { title: "Signal", subtitle: "Watch lists that explain product motion.", rows: featured.filter((segment) => segmentGroup(segment.key) === "Signal") },
+  ];
 
   return (
     <div className="grid gap-6">
@@ -35,25 +40,35 @@ export default async function AdminSegmentsPage() {
         <Link href="/api/admin/export/segments.csv" className="btn btn-secondary">Export segments</Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {featured.map((segment) => (
-          <div key={segment.key} className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand/45 hover:bg-brand/10" title={segment.description}>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-3xl font-semibold text-white">{segment.count.toLocaleString()}</div>
-                <h3 className="mt-3 text-lg font-semibold text-white group-hover:text-brand-highlight">{segment.shortTitle}</h3>
-              </div>
-              <SegmentBadge keyName={segment.key} />
-            </div>
-            <p className="mt-3 text-sm leading-6 text-white/55">{segment.description}</p>
-            <p className="mt-2 text-xs text-white/35">Last updated: live on refresh</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link href={`/admin/segments/${segment.slug}`} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 hover:text-white">View segment →</Link>
-              <Link href={usersFilterHref(segment.key)} className="rounded-full border border-brand/25 bg-brand/10 px-3 py-1.5 text-xs text-brand-highlight hover:bg-brand/20">View users →</Link>
-            </div>
+      {groups.map((group) => group.rows.length ? (
+        <section key={group.title} className="grid gap-3">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-white/50">{group.title}</h3>
+            <p className="mt-1 text-sm text-white/45">{group.subtitle}</p>
           </div>
-        ))}
-      </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {group.rows.map((segment) => (
+              <div key={segment.key} className="group rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand/45 hover:bg-brand/10" title={segment.description}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-white group-hover:text-brand-highlight">{segment.shortTitle}</h4>
+                    <p className="mt-2 text-xs text-white/35">Last updated: live on refresh · Trend: live baseline</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="rounded-full border border-brand/30 bg-brand/15 px-3 py-1 text-sm font-semibold text-brand-highlight">{segment.count.toLocaleString()}</div>
+                    <div className="mt-2"><SegmentBadge keyName={segment.key} /></div>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-white/55">{segment.description}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/admin/segments/${segment.slug}`} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 hover:text-white">View segment →</Link>
+                  <Link href={usersFilterHref(segment.key)} className="rounded-full border border-brand/25 bg-brand/10 px-3 py-1.5 text-xs text-brand-highlight hover:bg-brand/20">View users →</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null)}
 
       <div className="card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -97,4 +112,10 @@ function SegmentBadge({ keyName }: { keyName: string }) {
   if (keyName.includes("quota") || keyName.includes("trial")) return <Badge tone="warning">Watch</Badge>;
   if (keyName.includes("heavy") || keyName.includes("positive")) return <Badge tone="good">Upside</Badge>;
   return <Badge>Signal</Badge>;
+}
+
+function segmentGroup(keyName: string) {
+  if (keyName.includes("failed") || keyName.includes("risk") || keyName.includes("exhausted") || keyName.includes("trial")) return "Action";
+  if (keyName.includes("heavy") || keyName.includes("positive")) return "Upside";
+  return "Signal";
 }

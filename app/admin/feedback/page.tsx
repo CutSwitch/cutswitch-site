@@ -34,8 +34,16 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
     range: searchParams?.range || undefined,
     q: searchParams?.q || undefined,
   };
-  const feedback = await getFeedbackRows(filters);
+  const [feedback, allFeedback] = await Promise.all([
+    getFeedbackRows(filters),
+    getFeedbackRows({ limit: 1000 }),
+  ]);
   const themes = getRepeatedThemes(feedback);
+  const summary = {
+    new: allFeedback.filter((item) => item.status === "new").length,
+    branchReady: allFeedback.filter((item) => item.status === "branch_ready" || item.codex_ready === true || item.ai_should_be_codex_task === true).length,
+    total: allFeedback.length,
+  };
   const params = new URLSearchParams({
     ...(filters.q ? { q: filters.q } : {}),
     ...(filters.type ? { type: filters.type } : {}),
@@ -67,7 +75,12 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
           </form>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-white/55">
-          <div>{feedback.length.toLocaleString()} feedback items match current filters.</div>
+          <div className="flex flex-wrap gap-2">
+            <SummaryPill tone="warning" href="/admin/feedback?status=new">New {summary.new.toLocaleString()}</SummaryPill>
+            <SummaryPill tone="brand" href="/admin/feedback?status=branch_ready">Branch-ready {summary.branchReady.toLocaleString()}</SummaryPill>
+            <SummaryPill href="/admin/feedback">Total {summary.total.toLocaleString()}</SummaryPill>
+            <span className="px-2 py-1">{feedback.length.toLocaleString()} match current filters.</span>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Link className="btn btn-secondary" href={`/api/admin/export/feedback.csv?${params.toString()}`}>Export CSV</Link>
             <Link className="btn btn-secondary" href={`/api/admin/export/feedback.json?${params.toString()}`}>Export JSON</Link>
@@ -123,11 +136,13 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
         </div>
       ) : null}
     </div>
-      <div className="grid gap-4 xl:grid-cols-3">
-        <ThemePanel title="By type" rows={themes.byType} />
-        <ThemePanel title="By product area" rows={themes.byArea} />
-        <ThemePanel title="Repeated keywords" rows={themes.byKeyword} />
-      </div>
+      {feedback.length ? (
+        <div className="grid gap-4 xl:grid-cols-3">
+          <ThemePanel title="By type" rows={themes.byType} />
+          <ThemePanel title="By product area" rows={themes.byArea} />
+          <ThemePanel title="Repeated keywords" rows={themes.byKeyword} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -148,6 +163,15 @@ function SeverityBadge({ severity }: { severity: string }) {
   if (severity === "high") return <Badge tone="warning">high</Badge>;
   if (severity === "low") return <Badge>low</Badge>;
   return <Badge tone="brand">normal</Badge>;
+}
+
+function SummaryPill({ href, children, tone = "default" }: { href: string; children: React.ReactNode; tone?: "default" | "warning" | "brand" }) {
+  const className = {
+    default: "border-white/10 bg-white/5 text-white/65",
+    warning: "border-amber-300/25 bg-amber-300/10 text-amber-50",
+    brand: "border-brand/35 bg-brand/15 text-brand-highlight",
+  }[tone];
+  return <Link href={href} className={`rounded-full border px-3 py-1 text-xs font-medium ${className}`}>{children}</Link>;
 }
 
 function getRepeatedThemes(feedback: FeedbackRow[]) {

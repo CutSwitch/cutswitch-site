@@ -10,6 +10,11 @@ export const revalidate = 0;
 export default async function AdminEmailPage() {
   noStore();
   const campaigns = await getCampaigns();
+  const counts = {
+    draft: campaigns.rows.filter((row) => row.status === "draft").length,
+    reviewed: campaigns.rows.filter((row) => row.status === "reviewed").length,
+    sent: campaigns.rows.filter((row) => row.status === "sent").length,
+  };
 
   return (
     <div className="grid gap-6">
@@ -20,7 +25,11 @@ export default async function AdminEmailPage() {
             Targeted campaigns with dry-run previews, suppression checks, review gates, and audit logs. Not a blast cannon.
           </p>
         </div>
-        <Link href="/admin/email/new" className="btn btn-primary">New campaign</Link>
+        {campaigns.schemaMissing ? (
+          <span title="Apply the Phase 3C email campaign migration first." className="btn btn-secondary cursor-not-allowed opacity-50">New campaign</span>
+        ) : (
+          <Link href="/admin/email/new" className="btn btn-primary">New campaign</Link>
+        )}
       </div>
 
       {campaigns.schemaMissing ? (
@@ -28,6 +37,12 @@ export default async function AdminEmailPage() {
           Apply the Phase 3C email campaign migration before using segmented email.
         </div>
       ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Summary label="Draft" value={counts.draft} />
+        <Summary label="Reviewed" value={counts.reviewed} />
+        <Summary label="Sent" value={counts.sent} />
+      </div>
 
       <div className="card overflow-hidden">
         <div className="border-b border-white/10 p-5">
@@ -60,8 +75,23 @@ export default async function AdminEmailPage() {
             </tbody>
           </table>
         </div>
-        {campaigns.rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No campaigns yet.</div> : null}
+        {campaigns.rows.length === 0 ? (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-white">No campaigns yet.</h3>
+            <p className="mt-2 text-sm text-white/55">Start with a dry-run campaign for one segment. If the migration is missing, apply it before creating drafts.</p>
+            {campaigns.schemaMissing ? null : <Link href="/admin/email/new" className="btn btn-secondary mt-4">Create draft campaign</Link>}
+          </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function Summary({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-white/45">{label}</div>
+      <div className="mt-3 text-2xl font-semibold text-white">{value.toLocaleString()}</div>
     </div>
   );
 }

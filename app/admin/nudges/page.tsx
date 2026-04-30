@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import Link from "next/link";
 
 import { Badge } from "@/components/admin/AdminShell";
 import { NudgeActions } from "@/components/admin/NudgeActions";
@@ -22,7 +23,10 @@ export default async function AdminNudgesPage() {
             Prepared nudge drafts for review. Only reviewed one-off nudges can be sent; bulk sending is still disabled.
           </p>
         </div>
-        <a href="/api/admin/export/nudges.csv" className="btn btn-secondary">Export nudges</a>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/nudges" className="btn btn-secondary">Create drafts</Link>
+          <a href="/api/admin/export/nudges.csv" className="btn btn-secondary">Export nudges</a>
+        </div>
       </div>
 
       {queue.schemaMissing || generation.schemaMissing ? (
@@ -41,6 +45,12 @@ export default async function AdminNudgesPage() {
           <Stat label="Sent" value={rows.filter((row) => row.status === "sent").length} />
         </div>
       )}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <TemplateCard title="Trial never ran" subject="Want help creating your first CutSwitch edit?" />
+        <TemplateCard title="Failed twice" subject="Looks like CutSwitch hit a snag" />
+        <TemplateCard title="Praise" subject="Could we quote your CutSwitch feedback?" />
+      </div>
 
       <div className="card overflow-hidden">
         <div className="border-b border-white/10 p-5">
@@ -84,7 +94,16 @@ export default async function AdminNudgesPage() {
             </tbody>
           </table>
         </div>
-        {rows.length === 0 ? <div className="p-8 text-center text-sm text-white/55">No nudge drafts yet.</div> : null}
+        {rows.length === 0 ? (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-white">No nudge drafts yet.</h3>
+            <p className="mt-2 text-sm text-white/55">Refresh this page to generate drafts from current segments, or inspect segments first to see who qualifies.</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Link href="/admin/nudges" className="btn btn-secondary">Generate drafts</Link>
+              <Link href="/admin/segments" className="btn btn-secondary">View segments</Link>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -96,15 +115,25 @@ function SetupChecklist({ items }: { items: Array<{ label: string; state: "ready
       <h3 className="text-lg font-semibold text-white">Setup checklist</h3>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <Link key={item.label} href="/admin/nudges" className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-brand/35 hover:bg-brand/10">
             <div className="flex items-center gap-2 font-medium text-white">
               <span>{item.state === "ready" ? "✅" : item.state === "watch" ? "⚠️" : "❌"}</span>
               <span>{item.label}</span>
             </div>
             <p className="mt-2 text-sm leading-5 text-white/50">{item.detail}</p>
-          </div>
+          </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+function TemplateCard({ title, subject }: { title: string; subject: string }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-white/40">Draft template</div>
+      <h3 className="mt-2 font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-5 text-white/55">{subject}</p>
     </div>
   );
 }

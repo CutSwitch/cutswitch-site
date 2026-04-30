@@ -20,9 +20,16 @@ type IconProps = {
 export function AccountUtilityRail() {
   const { session, user, loading } = useSupabaseSession();
   const [featureOpen, setFeatureOpen] = useState(false);
+  const active = !loading && Boolean(user);
+
+  useEffect(() => {
+    document.body.classList.toggle("account-rail-active", active);
+    return () => document.body.classList.remove("account-rail-active");
+  }, [active]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (!active) return;
       if (event.shiftKey && event.key.toLowerCase() === "f") {
         const target = event.target as HTMLElement | null;
         if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
@@ -33,14 +40,14 @@ export function AccountUtilityRail() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [active]);
 
   if (loading || !user) return null;
 
   return (
     <>
       <aside
-        className="fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 rounded-[28px] border border-white/10 bg-black/55 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:block"
+        className="account-utility-rail fixed bottom-6 left-4 top-24 z-40 hidden w-16 items-center justify-center rounded-[28px] border border-white/10 bg-black/55 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:flex"
         aria-label="Account shortcuts"
       >
         <nav className="grid gap-3">
@@ -83,11 +90,11 @@ function RailItemFrame({
       >
         {children}
       </span>
-      <span className="pointer-events-none absolute left-[58px] top-1/2 min-w-max -translate-y-1/2 scale-95 rounded-2xl border border-brand/30 bg-[#101323]/95 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-soft transition group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100">
-        <span className="absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-brand/30 bg-[#101323]" />
+      <span className="account-rail-label pointer-events-none absolute left-[62px] top-1/2 min-w-max -translate-y-1/2 scale-95 rounded-2xl border border-brand/30 bg-[#101323]/95 px-4 py-3 text-sm font-medium text-white opacity-0 shadow-soft transition group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100">
+        <span className="account-rail-label-caret absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-brand/30 bg-[#101323]" />
         <span className="relative flex items-center gap-3">
           {label}
-          {shortcut ? <kbd className="rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-white/70">{shortcut}</kbd> : null}
+          {shortcut ? <kbd className="min-w-9 rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-center text-xs text-white/70">{shortcut}</kbd> : null}
         </span>
       </span>
     </span>
@@ -170,8 +177,11 @@ function FeatureRequestModal({
         },
         body: JSON.stringify({
           type: "idea",
-          message: title ? `${title}\n\n${message}` : message,
+          title: title || "Feature request",
+          message,
           screen: "Website / Account",
+          current_page: window.location.pathname,
+          app_area: "account",
           severity: "normal",
           context: {
             page: window.location.pathname,
@@ -184,9 +194,9 @@ function FeatureRequestModal({
       if (!res.ok || !data.ok) throw new Error(data.error || "Unable to send feature request.");
 
       (event.currentTarget as HTMLFormElement).reset();
-      setState({ status: "success", message: "Feature request sent. Tiny product wish, safely delivered." });
-    } catch (error) {
-      setState({ status: "error", message: error instanceof Error ? error.message : "Unable to send feature request." });
+      setState({ status: "success", message: "Thanks — feedback sent." });
+    } catch {
+      setState({ status: "error", message: "Unable to send feedback. Please try again." });
     }
   }
 

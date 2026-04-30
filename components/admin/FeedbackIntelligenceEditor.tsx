@@ -7,7 +7,7 @@ import type { FeedbackRow } from "@/lib/admin/data";
 const PRODUCT_AREAS = ["", "onboarding", "import", "transcription_or_analysis", "run", "export", "billing", "account", "website", "performance", "unclear"];
 const SEVERITIES = ["low", "normal", "high", "urgent"];
 const PRIORITIES = ["", "low", "normal", "high", "urgent"];
-const STATUSES = ["new", "reviewed", "branch_ready", "resolved", "ignored"];
+const STATUSES = ["new", "reviewed", "planned", "shipped", "declined", "branch_ready", "resolved", "ignored"];
 const REPRO = ["", "unknown", "low", "medium", "high"];
 
 export function FeedbackIntelligenceEditor({ item }: { item: FeedbackRow }) {

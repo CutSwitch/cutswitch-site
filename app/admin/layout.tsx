@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AdminForbidden, AdminShell } from "@/components/admin/AdminShell";
 import { requireAdminPage } from "@/lib/admin/auth";
+import { getNewFeedbackCount } from "@/lib/admin/data";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -18,5 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     return <AdminForbidden />;
   }
 
-  return <AdminShell>{children}</AdminShell>;
+  const newFeedbackCount = await getNewFeedbackCount();
+
+  return <AdminShell newFeedbackCount={newFeedbackCount}>{children}</AdminShell>;
 }

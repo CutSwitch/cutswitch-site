@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const STATUSES = ["new", "reviewed", "branch_ready", "resolved", "ignored"];
+const STATUSES = ["new", "reviewed", "planned", "shipped", "declined", "branch_ready", "resolved", "ignored"];
 
 export function FeedbackStatusControl({ id, status }: { id: string; status: string }) {
   const [value, setValue] = useState(status);

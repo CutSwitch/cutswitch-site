@@ -847,6 +847,16 @@ body {
     }
   }
 
+  @media (min-width: 1024px) {
+    body.account-rail-active > header,
+    body.account-rail-active > main,
+    body.account-rail-active > footer {
+      margin-left: 5.75rem;
+      width: calc(100% - 5.75rem);
+      transition: margin-left 180ms ease, width 180ms ease;
+    }
+  }
+
   .glass {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
     border: 1px solid rgba(255, 255, 255, 0.10);
@@ -1151,6 +1161,20 @@ html.theme-light .bg-\[\#0E1020\]\/90 {
 
 html.theme-light .bg-\[\#0e101f\]\/55 {
   background-color: rgba(255, 255, 255, 0.6);
+}
+
+html.theme-light .account-utility-rail {
+  background-color: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 24px 70px rgba(14, 16, 32, 0.16);
+}
+
+html.theme-light .account-rail-label {
+  background-color: rgba(255, 255, 255, 0.96);
+  color: rgba(14, 16, 32, 0.92);
+}
+
+html.theme-light .account-rail-label-caret {
+  background-color: rgba(255, 255, 255, 0.96);
 }
 
 /* Theme-specific media + logo swaps */

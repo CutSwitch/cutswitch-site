@@ -51,6 +51,9 @@ export type FeedbackRow = {
   type: string;
   message: string;
   screen: string | null;
+  current_page?: string | null;
+  app_area?: string | null;
+  admin_notes?: string | null;
   context_json?: Record<string, unknown> | null;
   severity: string;
   status: string;
@@ -120,9 +123,13 @@ type ProductEventDetail = ProductEvent & {
 const FEEDBACK_SELECT = [
   "id",
   "user_id",
+  "user_email",
   "type",
   "message",
   "screen",
+  "current_page",
+  "app_area",
+  "admin_notes",
   "context_json",
   "severity",
   "status",
@@ -533,14 +540,6 @@ function dateRangeToSince(range: string | undefined) {
   return undefined;
 }
 
-function severityRank(severity: string | null | undefined) {
-  if (severity === "urgent") return 4;
-  if (severity === "high") return 3;
-  if (severity === "normal") return 2;
-  if (severity === "low") return 1;
-  return 0;
-}
-
 export async function getAdminUsers(options?: { search?: string; signal?: string; status?: string; plan?: string; range?: string; sort?: string; page?: number }) {
   noStore();
   const page = Math.max(1, options?.page || 1);
@@ -670,12 +669,12 @@ async function getFeedbackRowsForUser(userId: string) {
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(25)
-    .returns<Omit<FeedbackRow, "user_email">[]>();
+    .returns<FeedbackRow[]>();
   if (error) {
     if (isMissingOptionalSchema(error)) return [];
     throw error;
   }
-  return (data || []).map((row) => ({ ...row, user_email: null })) satisfies FeedbackRow[];
+  return (data || []).map((row) => ({ ...row, user_email: row.user_email || null })) satisfies FeedbackRow[];
 }
 
 export async function getAdminJobs(filters?: {
@@ -879,7 +878,7 @@ export async function getFeedbackRows(filters?: {
   const since = dateRangeToSince(filters?.range);
   if (since) query = query.gte("created_at", since);
 
-  const { data, error } = await query.returns<Omit<FeedbackRow, "user_email">[]>();
+  const { data, error } = await query.returns<FeedbackRow[]>();
   if (error) {
     if (isMissingOptionalSchema(error)) return [];
     throw error;
@@ -901,22 +900,33 @@ export async function getFeedbackRows(filters?: {
   const q = filters?.q?.trim().toLowerCase();
   return (data || []).map((row) => ({
     ...row,
-    user_email: row.user_id ? emails.get(row.user_id) ?? null : null,
+    user_email: row.user_email || (row.user_id ? emails.get(row.user_id) ?? null : null),
     user_plan: row.user_id ? subscriptions.get(row.user_id)?.plan_id ?? null : null,
     user_subscription_status: row.user_id ? subscriptions.get(row.user_id)?.status ?? null : null,
     context_json: sanitizeContext(row.context_json),
   }))
     .filter((row) => {
       if (!q) return true;
-      return [row.user_email, row.type, row.severity, row.status, row.screen, row.message]
+      return [row.id, row.user_email, row.type, row.severity, row.status, row.screen, row.title, row.summary, row.message]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     })
     .sort((a, b) => {
-      const severityDelta = severityRank(b.severity) - severityRank(a.severity);
-      if (severityDelta) return severityDelta;
       return String(b.created_at || "").localeCompare(String(a.created_at || ""));
     }) satisfies FeedbackRow[];
+}
+
+export async function getNewFeedbackCount() {
+  noStore();
+  const { count, error } = await supabaseAdmin
+    .from("feedback_events")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "new");
+  if (error) {
+    if (isMissingOptionalSchema(error)) return 0;
+    throw error;
+  }
+  return count || 0;
 }
 
 function sanitizeContext(value: Record<string, unknown> | null | undefined) {

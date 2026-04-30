@@ -7,6 +7,7 @@ import { siteConfig } from "@/lib/site";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { ScrollCSSVars } from "@/components/ScrollCSSVars";
+import { AccountUtilityRail } from "@/components/account/AccountUtilityRail";
 
 const baseUrl = getBaseUrl();
 
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ) : null}
 
         <Nav />
+        <AccountUtilityRail />
 
         <main className="py-10">{children}</main>
 

@@ -27,7 +27,7 @@ const COMMANDS = [
   { label: "Praise candidates", hint: "Love signals", href: () => "/admin/segments/love-signals" },
 ];
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({ children, newFeedbackCount = 0 }: { children: React.ReactNode; newFeedbackCount?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -94,7 +94,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                         : "border border-transparent text-white/58 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
                     )}
                   >
-                    {item.label}
+                    <span className="flex items-center justify-between gap-2">
+                      <span>{item.label}</span>
+                      {item.href === "/admin/feedback" && newFeedbackCount > 0 ? (
+                        <span className="rounded-full border border-brand/35 bg-brand/25 px-2 py-0.5 text-[10px] font-semibold text-brand-highlight">
+                          {newFeedbackCount > 99 ? "99+" : newFeedbackCount}
+                        </span>
+                      ) : null}
+                    </span>
                   </Link>
                 );
               })}
@@ -117,6 +124,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/admin/jobs?status=failed&range=all" className="btn btn-secondary">Failed jobs</Link>
+                <Link href="/admin/feedback?status=new" className="btn btn-secondary">
+                  New feedback{newFeedbackCount > 0 ? ` (${newFeedbackCount})` : ""}
+                </Link>
                 <Link href="/admin/feedback?status=branch_ready" className="btn btn-secondary">Branch-ready</Link>
                 <Link href="/admin/segments/love-signals" className="btn btn-secondary">Praise</Link>
               </div>

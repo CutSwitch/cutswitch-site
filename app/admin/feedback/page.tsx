@@ -12,7 +12,7 @@ export const revalidate = 0;
 
 const TYPES = ["", "bug", "idea", "confusion", "praise", "pricing", "onboarding", "performance", "export", "account"];
 const SEVERITIES = ["", "low", "normal", "high", "urgent"];
-const STATUSES = ["", "new", "reviewed", "branch_ready", "resolved", "ignored"];
+const STATUSES = ["", "new", "reviewed", "planned", "shipped", "declined", "branch_ready", "resolved", "ignored"];
 const RANGES = ["", "7d", "30d", "90d"];
 
 type Props = {
@@ -50,8 +50,8 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
       <div className="sticky top-[104px] z-10 border-b border-white/10 bg-[#111426]/95 p-5 backdrop-blur">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
-            <h2 className="text-xl font-semibold text-white">Feedback</h2>
-            <p className="mt-1 text-sm text-white/55">User feedback, bug reports, confusion points, and branch-ready candidates.</p>
+            <h2 className="text-xl font-semibold text-white">Feedback & feature requests</h2>
+            <p className="mt-1 text-sm text-white/55">Newest submissions first. Mark new items reviewed once they have been triaged.</p>
           </div>
           <form className="flex flex-wrap gap-2" action="/admin/feedback">
             <label className="grid gap-1 text-xs text-white/45">
@@ -103,7 +103,10 @@ export default async function AdminFeedbackPage({ searchParams }: Props) {
                   {item.codex_ready || item.ai_should_be_codex_task || item.status === "branch_ready" ? <div className="mt-2"><Badge tone="brand">Branch-ready</Badge></div> : null}
                   <FeedbackIntelligenceEditor item={item} />
                 </td>
-                <td className="px-5 py-4">{item.screen || "—"}</td>
+                <td className="px-5 py-4">
+                  <div>{item.screen || item.app_area || "—"}</div>
+                  {item.current_page ? <div className="mt-1 max-w-[180px] truncate text-xs text-white/40">{item.current_page}</div> : null}
+                </td>
                 <td className="px-5 py-4">{new Date(item.created_at).toLocaleDateString()}</td>
                 <td className="px-5 py-4"><FeedbackStatusControl id={item.id} status={item.status} /></td>
               </tr>

@@ -14,7 +14,7 @@ const schema = z.object({
   product_area: z.preprocess(emptyToNull, z.enum(["onboarding", "import", "transcription_or_analysis", "run", "export", "billing", "account", "website", "performance", "unclear"]).nullable().optional()),
   severity: z.enum(["low", "normal", "high", "urgent"]).optional(),
   admin_priority: z.preprocess(emptyToNull, z.enum(["low", "normal", "high", "urgent"]).nullable().optional()),
-  status: z.enum(["new", "reviewed", "branch_ready", "resolved", "ignored"]).optional(),
+  status: z.enum(["new", "reviewed", "planned", "shipped", "declined", "branch_ready", "resolved", "ignored"]).optional(),
   codex_ready: z.boolean().optional(),
   suggested_owner: z.preprocess(emptyToNull, z.string().trim().max(120).nullable().optional()),
   suggested_branch_name: z.preprocess(emptyToNull, z.string().trim().max(120).nullable().optional()),

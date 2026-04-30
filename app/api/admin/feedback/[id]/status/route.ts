@@ -7,7 +7,7 @@ import { updateFeedbackStatus } from "@/lib/admin/data";
 import { readJsonBody } from "@/lib/request";
 
 const schema = z.object({
-  status: z.enum(["new", "reviewed", "branch_ready", "resolved", "ignored"]),
+  status: z.enum(["new", "reviewed", "planned", "shipped", "declined", "branch_ready", "resolved", "ignored"]),
 });
 
 type Context = {

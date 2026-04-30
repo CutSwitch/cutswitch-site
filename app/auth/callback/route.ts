@@ -37,7 +37,6 @@ export async function GET(request: Request) {
       buildTrialRedirectPath({
         plan,
         source,
-        next: url.searchParams.get("next"),
       }),
       url.origin
     )

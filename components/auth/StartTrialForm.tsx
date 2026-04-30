@@ -18,6 +18,18 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function getMagicLinkOrigin() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (configured) {
+    try {
+      return new URL(configured).origin;
+    } catch {
+      // Fall back to the current browser origin if the public site URL is malformed in local env.
+    }
+  }
+  return window.location.origin;
+}
+
 export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
   const router = useRouter();
   const { user, loading: sessionLoading } = useSupabaseSession();
@@ -53,7 +65,7 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
     setLoading(true);
     try {
       const callbackPath = buildAuthCallbackPath({ plan, source, next });
-      const emailRedirectTo = `${window.location.origin}${callbackPath}`;
+      const emailRedirectTo = `${getMagicLinkOrigin()}${callbackPath}`;
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
@@ -75,14 +87,16 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
 
   if (sent) {
     return (
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-center">
-        <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-100">Check your email to continue.</p>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-white/65">
-          Open the magic link on this device and we’ll take you to the trial flow.
+      <div className="mt-8 rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.08] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.16)]">
+        <p className="text-base font-semibold text-emerald-100">
+          Check your email to continue.
+        </p>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/64">
+          We sent a secure magic link. Open it on this device and we’ll bring you back to CutSwitch.
         </p>
         <button
           type="button"
-          className="mt-4 text-sm font-medium text-brand hover:underline"
+          className="mt-5 rounded-full px-3 py-1 text-sm font-medium text-brand transition hover:bg-brand/10 hover:underline"
           onClick={() => {
             setSent(false);
             setError(null);
@@ -97,7 +111,7 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
   return (
     <form className="mt-9 w-full space-y-4" onSubmit={onSubmit}>
       <div className="space-y-2 text-left">
-        <label className="text-sm font-medium text-zinc-700 dark:text-white/75" htmlFor="start-email">
+        <label className="text-sm font-medium text-white/75" htmlFor="start-email">
           Email
         </label>
         <input
@@ -112,7 +126,7 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-4 focus:ring-brand/15 dark:border-white/15 dark:bg-white/8 dark:text-white dark:placeholder:text-white/35"
+          className="w-full rounded-lg border border-white/15 bg-white/8 px-4 py-3 text-base text-white outline-none transition placeholder:text-white/35 focus:border-brand focus:ring-4 focus:ring-brand/15"
         />
         <datalist id="common-email-domains">
           <option value="@gmail.com" />
@@ -123,7 +137,7 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
+        <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </p>
       ) : null}
@@ -136,7 +150,7 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
         {loading ? "Sending..." : "Let’s go"}
       </button>
 
-      <p className="text-center text-xs text-zinc-500 dark:text-white/45">No spam. Just a magic link.</p>
+      <p className="text-center text-xs text-white/45">No spam. Just a magic link.</p>
     </form>
   );
 }

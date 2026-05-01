@@ -120,7 +120,6 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
           type="email"
           inputMode="email"
           autoComplete="email"
-          list="common-email-domains"
           autoFocus
           required
           value={email}
@@ -128,12 +127,6 @@ export function StartTrialForm({ plan, source, next }: StartTrialFormProps) {
           placeholder="you@example.com"
           className="w-full rounded-lg border border-white/15 bg-white/8 px-4 py-3 text-base text-white outline-none transition placeholder:text-white/35 focus:border-brand focus:ring-4 focus:ring-brand/15"
         />
-        <datalist id="common-email-domains">
-          <option value="@gmail.com" />
-          <option value="@icloud.com" />
-          <option value="@outlook.com" />
-          <option value="@yahoo.com" />
-        </datalist>
       </div>
 
       {error ? (

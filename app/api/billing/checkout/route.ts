@@ -1,10 +1,9 @@
 export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
-
 import { getUserFromBearerToken } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/env";
 import { readJsonBody } from "@/lib/request";
+import { enforceRateLimit, noStoreJson } from "@/lib/security";
 import { isAppPlanId } from "@/lib/plans";
 import { getStripeAppPrice, stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -54,23 +53,26 @@ async function hasPriorStripeSubscription(userId: string, email: string | null |
 }
 
 export async function POST(req: Request) {
+  const rateLimited = await enforceRateLimit(req, [], 30, 60 * 60, "billing_checkout");
+  if (rateLimited) return rateLimited;
+
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {
-    return NextResponse.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+    return noStoreJson({ error: "Missing Authorization bearer token" }, 401);
   }
 
   if (authError || !user) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+    return noStoreJson({ error: "Invalid or expired token" }, 401);
   }
 
   const parsed = await readJsonBody<CheckoutBody>(req, 8 * 1024);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.message || "Invalid request." }, { status: parsed.status });
+    return noStoreJson({ error: parsed.message || "Invalid request." }, parsed.status);
   }
 
   if (!isAppPlanId(parsed.data.planId)) {
-    return NextResponse.json({ error: "Invalid planId." }, { status: 400 });
+    return noStoreJson({ error: "Invalid planId." }, 400);
   }
 
   const planId = parsed.data.planId;
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
 
   if (!priceId) {
     console.error("[billing:checkout] Missing Stripe price env for plan", { planId, envName });
-    return NextResponse.json({ error: "Missing Stripe price env for plan" }, { status: 500 });
+    return noStoreJson({ error: "Missing Stripe price env for plan" }, 500);
   }
 
   const baseUrl = getBaseUrl();
@@ -112,10 +114,10 @@ export async function POST(req: Request) {
     });
 
     if (!session.url) {
-      return NextResponse.json({ error: "Stripe session missing URL." }, { status: 500 });
+      return noStoreJson({ error: "Stripe session missing URL." }, 500);
     }
 
-    return NextResponse.json({ checkoutUrl: session.url });
+    return noStoreJson({ checkoutUrl: session.url });
   } catch (error) {
     const stripeError = error as { type?: string; code?: string; message?: string };
     console.error("[billing:checkout] Stripe checkout session failed", {
@@ -123,6 +125,6 @@ export async function POST(req: Request) {
       code: stripeError?.code,
       message: stripeError?.message || (error instanceof Error ? error.message : "Unknown error"),
     });
-    return NextResponse.json({ error: "Unable to create checkout session." }, { status: 500 });
+    return noStoreJson({ error: "Unable to create checkout session." }, 500);
   }
 }

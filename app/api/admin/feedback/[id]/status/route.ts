@@ -17,7 +17,7 @@ type Context = {
 };
 
 export async function POST(req: Request, context: Context) {
-  const auth = await requireAdminApi();
+  const auth = await requireAdminApi(req);
   if (!auth.ok) return auth.response;
 
   const parsedBody = await readJsonBody(req, 4 * 1024);

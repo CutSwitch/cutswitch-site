@@ -8,6 +8,7 @@ import { getBaseUrl } from "@/lib/env";
 import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { rateLimit } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/request";
+import { enforceRateLimit } from "@/lib/security";
 import { siteConfig } from "@/lib/site";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -94,6 +95,9 @@ async function notifyFeedbackInbox(input: {
 }
 
 export async function POST(req: Request) {
+  const ipLimited = await enforceRateLimit(req, [], 50, 60 * 60, "feedback_ip");
+  if (ipLimited) return ipLimited;
+
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {

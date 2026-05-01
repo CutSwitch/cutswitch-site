@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { getUserFromBearerToken } from "@/lib/auth";
 import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { readJsonBody } from "@/lib/request";
+import { enforceRateLimit, noStoreJson } from "@/lib/security";
 import { getPlan, TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -285,19 +286,22 @@ async function upsertTranscriptJob(input: {
 }
 
 export async function POST(req: Request) {
+  const rateLimited = await enforceRateLimit(req, [], 120, 60 * 60, "transcripts_complete");
+  if (rateLimited) return rateLimited;
+
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {
-    return Response.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+    return noStoreJson({ error: "Missing Authorization bearer token" }, 401);
   }
 
   if (authError || !user) {
-    return Response.json({ error: "Invalid or expired token" }, { status: 401 });
+    return noStoreJson({ error: "Invalid or expired token" }, 401);
   }
 
   const parsed = await readJsonBody<CompleteBody>(req, 16 * 1024);
   if (!parsed.ok) {
-    return Response.json({ error: parsed.message || "Invalid request." }, { status: parsed.status });
+    return noStoreJson({ error: parsed.message || "Invalid request." }, parsed.status);
   }
 
   const projectFingerprint = normalizeFingerprint(parsed.data.projectFingerprint);
@@ -308,7 +312,7 @@ export async function POST(req: Request) {
   const status = normalizeStatus(parsed.data.status);
 
   if (!projectFingerprint || !audioFingerprint || !durationSeconds || !speakerCount || !status) {
-    return Response.json({ error: "Invalid transcript completion payload." }, { status: 400 });
+    return noStoreJson({ error: "Invalid transcript completion payload." }, 400);
   }
 
   const reuseKey = stableHash([user.id, projectFingerprint, audioFingerprint, speakerCount].join(":"));
@@ -331,7 +335,7 @@ export async function POST(req: Request) {
         });
       }
 
-      return Response.json({ ok: true, status: "reused", billableSeconds: 0, reused: true });
+      return noStoreJson({ ok: true, status: "reused", billableSeconds: 0, reused: true });
     }
 
     const { data: priorSuccess, error: priorSuccessError } = await supabaseAdmin
@@ -355,7 +359,7 @@ export async function POST(req: Request) {
         });
       }
 
-      return Response.json({ ok: true, status: "reused", billableSeconds: 0, reused: true });
+      return noStoreJson({ ok: true, status: "reused", billableSeconds: 0, reused: true });
     }
 
     if (status === "failed") {
@@ -372,7 +376,7 @@ export async function POST(req: Request) {
 
       await maybeEmitRepeatedFailure(user, projectFingerprint, providerJobId);
 
-      return Response.json({ ok: true, status, billableSeconds: 0, reused: false });
+      return noStoreJson({ ok: true, status, billableSeconds: 0, reused: false });
     }
 
     if (status === "reused") {
@@ -383,7 +387,7 @@ export async function POST(req: Request) {
         idempotencyKey,
       });
 
-      return Response.json({ ok: true, status, billableSeconds: 0, reused: true });
+      return noStoreJson({ ok: true, status, billableSeconds: 0, reused: true });
     }
 
     const trialUsage = await getTrialUsage(user.id);
@@ -398,7 +402,7 @@ export async function POST(req: Request) {
         },
         dedupeKey: `trial_exhausted:${user.id}`,
       });
-      return Response.json({ error: "Trial editing time exhausted" }, { status: 402 });
+      return noStoreJson({ error: "Trial editing time exhausted" }, 402);
     }
 
     await upsertTranscriptJob({
@@ -432,9 +436,9 @@ export async function POST(req: Request) {
 
     await maybeEmitNearQuota(user);
 
-    return Response.json({ ok: true, status, billableSeconds: durationSeconds, reused: false });
+    return noStoreJson({ ok: true, status, billableSeconds: durationSeconds, reused: false });
   } catch (error) {
     console.error("[transcripts:complete] store failed", getSafeError(error));
-    return Response.json({ error: "Unable to record transcript completion." }, { status: 500 });
+    return noStoreJson({ error: "Unable to record transcript completion." }, 500);
   }
 }

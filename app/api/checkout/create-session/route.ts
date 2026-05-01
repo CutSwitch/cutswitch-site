@@ -4,6 +4,7 @@ import { getCheckoutPlan } from "@/lib/billing";
 import { getBaseUrl } from "@/lib/env";
 import { getIpHash, readJsonBody } from "@/lib/request";
 import { rateLimit, type RateLimitResult } from "@/lib/rateLimit";
+import { isEnabledEnv, NO_STORE_HEADERS } from "@/lib/security";
 import type { PlanKey } from "@/lib/site";
 import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
@@ -36,6 +37,13 @@ async function safeRateLimit(
 
 export async function POST(req: Request) {
   try {
+    if (!isEnabledEnv("ENABLE_LEGACY_CHECKOUT")) {
+      return NextResponse.json(
+        { error: "Legacy checkout is disabled. Please use the current pricing flow." },
+        { status: 410, headers: NO_STORE_HEADERS }
+      );
+    }
+
     // Abuse protection: creating Stripe Checkout Sessions is a paid API surface.
     // Keep this generous so it never hits real buyers.
     const ipHash = getIpHash(req);
@@ -46,6 +54,7 @@ export async function POST(req: Request) {
         {
           status: 429,
           headers: {
+            ...NO_STORE_HEADERS,
             "Retry-After": String(Math.max(1, rl.reset_seconds ?? 60)),
           },
         }
@@ -56,20 +65,20 @@ export async function POST(req: Request) {
     if (!parsed.ok) {
       return NextResponse.json(
         { error: parsed.message || "Invalid request." },
-        { status: parsed.status }
+        { status: parsed.status, headers: NO_STORE_HEADERS }
       );
     }
 
     const body = parsed.data;
 
     if (!isPlanKey(body.plan)) {
-      return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid plan." }, { status: 400, headers: NO_STORE_HEADERS });
     }
 
     if (!body.acknowledgedNoRefunds) {
       return NextResponse.json(
         { error: "No-refunds acknowledgement is required." },
-        { status: 400 }
+        { status: 400, headers: NO_STORE_HEADERS }
       );
     }
 
@@ -78,7 +87,7 @@ export async function POST(req: Request) {
 
     const referral = typeof body.referral === "string" ? body.referral.trim() : "";
     if (referral.length > 128) {
-      return NextResponse.json({ error: "Invalid referral." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid referral." }, { status: 400, headers: NO_STORE_HEADERS });
     }
 
     const sessionMetadata: Record<string, string> = {
@@ -137,13 +146,13 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create(common);
 
     if (!session.url) {
-      return NextResponse.json({ error: "Stripe session missing URL." }, { status: 500 });
+      return NextResponse.json({ error: "Stripe session missing URL." }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url }, { headers: NO_STORE_HEADERS });
   } catch (err: any) {
     // Intentionally do not log request payloads (may contain PII).
-    console.error("[checkout:create-session] error", err?.message || err);
-    return NextResponse.json({ error: err?.message || "Server error" }, { status: 500 });
+    console.error("[checkout:create-session] error", { message: err?.message || "unknown" });
+    return NextResponse.json({ error: "Unable to create checkout session." }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

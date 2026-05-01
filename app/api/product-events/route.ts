@@ -6,6 +6,7 @@ import { getUserFromBearerToken } from "@/lib/auth";
 import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { PRODUCT_EVENT_TYPES } from "@/lib/productEvents";
 import { readJsonBody } from "@/lib/request";
+import { enforceRateLimit } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const eventSchema = z.object({
@@ -54,6 +55,9 @@ function sanitizeMetadata(value: unknown, depth = 0): unknown {
 }
 
 export async function POST(req: Request) {
+  const rateLimited = await enforceRateLimit(req, [], 240, 60 * 60, "product_events");
+  if (rateLimited) return rateLimited;
+
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {

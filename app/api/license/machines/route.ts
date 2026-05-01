@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
 
+import { readJsonBody } from "@/lib/request"
+import { enforceRateLimit, hashRateLimitValue, isEnabledEnv, NO_STORE_HEADERS } from "@/lib/security"
+
 export const runtime = "nodejs"
 
 type MachineItem = {
@@ -188,16 +191,40 @@ export async function POST(req: Request) {
   let licenseKeyForRedaction = ""
 
   try {
+    if (!isEnabledEnv("ENABLE_LEGACY_KEYGEN_ENDPOINTS")) {
+      return NextResponse.json<MachinesResponse>(
+        { ok: false, error: "Legacy license endpoints are disabled." },
+        { status: 410, headers: NO_STORE_HEADERS }
+      )
+    }
+
     const account = env("KEYGEN_ACCOUNT_ID")
     const token = env("KEYGEN_API_TOKEN")
 
-    const body = (await req.json().catch(() => ({}))) as { license_key?: unknown }
+    const parsed = await readJsonBody<{ license_key?: unknown }>(req, 8 * 1024)
+    if (!parsed.ok) {
+      return NextResponse.json<MachinesResponse>(
+        { ok: false, error: parsed.message || "Invalid request." },
+        { status: parsed.status, headers: NO_STORE_HEADERS }
+      )
+    }
+
+    const body = parsed.data
     const licenseKey = String(body.license_key ?? "").trim()
     licenseKeyForRedaction = licenseKey
 
     if (licenseKey.length === 0) {
-      return NextResponse.json<MachinesResponse>({ ok: false, error: "Missing license_key" }, { status: 400 })
+      return NextResponse.json<MachinesResponse>({ ok: false, error: "Missing license_key" }, { status: 400, headers: NO_STORE_HEADERS })
     }
+
+    const rateLimited = await enforceRateLimit(
+      req,
+      [`license:${hashRateLimitValue(licenseKey)}`],
+      20,
+      60 * 60,
+      "legacy_license_machines"
+    )
+    if (rateLimited) return rateLimited
 
     const [rawMachines, maxMachines] = await Promise.all([
       listMachinesByKey({ account, token, licenseKey }),
@@ -211,9 +238,10 @@ export async function POST(req: Request) {
       machines_count: machines.length,
       max_machines: maxMachines,
       machines,
-    })
+    }, { headers: NO_STORE_HEADERS })
   } catch (err: any) {
     const msg = redactLicenseKey(err?.message ?? "Unknown error", licenseKeyForRedaction)
-    return NextResponse.json<MachinesResponse>({ ok: false, error: msg }, { status: 500 })
+    console.error("[license:machines] legacy lookup failed", { message: msg.slice(0, 200) })
+    return NextResponse.json<MachinesResponse>({ ok: false, error: "Unable to load machines." }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }

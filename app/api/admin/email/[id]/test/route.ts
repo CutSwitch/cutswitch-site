@@ -5,8 +5,8 @@ import { sendCampaignTest } from "@/lib/admin/emailCampaigns";
 
 type Context = { params: { id: string } };
 
-export async function POST(_req: Request, context: Context) {
-  const auth = await requireAdminApi();
+export async function POST(req: Request, context: Context) {
+  const auth = await requireAdminApi(req);
   if (!auth.ok) return auth.response;
 
   const result = await sendCampaignTest({ id: context.params.id, adminEmail: auth.admin.email, adminUserId: auth.admin.user.id });

@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { requireSameOrigin } from "@/lib/security";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 export type AdminAuth = {
@@ -63,7 +64,18 @@ export async function requireAdminPage(next = "/admin") {
   return auth;
 }
 
-export async function requireAdminApi() {
+export async function requireAdminApi(req?: Request) {
+  if (req && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const crossOrigin = requireSameOrigin(req);
+    if (crossOrigin) {
+      return {
+        ok: false as const,
+        reason: "forbidden" as const,
+        response: crossOrigin,
+      };
+    }
+  }
+
   const auth = await getAdminAuth();
 
   if (auth.ok) {

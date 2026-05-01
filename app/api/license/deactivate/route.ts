@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
 
+import { readJsonBody } from "@/lib/request"
+import { enforceRateLimit, hashRateLimitValue, isEnabledEnv, NO_STORE_HEADERS } from "@/lib/security"
+
 export const runtime = "nodejs"
 
 type DeactivateResponse =
@@ -188,15 +191,30 @@ export async function POST(req: Request) {
   let licenseKeyForRedaction = ""
 
   try {
+    if (!isEnabledEnv("ENABLE_LEGACY_KEYGEN_ENDPOINTS")) {
+      return NextResponse.json<DeactivateResponse>(
+        { ok: false, error: "Legacy license endpoints are disabled." },
+        { status: 410, headers: NO_STORE_HEADERS }
+      )
+    }
+
     const account = env("KEYGEN_ACCOUNT_ID")
     const token = env("KEYGEN_API_TOKEN")
 
-    const body = (await req.json().catch(() => ({}))) as {
+    const parsed = await readJsonBody<{
       license_key?: unknown
       fingerprint?: unknown
       device_id?: unknown
       machine_id?: unknown
+    }>(req, 8 * 1024)
+    if (!parsed.ok) {
+      return NextResponse.json<DeactivateResponse>(
+        { ok: false, error: parsed.message || "Invalid request." },
+        { status: parsed.status, headers: NO_STORE_HEADERS }
+      )
     }
+
+    const body = parsed.data
 
     const licenseKey = String(body.license_key ?? "").trim()
     licenseKeyForRedaction = licenseKey
@@ -205,15 +223,24 @@ export async function POST(req: Request) {
     const fingerprint = String(body.fingerprint ?? body.device_id ?? "").trim()
 
     if (licenseKey.length === 0) {
-      return NextResponse.json<DeactivateResponse>({ ok: false, error: "Missing license_key" }, { status: 400 })
+      return NextResponse.json<DeactivateResponse>({ ok: false, error: "Missing license_key" }, { status: 400, headers: NO_STORE_HEADERS })
     }
 
     if (machineId.length === 0 && fingerprint.length === 0) {
       return NextResponse.json<DeactivateResponse>(
         { ok: false, error: "Missing machine_id or fingerprint (or device_id)" },
-        { status: 400 }
+        { status: 400, headers: NO_STORE_HEADERS }
       )
     }
+
+    const rateLimited = await enforceRateLimit(
+      req,
+      [`license:${hashRateLimitValue(licenseKey)}`],
+      10,
+      60 * 60,
+      "legacy_license_deactivate"
+    )
+    if (rateLimited) return rateLimited
 
     if (machineId.length > 0) {
       const machinesForLicense = await listMachinesByKey({ account, token, licenseKey })
@@ -231,7 +258,7 @@ export async function POST(req: Request) {
           machines_count: machinesCount,
           max_machines: maxMachines,
           message: "Machine not found for this license.",
-        })
+        }, { headers: NO_STORE_HEADERS })
       }
 
       await deactivateMachineById({ account, token, machineId })
@@ -247,7 +274,7 @@ export async function POST(req: Request) {
         machines_count: machinesAfter.length,
         max_machines: maxMachines,
         message: "Deactivated",
-      })
+      }, { headers: NO_STORE_HEADERS })
     }
 
     const machines = await listMachinesByKeyAndFingerprint({ account, token, licenseKey, fingerprint })
@@ -264,7 +291,7 @@ export async function POST(req: Request) {
         machines_count: machinesAll.length,
         max_machines: maxMachines,
         message: "This Mac is not activated for this license.",
-      })
+      }, { headers: NO_STORE_HEADERS })
     }
 
     for (const m of machines) {
@@ -282,9 +309,10 @@ export async function POST(req: Request) {
       machines_count: machinesAfter.length,
       max_machines: maxMachines,
       message: "Deactivated",
-    })
+    }, { headers: NO_STORE_HEADERS })
   } catch (err: any) {
     const msg = redactLicenseKey(err?.message ?? "Unknown error", licenseKeyForRedaction)
-    return NextResponse.json<DeactivateResponse>({ ok: false, error: msg }, { status: 500 })
+    console.error("[license:deactivate] legacy mutation failed", { message: msg.slice(0, 200) })
+    return NextResponse.json<DeactivateResponse>({ ok: false, error: "Unable to deactivate machine." }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }

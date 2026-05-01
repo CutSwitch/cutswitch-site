@@ -26,7 +26,7 @@ const schema = z.object({
 type Context = { params: { id: string } };
 
 export async function POST(req: Request, context: Context) {
-  const auth = await requireAdminApi();
+  const auth = await requireAdminApi(req);
   if (!auth.ok) return auth.response;
 
   const parsedBody = await readJsonBody(req, 16 * 1024);

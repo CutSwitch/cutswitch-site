@@ -17,6 +17,7 @@ const password = process.env.TEST_PASSWORD;
 const checkoutPlanId = process.env.TEST_CHECKOUT_PLAN_ID || "starter";
 const transcriptDuration = Number(process.env.TEST_TRANSCRIPT_DURATION_SECONDS || 7);
 const testProductEvents = process.env.TEST_PRODUCT_EVENTS === "1";
+const testSocialReels = process.env.TEST_SOCIAL_REELS === "1";
 
 let failed = false;
 
@@ -139,6 +140,15 @@ if (!email || !password) {
     if (unauthProductEvent.status !== 401) markFailed("Unauthenticated product event did not return 401.");
   }
 
+  if (testSocialReels) {
+    const unauthSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    logResult("SOCIAL_REELS_UNAUTHENTICATED", unauthSocialReels);
+    if (unauthSocialReels.status !== 401) markFailed("Unauthenticated social reels discovery did not return 401.");
+  }
+
   const login = await post(`${baseUrl}/api/app/session`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -218,6 +228,54 @@ if (!email || !password) {
       if (!productEvent.ok) markFailed("Valid product event did not insert successfully.");
     } else {
       console.log("PRODUCT_EVENTS: skipped. Set TEST_PRODUCT_EVENTS=1 after applying the product_events migration.");
+    }
+
+    if (testSocialReels) {
+      const invalidSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          source_duration_seconds: 1800,
+          duration_bucket: "mixed",
+          candidate_count: 2,
+          segments: [],
+        }),
+      });
+      logResult("SOCIAL_REELS_INVALID", invalidSocialReels);
+      if (invalidSocialReels.status !== 400) markFailed("Invalid social reels payload did not return 400.");
+
+      const socialReels = await post(`${baseUrl}/api/social-reels/discover`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          project_fingerprint: `codex-social-${Date.now()}`,
+          source_duration_seconds: 1800,
+          duration_bucket: "mixed",
+          requested_candidate_count: 30,
+          context: { platform: "social", content_notes: "Smoke test only." },
+          segments: [
+            {
+              id: "codex-seg-1",
+              start_seconds: 0,
+              end_seconds: 30,
+              speaker: "Speaker 1",
+              text: "This is a safe smoke-test transcript segment about editing faster with CutSwitch.",
+            },
+          ],
+        }),
+      });
+      logResult("SOCIAL_REELS", socialReels);
+
+      const candidates =
+        socialReels.body &&
+        typeof socialReels.body === "object" &&
+        "candidates" in socialReels.body &&
+        Array.isArray(socialReels.body.candidates)
+          ? socialReels.body.candidates
+          : [];
+      if (!socialReels.ok || candidates.length < 30) {
+        markFailed("Valid social reels discovery did not return at least 30 candidates.");
+      }
+    } else {
+      console.log("SOCIAL_REELS: skipped. Set TEST_SOCIAL_REELS=1 after deploying /api/social-reels/discover.");
     }
 
     const invalidCheckout = await post(`${baseUrl}/api/billing/checkout`, {

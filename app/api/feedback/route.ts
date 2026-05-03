@@ -57,8 +57,12 @@ async function maybeRateLimitFeedback(userId: string) {
     const rl = await rateLimit(`rl:feedback:${userId}`, 10, 60 * 60);
     return rl.allowed;
   } catch (error) {
-    console.warn("[feedback] rate limit unavailable", { message: error instanceof Error ? error.message : "unknown" });
-    return true;
+    const failClosed = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+    console.warn("[feedback] user rate limit unavailable", {
+      message: error instanceof Error ? error.message : "unknown",
+      failClosed,
+    });
+    return !failClosed;
   }
 }
 
@@ -150,7 +154,7 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error("[feedback] insert failed", { code: error.code, message: error.message });
-    return json({ error: "Unable to record feedback." }, 500);
+    return json({ error: "Unable to submit feedback." }, 500);
   }
 
   if (type === "praise") {

@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { getUserFromBearerToken } from "@/lib/auth";
+import { enforceRateLimit, noStoreJson } from "@/lib/security";
 import { getPlan, TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -27,14 +28,17 @@ function toPublicSubscription(subscription: {
 }
 
 export async function POST(req: Request) {
+  const rateLimited = await enforceRateLimit(req, [], 120, 60 * 60, "account_usage");
+  if (rateLimited) return rateLimited;
+
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {
-    return Response.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+    return noStoreJson({ error: "Missing Authorization bearer token" }, 401);
   }
 
   if (authError || !user) {
-    return Response.json({ error: "Invalid or expired token" }, { status: 401 });
+    return noStoreJson({ error: "Invalid or expired token" }, 401);
   }
 
   const { data: subscription, error: subscriptionError } = await supabaseAdmin
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (subscriptionError && subscriptionError.code !== "PGRST116") {
-    return Response.json({ error: "Subscription lookup failed" }, { status: 500 });
+    return noStoreJson({ error: "Subscription lookup failed" }, 500);
   }
 
   const { data: usageEvents, error: usageError } = await supabaseAdmin
@@ -58,7 +62,7 @@ export async function POST(req: Request) {
     .returns<UsageEvent[]>();
 
   if (usageError) {
-    return Response.json({ error: "Usage lookup failed" }, { status: 500 });
+    return noStoreJson({ error: "Usage lookup failed" }, 500);
   }
 
   const totalUsedSeconds =
@@ -70,7 +74,7 @@ export async function POST(req: Request) {
     ? Math.max(0, includedSeconds - totalUsedSeconds)
     : null;
 
-  return Response.json({
+  return noStoreJson({
     subscription: toPublicSubscription(subscription),
     plan: subscription?.plan_id ?? null,
     totalUsedSeconds,

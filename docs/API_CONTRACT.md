@@ -32,6 +32,8 @@ If the token is missing or invalid, protected endpoints return `401`.
 
 Returns the signed-in user's active subscription and editing-time usage.
 
+This route is rate-limited. In production, if the configured Vercel KV/Upstash rate-limit store is unavailable, the route returns a privacy-safe temporary failure instead of relying on serverless in-memory limits.
+
 ### Request
 
 ```http
@@ -257,11 +259,20 @@ Content-Type: application/json
 }
 ```
 
+### Failure Response
+
+```json
+{
+  "error": "Unable to submit feedback."
+}
+```
+
 ### Privacy Rules
 
 - The backend derives `user_id` from the bearer token.
 - Do not send raw audio, transcripts, private file paths, or user tokens in `message` or `context`.
 - The endpoint does not log the raw feedback message or context.
+- Production Supabase must include the `feedback_events` table and insert/select RLS policies from the admin dashboard migrations. If production drift is suspected, apply `supabase/migrations/20260430213000_feedback_product_events_schema_repair.sql`.
 
 ## Admin Phase 1A Routes
 
@@ -338,12 +349,21 @@ feedback_submitted
 }
 ```
 
+### Failure Response
+
+```json
+{
+  "error": "Unable to record product event."
+}
+```
+
 ### Privacy Rules
 
 - The backend derives `user_id` from the bearer token. Do not send `userId`.
 - `project_fingerprint` must be a privacy-safe fingerprint, not a local file path or project title.
 - Do not send raw audio, transcripts, FCPXML, local usernames, provider keys, tokens, or private file paths.
 - `metadata_json` is capped and sanitized server-side; sensitive keys and path-like values are redacted.
+- Production Supabase must include the `product_events` table and insert RLS policy from `supabase/migrations/20260428194500_product_events_phase_1b.sql`. If production drift is suspected, apply `supabase/migrations/20260430213000_feedback_product_events_schema_repair.sql`.
 
 ### Example Events
 

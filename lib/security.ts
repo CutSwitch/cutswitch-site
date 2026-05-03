@@ -4,6 +4,10 @@ import { getIpHash, hashToken } from "@/lib/request";
 
 export const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 
+type RateLimitResultWithAvailability = RateLimitResult & {
+  unavailable?: boolean;
+};
+
 export function noStoreJson(body: Record<string, unknown>, status = 200) {
   return Response.json(body, { status, headers: NO_STORE_HEADERS });
 }
@@ -21,15 +25,29 @@ export async function safeRateLimit(
   limit: number,
   windowSeconds: number,
   scope: string
-): Promise<RateLimitResult> {
+): Promise<RateLimitResultWithAvailability> {
   try {
     return await rateLimit(key, limit, windowSeconds);
   } catch (error) {
     console.warn(`[security:${scope}] rate limit unavailable`, {
       message: error instanceof Error ? error.message : "unknown",
+      failClosed: shouldFailClosedRateLimit(),
     });
-    return { allowed: true, remaining: limit, limit, reset_seconds: windowSeconds };
+    return {
+      allowed: !shouldFailClosedRateLimit(),
+      unavailable: true,
+      remaining: limit,
+      limit,
+      reset_seconds: windowSeconds,
+    };
   }
+}
+
+function shouldFailClosedRateLimit() {
+  const configured = process.env.RATE_LIMIT_FAIL_OPEN?.trim().toLowerCase();
+  if (configured === "true") return false;
+  if (configured === "false") return true;
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 }
 
 export async function enforceRateLimit(
@@ -42,6 +60,13 @@ export async function enforceRateLimit(
   const ipHash = getIpHash(req);
   const key = ["rl", scope, `ip:${ipHash}`, ...keyParts.filter(Boolean)].join(":");
   const rl = await safeRateLimit(key, limit, windowSeconds, scope);
+  if (rl.unavailable) {
+    return Response.json(
+      { error: "Request protection is temporarily unavailable. Please try again later." },
+      { status: 503, headers: NO_STORE_HEADERS }
+    );
+  }
+
   if (rl.allowed) return null;
 
   return Response.json(

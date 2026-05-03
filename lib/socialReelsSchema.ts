@@ -3,6 +3,9 @@ import { z } from "zod";
 export const SOCIAL_REELS_DURATION_BUCKETS = ["15s", "30s", "60s", "90s", "5-10m"] as const;
 export const SOCIAL_REELS_REQUEST_DURATION_PACKS = [...SOCIAL_REELS_DURATION_BUCKETS, "mixed", "custom"] as const;
 export const SOCIAL_REELS_PLATFORMS = ["instagram_reels", "tiktok", "youtube_shorts", "social"] as const;
+export const SOCIAL_REELS_STYLES = ["balanced", "educational", "funny", "dramatic", "promo", "story"] as const;
+export const SOCIAL_REELS_LAYOUTS = ["vertical", "square", "horizontal"] as const;
+export const SOCIAL_REELS_CAPTION_STYLES = ["none", "minimal", "bold", "karaoke", "subtitles"] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
 export const SOCIAL_REELS_DEFAULT_CANDIDATES = 50;
@@ -39,15 +42,24 @@ export const socialReelsCustomDurationSchema = z
     }
   });
 
-export const socialReelsTranscriptSegmentSchema = z
+const socialReelsRawTranscriptSegmentSchema = z
   .object({
-    id: z.string().trim().min(1).max(128),
+    id: z.string().trim().min(1).max(128).optional(),
+    segment_id: z.string().trim().min(1).max(128).optional(),
     start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     speaker: safeOptionalText(80),
     text: z.string().trim().min(1).max(SOCIAL_REELS_MAX_SEGMENT_TEXT_CHARS),
   })
   .superRefine((segment, ctx) => {
+    if (!segment.id && !segment.segment_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["segment_id"],
+        message: "segment_id is required.",
+      });
+    }
+
     if (segment.end_seconds <= segment.start_seconds) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -57,14 +69,34 @@ export const socialReelsTranscriptSegmentSchema = z
     }
   });
 
+export const socialReelsTranscriptSegmentSchema = socialReelsRawTranscriptSegmentSchema
+  .transform((segment) => ({
+    ...segment,
+    id: segment.id ?? segment.segment_id ?? "",
+  }));
+
 export const socialReelsRequestSchema = z
   .object({
+    project_hash: z.string().trim().min(1).max(512),
     project_fingerprint: z.string().trim().min(1).max(512).optional().nullable(),
-    source_duration_seconds: z.number().int().min(1).max(24 * 60 * 60),
-    duration_bucket: z.enum(SOCIAL_REELS_REQUEST_DURATION_PACKS),
+    source_duration_seconds: z.number().int().min(1).max(24 * 60 * 60).optional(),
+    duration_preferences: z.array(z.enum(SOCIAL_REELS_REQUEST_DURATION_PACKS)).min(1).max(SOCIAL_REELS_REQUEST_DURATION_PACKS.length),
+    duration_bucket: z.enum(SOCIAL_REELS_REQUEST_DURATION_PACKS).optional(),
     requested_candidate_count: requestedCandidateCountSchema.optional(),
     candidate_count: requestedCandidateCountSchema.optional(),
     custom_duration_seconds: socialReelsCustomDurationSchema.optional().nullable(),
+    style: z.enum(SOCIAL_REELS_STYLES).or(z.string().trim().min(1).max(80)),
+    layout: z.enum(SOCIAL_REELS_LAYOUTS).or(z.string().trim().min(1).max(80)),
+    caption_style: z.enum(SOCIAL_REELS_CAPTION_STYLES).or(z.string().trim().min(1).max(80)),
+    episode_metadata: z
+      .object({
+        title: safeOptionalText(160),
+        show_name: safeOptionalText(120),
+        episode_number: safeOptionalText(80),
+        published_at: safeOptionalText(80),
+        guest_names: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+      })
+      .passthrough(),
     segments: z.array(socialReelsTranscriptSegmentSchema).min(1).max(SOCIAL_REELS_MAX_SEGMENTS),
     context: z
       .object({
@@ -77,9 +109,22 @@ export const socialReelsRequestSchema = z
   })
   .transform((payload) => ({
     ...payload,
+    project_fingerprint: payload.project_fingerprint ?? payload.project_hash,
+    source_duration_seconds:
+      payload.source_duration_seconds ??
+      Math.max(...payload.segments.map((segment) => Math.ceil(segment.end_seconds))),
+    duration_bucket: payload.duration_bucket ?? payload.duration_preferences[0],
     requested_candidate_count: payload.requested_candidate_count ?? payload.candidate_count ?? SOCIAL_REELS_DEFAULT_CANDIDATES,
   }))
   .superRefine((payload, ctx) => {
+    if (payload.project_hash && looksLikeRawPath(payload.project_hash)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["project_hash"],
+        message: "project_hash must be a privacy-safe hash.",
+      });
+    }
+
     if (payload.project_fingerprint && looksLikeRawPath(payload.project_fingerprint)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -92,15 +137,15 @@ export const socialReelsRequestSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["custom_duration_seconds"],
-        message: "custom_duration_seconds is required when duration_bucket is custom.",
+        message: "custom_duration_seconds is required when custom duration is requested.",
       });
     }
 
-    if (payload.duration_bucket !== "custom" && payload.custom_duration_seconds) {
+    if (!payload.duration_preferences.includes("custom") && payload.duration_bucket !== "custom" && payload.custom_duration_seconds) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["custom_duration_seconds"],
-        message: "custom_duration_seconds is only allowed when duration_bucket is custom.",
+        message: "custom_duration_seconds is only allowed when custom duration is requested.",
       });
     }
   });
@@ -150,6 +195,13 @@ export type SocialReelsRequest = z.infer<typeof socialReelsRequestSchema>;
 export type SocialReelsTranscriptSegment = z.infer<typeof socialReelsTranscriptSegmentSchema>;
 export type SocialReelsCandidate = z.infer<typeof socialReelsCandidateSchema>;
 export type SocialReelsResponse = z.infer<typeof socialReelsResponseSchema>;
+
+export function getSafeSocialReelsIssues(error: z.ZodError) {
+  return error.issues.slice(0, 20).map((issue) => ({
+    path: issue.path.map((part) => String(part)).join("."),
+    code: issue.code,
+  }));
+}
 
 export const openAISocialReelsResponseFormat = {
   type: "json_schema",

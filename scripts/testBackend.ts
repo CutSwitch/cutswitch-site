@@ -235,8 +235,13 @@ if (!email || !password) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           source_duration_seconds: 1800,
-          duration_bucket: "mixed",
-          candidate_count: 2,
+          project_hash: "codex-social-invalid",
+          duration_preferences: ["not-a-duration"],
+          requested_candidate_count: 2,
+          style: "balanced",
+          layout: "vertical",
+          caption_style: "bold",
+          episode_metadata: {},
           segments: [],
         }),
       });
@@ -246,14 +251,18 @@ if (!email || !password) {
       const socialReels = await post(`${baseUrl}/api/social-reels/discover`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          project_fingerprint: `codex-social-${Date.now()}`,
+          project_hash: `codex-social-${Date.now()}`,
           source_duration_seconds: 1800,
-          duration_bucket: "mixed",
+          duration_preferences: ["mixed"],
           requested_candidate_count: 30,
+          style: "balanced",
+          layout: "vertical",
+          caption_style: "bold",
+          episode_metadata: { title: "Codex smoke test" },
           context: { platform: "social", content_notes: "Smoke test only." },
           segments: [
             {
-              id: "codex-seg-1",
+              segment_id: "codex-seg-1",
               start_seconds: 0,
               end_seconds: 30,
               speaker: "Speaker 1",

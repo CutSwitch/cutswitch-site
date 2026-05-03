@@ -4,7 +4,7 @@ import { getUserFromBearerToken } from "@/lib/auth";
 import { discoverSocialReelsCandidates } from "@/lib/openaiSocialReels";
 import { readJsonBody } from "@/lib/request";
 import { enforceRateLimit, noStoreJson } from "@/lib/security";
-import { socialReelsRequestSchema } from "@/lib/socialReelsSchema";
+import { getSafeSocialReelsIssues, socialReelsRequestSchema } from "@/lib/socialReelsSchema";
 import { TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -98,7 +98,9 @@ export async function POST(req: Request) {
 
   const parsed = socialReelsRequestSchema.safeParse(parsedBody.data);
   if (!parsed.success) {
-    return noStoreJson({ error: "Invalid social reels payload." }, 400);
+    const issues = getSafeSocialReelsIssues(parsed.error);
+    console.warn("[social-reels] invalid payload", { issues });
+    return noStoreJson({ error: "Invalid social reels payload", issues }, 400);
   }
 
   let entitlement: Awaited<ReturnType<typeof getEntitlement>>;

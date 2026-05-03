@@ -142,8 +142,13 @@ function buildPromptInput(input: SocialReelsRequest) {
       content: JSON.stringify({
         source_duration_seconds: input.source_duration_seconds,
         duration_bucket: input.duration_bucket,
+        duration_preferences: input.duration_preferences,
         requested_candidate_count: input.requested_candidate_count,
         custom_duration_seconds: input.custom_duration_seconds || null,
+        style: input.style,
+        layout: input.layout,
+        caption_style: input.caption_style,
+        episode_metadata: input.episode_metadata,
         context: input.context,
         segments: input.segments,
       }),

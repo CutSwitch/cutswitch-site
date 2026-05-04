@@ -12,8 +12,8 @@ import {
 } from "./socialReelsSchema";
 
 export const SOCIAL_REELS_LIVE_SHORTLIST_DEFAULT_CANDIDATES = 10;
-export const SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES = 1;
-export const SOCIAL_REELS_LIVE_SHORTLIST_MAX_CANDIDATES = 30;
+export const SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES = 3;
+export const SOCIAL_REELS_LIVE_SHORTLIST_MAX_CANDIDATES = 10;
 
 const scoreSchema = z.number().min(0).max(1);
 
@@ -21,13 +21,31 @@ export const socialReelsShortlistCandidateSchema = z
   .object({
     candidate_id: z.string().trim().min(1).max(80),
     title: z.string().trim().min(1).max(120),
+    hook_title: z.string().trim().min(1).max(120),
+    summary: z.string().trim().min(1).max(360),
     duration_bucket: z.enum(SOCIAL_REELS_DURATION_BUCKETS),
     segment_id: z.string().trim().min(1).max(128),
     start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
+    duration_seconds: z.number().int().min(5).max(10 * 60),
     start_anchor_quote: z.string().trim().min(20).max(240),
     end_anchor_quote: z.string().trim().min(20).max(240),
+    clip_type: z.enum(SOCIAL_REELS_CLIP_TYPES),
+    topic_tag: z.string().trim().min(1).max(80),
+    why_it_works: z.string().trim().min(1).max(360),
+    rejection_risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     score: scoreSchema,
+    scores: z.object({
+      hook_strength: scoreSchema,
+      standalone_clarity: scoreSchema,
+      payoff_strength: scoreSchema,
+      emotional_charge: scoreSchema,
+      novelty: scoreSchema,
+      editability: scoreSchema,
+      shareability: scoreSchema,
+      context_independence: scoreSchema,
+      overall: scoreSchema,
+    }),
   })
   .superRefine((candidate, ctx) => {
     if (candidate.end_seconds <= candidate.start_seconds) {
@@ -35,6 +53,15 @@ export const socialReelsShortlistCandidateSchema = z
         code: z.ZodIssueCode.custom,
         path: ["end_seconds"],
         message: "end_seconds must be greater than start_seconds.",
+      });
+    }
+
+    const actualDuration = Math.round(candidate.end_seconds - candidate.start_seconds);
+    if (Math.abs(actualDuration - candidate.duration_seconds) > 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["duration_seconds"],
+        message: "duration_seconds must match start_seconds/end_seconds.",
       });
     }
   });
@@ -58,7 +85,7 @@ export function getEffectiveLiveShortlistCandidateCount(requestedCandidateCount:
     Math.max(SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES, configured)
   );
 
-  return Math.min(requestedCandidateCount, boundedConfigured);
+  return Math.max(SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES, Math.min(requestedCandidateCount, boundedConfigured));
 }
 
 export function openAISocialReelsShortlistResponseFormat(candidateCount: number) {
@@ -86,24 +113,69 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
             required: [
               "candidate_id",
               "title",
+              "hook_title",
+              "summary",
               "duration_bucket",
               "segment_id",
               "start_seconds",
               "end_seconds",
+              "duration_seconds",
               "start_anchor_quote",
               "end_anchor_quote",
+              "clip_type",
+              "topic_tag",
+              "why_it_works",
+              "rejection_risk_flags",
               "score",
+              "scores",
             ],
             properties: {
               candidate_id: { type: "string", minLength: 1, maxLength: 80 },
               title: { type: "string", minLength: 1, maxLength: 120 },
+              hook_title: { type: "string", minLength: 1, maxLength: 120 },
+              summary: { type: "string", minLength: 1, maxLength: 360 },
               duration_bucket: { type: "string", enum: SOCIAL_REELS_DURATION_BUCKETS },
               segment_id: { type: "string", minLength: 1, maxLength: 128 },
               start_seconds: { type: "number", minimum: 0, maximum: 86400 },
               end_seconds: { type: "number", minimum: 0, maximum: 86400 },
+              duration_seconds: { type: "integer", minimum: 5, maximum: 600 },
               start_anchor_quote: { type: "string", minLength: 20, maxLength: 240 },
               end_anchor_quote: { type: "string", minLength: 20, maxLength: 240 },
+              clip_type: { type: "string", enum: SOCIAL_REELS_CLIP_TYPES },
+              topic_tag: { type: "string", minLength: 1, maxLength: 80 },
+              why_it_works: { type: "string", minLength: 1, maxLength: 360 },
+              rejection_risk_flags: {
+                type: "array",
+                maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
+                items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
+              },
               score: { type: "number", minimum: 0, maximum: 1 },
+              scores: {
+                type: "object",
+                additionalProperties: false,
+                required: [
+                  "hook_strength",
+                  "standalone_clarity",
+                  "payoff_strength",
+                  "emotional_charge",
+                  "novelty",
+                  "editability",
+                  "shareability",
+                  "context_independence",
+                  "overall",
+                ],
+                properties: {
+                  hook_strength: { type: "number", minimum: 0, maximum: 1 },
+                  standalone_clarity: { type: "number", minimum: 0, maximum: 1 },
+                  payoff_strength: { type: "number", minimum: 0, maximum: 1 },
+                  emotional_charge: { type: "number", minimum: 0, maximum: 1 },
+                  novelty: { type: "number", minimum: 0, maximum: 1 },
+                  editability: { type: "number", minimum: 0, maximum: 1 },
+                  shareability: { type: "number", minimum: 0, maximum: 1 },
+                  context_independence: { type: "number", minimum: 0, maximum: 1 },
+                  overall: { type: "number", minimum: 0, maximum: 1 },
+                },
+              },
             },
           },
         },
@@ -152,29 +224,31 @@ export function hydrateSocialReelsShortlistCandidate(
   const durationSeconds = Math.max(5, Math.min(10 * 60, Math.round(candidate.end_seconds - candidate.start_seconds)));
   const segmentText = getSegmentText(input, candidate.segment_id);
   const title = truncate(candidate.title, 120, "Social reel shortlist candidate");
+  const hookTitle = truncate(candidate.hook_title, 120, title);
+  const summary = truncate(candidate.summary, 360, "Live shortlist candidate selected from a reduced Social Reels schema.");
   const startAnchor = truncate(candidate.start_anchor_quote, 240, "A strong opening anchor from the transcript");
   const endAnchor = truncate(candidate.end_anchor_quote, 240, "A clean ending anchor from the transcript");
   const caption = truncate(`${startAnchor} ... ${endAnchor}`, 280, title);
-  const topicTag = truncate(title.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").trim(), 80, "shortlist");
+  const topicTag = truncate(candidate.topic_tag || title.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").trim(), 80, "shortlist");
   const hook = truncate(segmentText || startAnchor, 240, startAnchor);
-  const scores = hydrateScoreBreakdown(score);
+  const scores = candidate.scores || hydrateScoreBreakdown(score);
   const titleScore = clampScore(Math.max(0.5, score - 0.02));
   const editFeasibilityScore = clampScore(Math.max(0.5, score - 0.01));
+  const rejectionRiskFlags = candidate.rejection_risk_flags || [];
 
   const hydrated = {
     candidate_id: candidate.candidate_id,
     title,
     hook,
-    summary: "Live shortlist candidate selected from a reduced Social Reels schema for fast first-pass discovery.",
+    summary,
     start_anchor_quote: startAnchor,
     end_anchor_quote: endAnchor,
-    clip_type: "quote_worthy_line" as (typeof SOCIAL_REELS_CLIP_TYPES)[number],
+    clip_type: candidate.clip_type,
     topic_tag: topicTag,
-    hook_title: title,
+    hook_title: hookTitle,
     subtitle_intro: truncate(startAnchor, 160, title),
     social_caption: caption,
-    why_it_works:
-      "The moment has a clear opening anchor, a later payoff anchor, and enough standalone context for a fast shortlist pass.",
+    why_it_works: truncate(candidate.why_it_works, 500, "The moment has a clear opening anchor and a later payoff anchor."),
     viral_atoms: ["question", "clear_answer"] as Array<(typeof SOCIAL_REELS_VIRAL_ATOMS)[number]>,
     core_question: truncate(title, 240, "What makes this moment worth watching?"),
     conflict: "The clip needs to create tension quickly and avoid dead setup.",
@@ -183,12 +257,12 @@ export function hydrateSocialReelsShortlistCandidate(
     title_score: titleScore,
     edit_feasibility_score: editFeasibilityScore,
     risk_penalty: 0,
-    rejection_risk_flags: [] as Array<(typeof SOCIAL_REELS_REJECTION_RISK_FLAGS)[number]>,
-    risk_flags: [] as Array<(typeof SOCIAL_REELS_REJECTION_RISK_FLAGS)[number]>,
+    rejection_risk_flags: rejectionRiskFlags,
+    risk_flags: rejectionRiskFlags,
     duration_bucket: candidate.duration_bucket,
     start_seconds: Math.max(0, candidate.start_seconds),
     end_seconds: Math.max(candidate.start_seconds + 5, candidate.end_seconds),
-    duration_seconds: durationSeconds,
+    duration_seconds: candidate.duration_seconds || durationSeconds,
     score,
     scores,
     rationale: "Live shortlist result hydrated for app compatibility; full enrichment is reserved for a later refinement pass.",

@@ -48,6 +48,7 @@ export const SOCIAL_REELS_REJECTION_RISK_FLAGS = [
 ] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
+export const SOCIAL_REELS_MIN_RESPONSE_CANDIDATES = 3;
 export const SOCIAL_REELS_DEFAULT_CANDIDATES = 50;
 export const SOCIAL_REELS_MAX_CANDIDATES = 80;
 export const SOCIAL_REELS_MAX_SEGMENTS = 2000;
@@ -261,7 +262,7 @@ export const socialReelsCandidateSchema = z
   });
 
 export const socialReelsResponseSchema = z.object({
-  candidates: z.array(socialReelsCandidateSchema).min(SOCIAL_REELS_MIN_CANDIDATES).max(SOCIAL_REELS_MAX_CANDIDATES),
+  candidates: z.array(socialReelsCandidateSchema).min(SOCIAL_REELS_MIN_RESPONSE_CANDIDATES).max(SOCIAL_REELS_MAX_CANDIDATES),
   model_notes: z.string().trim().max(1000).nullable(),
 });
 

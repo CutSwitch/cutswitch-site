@@ -111,8 +111,16 @@ assert(
   "Mock mode should keep using the requested 30-80 candidate pool."
 );
 assert(
+  promptSource.includes("Array.from({ length: input.requested_candidate_count }"),
+  "Mock response builder should return the requested candidate count."
+);
+assert(
   promptSource.includes("live_shortlist") && promptSource.includes("getSocialReelsLiveCandidateCount"),
   "Live mode should use the capped shortlist path."
+);
+assert(
+  promptSource.includes("requested_candidate_count: effectiveCandidateCount"),
+  "Live shortlist prompt input should ask OpenAI for the effective count, not the requested full-pool count."
 );
 
 socialReelsCandidateSchema.parse(candidate(0, false));
@@ -124,7 +132,9 @@ socialReelsResponseSchema.parse({
 
 assert(getEffectiveLiveShortlistCandidateCount(30, undefined) === 10, "Live shortlist should default to 10 candidates.");
 assert(getEffectiveLiveShortlistCandidateCount(30, "8") === 8, "Live shortlist env override should be honored.");
-assert(getEffectiveLiveShortlistCandidateCount(30, "80") === 30, "Live shortlist env override should be capped to 30.");
+assert(getEffectiveLiveShortlistCandidateCount(30, "80") === 10, "Live shortlist env override should be capped to 10.");
+assert(getEffectiveLiveShortlistCandidateCount(30, "1") === 3, "Live shortlist env override should be floored at 3.");
+assert(getEffectiveLiveShortlistCandidateCount(5, "10") === 5, "Live shortlist should never exceed a lower requested count.");
 
 const shortlistFormat = openAISocialReelsShortlistResponseFormat(10);
 assert(shortlistFormat.schema.properties.candidates.minItems === 10, "Live shortlist response format should require 10 items.");
@@ -154,18 +164,37 @@ const reducedShortlist = socialReelsShortlistResponseSchema.parse({
   candidates: Array.from({ length: 10 }, (_, index) => ({
     candidate_id: `live-shortlist-${String(index + 1).padStart(2, "0")}`,
     title: `Live shortlist ${index + 1}`,
+    hook_title: `Live shortlist ${index + 1}`,
+    summary: "A reduced live shortlist candidate with enough fields to hydrate for the app.",
     duration_bucket: "60s",
     segment_id: "seg-1",
     start_seconds: 10,
     end_seconds: 70,
+    duration_seconds: 60,
     start_anchor_quote: "A useful clip starts with a question",
     end_anchor_quote: "lands a clean final reframe for the viewer",
+    clip_type: "quote_worthy_line",
+    topic_tag: "schema smoke",
+    why_it_works: "The clip opens with a clear question and ends after the answer lands.",
+    rejection_risk_flags: [],
     score: 0.76,
+    scores: {
+      hook_strength: 0.78,
+      standalone_clarity: 0.76,
+      payoff_strength: 0.75,
+      emotional_charge: 0.68,
+      novelty: 0.7,
+      editability: 0.8,
+      shareability: 0.77,
+      context_independence: 0.76,
+      overall: 0.76,
+    },
   })),
   model_notes: "Reduced shortlist smoke only.",
 });
 const hydratedShortlist = hydrateSocialReelsShortlistResponse(reducedShortlist, shortlistRequest);
 assert(hydratedShortlist.candidates.length === 10, "Live shortlist hydration should preserve the effective 10-candidate count.");
+socialReelsResponseSchema.parse(hydratedShortlist);
 for (const hydratedCandidate of hydratedShortlist.candidates) {
   socialReelsCandidateSchema.parse(hydratedCandidate);
 }

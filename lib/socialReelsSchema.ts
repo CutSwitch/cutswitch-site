@@ -19,6 +19,21 @@ export const SOCIAL_REELS_CLIP_TYPES = [
   "educational_explainer",
   "long_form_highlight",
 ] as const;
+export const SOCIAL_REELS_REJECTION_RISK_FLAGS = [
+  "countdown_or_timer",
+  "pre_show_chatter",
+  "mic_check",
+  "technical_setup",
+  "sponsor_or_ad",
+  "intro_outro_logistics",
+  "weak_hook",
+  "missing_payoff",
+  "too_context_dependent",
+  "generic_advice",
+  "unclear_speaker",
+  "unsafe_or_sensitive",
+  "low_editability",
+] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
 export const SOCIAL_REELS_DEFAULT_CANDIDATES = 50;
@@ -33,7 +48,7 @@ function looksLikeRawPath(value: string) {
 }
 
 const safeOptionalText = (max: number) => z.string().trim().max(max).optional().nullable();
-const scoreSchema = z.number().int().min(0).max(100);
+const scoreSchema = z.number().min(0).max(1);
 const requestedCandidateCountSchema = z
   .number()
   .int()
@@ -178,6 +193,8 @@ export const socialReelsCandidateSchema = z
     subtitle_intro: z.string().trim().min(1).max(160),
     social_caption: z.string().trim().min(1).max(280),
     why_it_works: z.string().trim().min(1).max(500),
+    rejection_risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
+    risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     duration_bucket: z.enum(SOCIAL_REELS_DURATION_BUCKETS),
     start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
@@ -190,6 +207,8 @@ export const socialReelsCandidateSchema = z
       emotional_charge: scoreSchema,
       novelty: scoreSchema,
       editability: scoreSchema,
+      shareability: scoreSchema,
+      context_independence: scoreSchema,
       overall: scoreSchema,
     }),
     rationale: z.string().trim().min(1).max(500),
@@ -263,6 +282,8 @@ export const openAISocialReelsResponseFormat = {
             "subtitle_intro",
             "social_caption",
             "why_it_works",
+            "rejection_risk_flags",
+            "risk_flags",
             "duration_bucket",
             "start_seconds",
             "end_seconds",
@@ -288,11 +309,21 @@ export const openAISocialReelsResponseFormat = {
             subtitle_intro: { type: "string", minLength: 1, maxLength: 160 },
             social_caption: { type: "string", minLength: 1, maxLength: 280 },
             why_it_works: { type: "string", minLength: 1, maxLength: 500 },
+            rejection_risk_flags: {
+              type: "array",
+              maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
+              items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
+            },
+            risk_flags: {
+              type: "array",
+              maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
+              items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
+            },
             duration_bucket: { type: "string", enum: SOCIAL_REELS_DURATION_BUCKETS },
             start_seconds: { type: "number", minimum: 0, maximum: 86400 },
             end_seconds: { type: "number", minimum: 0, maximum: 86400 },
             duration_seconds: { type: "integer", minimum: 5, maximum: 600 },
-            score: { type: "integer", minimum: 0, maximum: 100 },
+            score: { type: "number", minimum: 0, maximum: 1 },
             scores: {
               type: "object",
               additionalProperties: false,
@@ -303,16 +334,20 @@ export const openAISocialReelsResponseFormat = {
                 "emotional_charge",
                 "novelty",
                 "editability",
+                "shareability",
+                "context_independence",
                 "overall",
               ],
               properties: {
-                hook_strength: { type: "integer", minimum: 0, maximum: 100 },
-                standalone_clarity: { type: "integer", minimum: 0, maximum: 100 },
-                payoff_strength: { type: "integer", minimum: 0, maximum: 100 },
-                emotional_charge: { type: "integer", minimum: 0, maximum: 100 },
-                novelty: { type: "integer", minimum: 0, maximum: 100 },
-                editability: { type: "integer", minimum: 0, maximum: 100 },
-                overall: { type: "integer", minimum: 0, maximum: 100 },
+                hook_strength: { type: "number", minimum: 0, maximum: 1 },
+                standalone_clarity: { type: "number", minimum: 0, maximum: 1 },
+                payoff_strength: { type: "number", minimum: 0, maximum: 1 },
+                emotional_charge: { type: "number", minimum: 0, maximum: 1 },
+                novelty: { type: "number", minimum: 0, maximum: 1 },
+                editability: { type: "number", minimum: 0, maximum: 1 },
+                shareability: { type: "number", minimum: 0, maximum: 1 },
+                context_independence: { type: "number", minimum: 0, maximum: 1 },
+                overall: { type: "number", minimum: 0, maximum: 1 },
               },
             },
             rationale: { type: "string", minLength: 1, maxLength: 500 },

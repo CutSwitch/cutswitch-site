@@ -326,6 +326,7 @@ if (!email || !password) {
       const invalidCandidateDiversity = candidates.some((candidate) => {
         if (!candidate || typeof candidate !== "object") return true;
         const record = candidate as Record<string, unknown>;
+        const scores = record.scores as Record<string, unknown> | undefined;
         if (record.duration_bucket === "mixed") return true;
         if (typeof record.duration_bucket === "string") buckets.add(record.duration_bucket);
         return (
@@ -334,8 +335,18 @@ if (!email || !password) {
           typeof record.hook_title !== "string" ||
           typeof record.social_caption !== "string" ||
           typeof record.why_it_works !== "string" ||
-          !record.scores ||
-          typeof record.scores !== "object"
+          !Array.isArray(record.rejection_risk_flags) ||
+          !Array.isArray(record.risk_flags) ||
+          typeof record.score !== "number" ||
+          record.score < 0 ||
+          record.score > 1 ||
+          !scores ||
+          typeof scores !== "object" ||
+          typeof scores.overall !== "number" ||
+          scores.overall < 0 ||
+          scores.overall > 1 ||
+          typeof scores.shareability !== "number" ||
+          typeof scores.context_independence !== "number"
         );
       });
       if (invalidCandidateDiversity) {

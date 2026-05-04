@@ -3,6 +3,7 @@ import "server-only";
 import {
   SOCIAL_REELS_CLIP_TYPES,
   SOCIAL_REELS_DURATION_BUCKETS,
+  SOCIAL_REELS_REJECTION_RISK_FLAGS,
   openAISocialReelsResponseFormat,
   socialReelsRequestSchema,
   socialReelsResponseSchema,
@@ -14,6 +15,8 @@ import {
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4o-mini";
 const SOCIAL_REELS_OPENAI_MODE_ENV = "SOCIAL_REELS_OPENAI_MODE";
+export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT =
+  "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits. Return only schema-valid JSON. Return candidates ranked from strongest to weakest by viral/editorial potential; do not pad the list with weak clips. Avoid countdowns, timers, pre-show chatter, mic checks, technical setup, sponsor/ad reads unless explicitly requested, intro/outro logistics, vague greetings, housekeeping, dead air, generic motivational filler, purely transitional moments, clips that begin mid-thought, clips that require too much prior context, and clips with missing payoff. A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff. duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript. rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.";
 
 type OpenAIUsage = {
   input_tokens?: number;
@@ -138,6 +141,16 @@ const GENERIC_ANCHOR_WORDS = new Set([
   "think",
 ]);
 
+const JUNK_REJECTION_PATTERNS: Array<{ flag: (typeof SOCIAL_REELS_REJECTION_RISK_FLAGS)[number]; pattern: RegExp }> = [
+  { flag: "countdown_or_timer", pattern: /\b(countdown|counting down|three two one|3\s*2\s*1|timer)\b/i },
+  { flag: "pre_show_chatter", pattern: /\b(pre[-\s]?show|haven't started|have not started|before we start|before recording)\b/i },
+  { flag: "mic_check", pattern: /\b(mic check|microphone check|check one two|testing testing|can you hear me)\b/i },
+  { flag: "technical_setup", pattern: /\b(camera|audio|levels|recording|zoom|riverside|setup|plugged in|headphones)\b/i },
+  { flag: "sponsor_or_ad", pattern: /\b(sponsor|sponsored by|promo code|use code|ad read|advertisement)\b/i },
+  { flag: "intro_outro_logistics", pattern: /\b(welcome back|thanks for listening|subscribe|like and subscribe|see you next time|housekeeping)\b/i },
+  { flag: "generic_advice", pattern: /\b(just believe in yourself|follow your dreams|never give up)\b/i },
+];
+
 function cleanWords(text: string) {
   return text
     .replace(/\s+/g, " ")
@@ -149,6 +162,15 @@ function cleanWords(text: string) {
 
 function normalizeForSearch(text: string) {
   return text.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, "").replace(/\s+/g, " ").trim();
+}
+
+function getRejectionRiskFlags(text: string) {
+  const flags = JUNK_REJECTION_PATTERNS.filter(({ pattern }) => pattern.test(text)).map(({ flag }) => flag);
+  return [...new Set(flags)];
+}
+
+function segmentLooksJunk(text: string) {
+  return getRejectionRiskFlags(text).length > 0;
 }
 
 function phraseIsDistinctive(phrase: string) {
@@ -235,12 +257,17 @@ function findDurationAwareAnchors(
 }
 
 function getMockSourceSegment(input: SocialReelsRequest, bucket: ConcreteDurationBucket, index: number) {
-  const usableSegments = input.segments.filter((segment) => findDurationAwareAnchors(segment, bucket, index));
-  return usableSegments[index % usableSegments.length] || input.segments[index % input.segments.length];
+  const usableSegments = input.segments.filter((segment) => !segmentLooksJunk(segment.text) && findDurationAwareAnchors(segment, bucket, index));
+  if (usableSegments.length > 0) return usableSegments[index % usableSegments.length];
+
+  const durationUsableSegments = input.segments.filter((segment) => findDurationAwareAnchors(segment, bucket, index));
+  if (durationUsableSegments.length > 0) return durationUsableSegments[index % durationUsableSegments.length];
+
+  return input.segments[index % input.segments.length];
 }
 
 function clampScore(score: number) {
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return Math.max(0, Math.min(1, Number(score.toFixed(2))));
 }
 
 function pickClipType(index: number) {
@@ -257,14 +284,16 @@ function makeTopicTag(text: string, index: number) {
 }
 
 function makeScoreBreakdown(index: number) {
-  const overall = clampScore(96 - (index % 30));
+  const overall = clampScore(0.96 - (index % 30) * 0.01);
   return {
-    hook_strength: clampScore(overall - (index % 5)),
-    standalone_clarity: clampScore(overall - ((index + 2) % 6)),
-    payoff_strength: clampScore(overall - ((index + 4) % 7)),
-    emotional_charge: clampScore(70 + (index % 24)),
-    novelty: clampScore(68 + ((index * 3) % 27)),
-    editability: clampScore(82 + ((index * 2) % 14)),
+    hook_strength: clampScore(overall - (index % 5) * 0.01),
+    standalone_clarity: clampScore(overall - ((index + 2) % 6) * 0.01),
+    payoff_strength: clampScore(overall - ((index + 4) % 7) * 0.01),
+    emotional_charge: clampScore(0.72 + (index % 24) * 0.01),
+    novelty: clampScore(0.68 + ((index * 3) % 27) * 0.01),
+    editability: clampScore(0.82 + ((index * 2) % 14) * 0.01),
+    shareability: clampScore(overall - ((index + 1) % 5) * 0.01),
+    context_independence: clampScore(overall - ((index + 3) % 6) * 0.01),
     overall,
   };
 }
@@ -285,6 +314,7 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
   const topicTag = makeTopicTag(segment.text, index);
   const hookTitle = `Clip ${ordinal}: ${topicTag}`;
   const socialCaption = `${anchors.startAnchorQuote}... ${anchors.endAnchorQuote}`.slice(0, 280);
+  const rejectionRiskFlags = getRejectionRiskFlags(segment.text);
 
   return {
     candidate_id: `mock-reel-${String(ordinal).padStart(2, "0")}`,
@@ -299,6 +329,8 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
     subtitle_intro: anchors.startAnchorQuote.slice(0, 160),
     social_caption: socialCaption,
     why_it_works: "The moment has a clear opening anchor, a later payoff, and enough context to stand alone as a social clip.",
+    rejection_risk_flags: rejectionRiskFlags,
+    risk_flags: rejectionRiskFlags,
     duration_bucket: durationBucket,
     start_seconds: start,
     end_seconds: end,
@@ -327,8 +359,7 @@ function buildPromptInput(input: SocialReelsRequest) {
   return [
     {
       role: "system",
-      content:
-        "You identify short-form social reel candidates from podcast or multicam transcript segments. Return only schema-valid JSON. Build a large, editorially diverse candidate pool with varied concrete duration buckets and varied clip_type values. duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate duration locally, and candidates outside their requested bucket may be rejected. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
+      content: SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT,
     },
     {
       role: "user",

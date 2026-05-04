@@ -137,19 +137,23 @@ Limits:
       "subtitle_intro": "Exact words copied from the segment text",
       "social_caption": "Exact words copied from the segment text...",
       "why_it_works": "The moment has a clear opening anchor and payoff.",
+      "rejection_risk_flags": [],
+      "risk_flags": [],
       "duration_bucket": "30s",
       "start_seconds": 12,
       "end_seconds": 42,
       "duration_seconds": 30,
-      "score": 92,
+      "score": 0.92,
       "scores": {
-        "hook_strength": 92,
-        "standalone_clarity": 91,
-        "payoff_strength": 90,
-        "emotional_charge": 78,
-        "novelty": 80,
-        "editability": 88,
-        "overall": 92
+        "hook_strength": 0.92,
+        "standalone_clarity": 0.91,
+        "payoff_strength": 0.9,
+        "emotional_charge": 0.78,
+        "novelty": 0.8,
+        "editability": 0.88,
+        "shareability": 0.9,
+        "context_independence": 0.89,
+        "overall": 0.92
       },
       "rationale": "Why this should work as a reel.",
       "segment_ids": ["seg-1"],
@@ -181,7 +185,24 @@ Each candidate includes:
 - `subtitle_intro`: suggested opening caption/subtitle.
 - `social_caption`: suggested post caption.
 - `why_it_works`: concise editorial rationale.
-- `scores`: score breakdown for hook strength, standalone clarity, payoff strength, emotional charge, novelty, editability, and overall.
+- `rejection_risk_flags` / `risk_flags`: anti-junk flags that identify possible editorial weaknesses.
+- `scores`: normalized `0.0` to `1.0` score breakdown for hook strength, standalone clarity, payoff strength, emotional charge, novelty, editability, shareability, context independence, and overall.
+
+Allowed rejection risk flags:
+
+- `countdown_or_timer`
+- `pre_show_chatter`
+- `mic_check`
+- `technical_setup`
+- `sponsor_or_ad`
+- `intro_outro_logistics`
+- `weak_hook`
+- `missing_payoff`
+- `too_context_dependent`
+- `generic_advice`
+- `unclear_speaker`
+- `unsafe_or_sensitive`
+- `low_editability`
 
 ## Mock And Live Mode
 
@@ -200,6 +221,38 @@ Rules:
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
+
+## Live Editorial Rules
+
+The live OpenAI prompt treats all segments as one chronological episode and asks for candidates ranked strongest to weakest by viral/editorial potential.
+
+Candidates should be chosen for:
+
+- strong first 1 to 3 seconds
+- standalone clarity
+- emotional charge
+- story arc or clear idea
+- payoff/end beat
+- specificity
+- shareability
+- clean editability
+- context independence
+
+Candidates should avoid:
+
+- countdowns and timers
+- pre-show chatter
+- mic checks
+- technical setup
+- housekeeping
+- sponsor/ad reads unless explicitly requested
+- intro/outro logistics
+- vague greetings
+- clips that begin mid-thought
+- clips that require too much prior context
+- clips that end before the point lands
+- generic motivational filler
+- purely transitional moments
 
 ## Timing Notes
 

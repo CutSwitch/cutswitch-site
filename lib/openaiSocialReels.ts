@@ -39,6 +39,8 @@ type OpenAIResponseBody = {
   };
 };
 
+type ConcreteDurationBucket = (typeof SOCIAL_REELS_DURATION_BUCKETS)[number];
+
 export type DiscoverSocialReelsOptions = {
   mock?: boolean;
   model?: string;
@@ -61,23 +63,35 @@ function shouldUseMock(options: DiscoverSocialReelsOptions) {
   return getSocialReelsOpenAIMode() !== "live";
 }
 
-function bucketDurationSeconds(bucket: (typeof SOCIAL_REELS_DURATION_BUCKETS)[number]) {
+function bucketTargetDurationSeconds(bucket: ConcreteDurationBucket, index: number) {
   if (bucket === "15s") return 15;
   if (bucket === "30s") return 30;
   if (bucket === "60s") return 60;
   if (bucket === "90s") return 90;
+  return 300 + (index % 6) * 60;
+}
+
+function bucketMinimumUsableSeconds(bucket: ConcreteDurationBucket) {
+  if (bucket === "15s") return 12;
+  if (bucket === "30s") return 26;
+  if (bucket === "60s") return 54;
+  if (bucket === "90s") return 82;
   return 300;
 }
 
 function getConcreteDurationBuckets(input: SocialReelsRequest) {
   const preferences = input.duration_preferences || [input.duration_bucket];
   if (preferences.includes("mixed") || preferences.includes("custom")) {
-    return SOCIAL_REELS_DURATION_BUCKETS;
+    const usableBuckets = SOCIAL_REELS_DURATION_BUCKETS.filter((bucket) => input.segments.some((segment) => canSegmentSupportBucket(segment, bucket)));
+    return usableBuckets.length > 0 ? usableBuckets : SOCIAL_REELS_DURATION_BUCKETS;
   }
 
   const concreteBuckets = preferences.filter((preference): preference is (typeof SOCIAL_REELS_DURATION_BUCKETS)[number] =>
     SOCIAL_REELS_DURATION_BUCKETS.includes(preference as (typeof SOCIAL_REELS_DURATION_BUCKETS)[number])
   );
+
+  const usableBuckets = concreteBuckets.filter((bucket) => input.segments.some((segment) => canSegmentSupportBucket(segment, bucket)));
+  if (usableBuckets.length > 0) return usableBuckets;
 
   return concreteBuckets.length > 0 ? concreteBuckets : SOCIAL_REELS_DURATION_BUCKETS;
 }
@@ -156,27 +170,72 @@ function phraseFromWords(words: string[], startIndex: number, preferredLength = 
   return null;
 }
 
-function findAnchorQuotes(text: string, index: number) {
+function phraseNearWords(words: string[], desiredStartIndex: number) {
+  const offsets = [0, -1, 1, -2, 2, -3, 3, -5, 5, -8, 8, -12, 12];
+  for (const offset of offsets) {
+    const startIndex = desiredStartIndex + offset;
+    const phrase = phraseFromWords(words, startIndex);
+    if (phrase) {
+      return {
+        phrase,
+        startIndex: Math.min(Math.max(0, startIndex), Math.max(0, words.length - 5)),
+      };
+    }
+  }
+
+  return null;
+}
+
+function canSegmentSupportBucket(segment: SocialReelsRequest["segments"][number], bucket: ConcreteDurationBucket) {
+  const segmentDuration = Math.max(0, segment.end_seconds - segment.start_seconds);
+  const words = cleanWords(segment.text);
+  if (segmentDuration < bucketMinimumUsableSeconds(bucket) || words.length < 12) return false;
+
+  const secondsPerToken = segmentDuration / Math.max(1, words.length - 1);
+  const targetTokenDistance = Math.max(5, Math.round(bucketTargetDurationSeconds(bucket, 0) / secondsPerToken));
+  return words.length - targetTokenDistance >= 10;
+}
+
+function findDurationAwareAnchors(
+  segment: SocialReelsRequest["segments"][number],
+  bucket: ConcreteDurationBucket,
+  index: number
+) {
+  const text = segment.text;
   const words = cleanWords(text);
-  if (words.length < 10) return null;
+  if (words.length < 12) return null;
 
-  const maxStart = Math.max(0, words.length - 10);
-  const firstStart = Math.min(maxStart, (index * 3) % Math.max(1, Math.floor(words.length / 2)));
-  const secondStart = Math.min(maxStart, Math.max(firstStart + 5, Math.floor(words.length / 2) + (index % 4)));
+  const segmentDuration = Math.max(0, segment.end_seconds - segment.start_seconds);
+  if (segmentDuration < bucketMinimumUsableSeconds(bucket)) return null;
 
-  const startQuote = phraseFromWords(words, firstStart);
-  const endQuote = phraseFromWords(words, secondStart) || phraseFromWords(words, Math.max(firstStart + 5, words.length - 8));
+  const targetDuration = Math.min(bucketTargetDurationSeconds(bucket, index), segmentDuration);
+  const secondsPerToken = segmentDuration / Math.max(1, words.length - 1);
+  const targetTokenDistance = Math.max(5, Math.round(targetDuration / secondsPerToken));
+  const maxStart = words.length - targetTokenDistance - 5;
+  if (maxStart < 0) return null;
 
-  if (!startQuote || !endQuote || normalizeForSearch(startQuote) === normalizeForSearch(endQuote)) return null;
+  const startTokenIndex = Math.max(0, Math.min(maxStart, (index * 7) % Math.max(1, maxStart + 1)));
+  const endTokenIndex = Math.max(startTokenIndex + 5, Math.min(words.length - 5, startTokenIndex + targetTokenDistance));
+
+  const startQuote = phraseNearWords(words, startTokenIndex);
+  const endQuote = phraseNearWords(words, endTokenIndex);
+
+  if (!startQuote || !endQuote || normalizeForSearch(startQuote.phrase) === normalizeForSearch(endQuote.phrase)) return null;
+
+  const startSeconds = segment.start_seconds + startQuote.startIndex * secondsPerToken;
+  const endSeconds = segment.start_seconds + endQuote.startIndex * secondsPerToken;
+  if (endSeconds <= startSeconds) return null;
 
   return {
-    startAnchorQuote: startQuote,
-    endAnchorQuote: endQuote,
+    startAnchorQuote: startQuote.phrase,
+    endAnchorQuote: endQuote.phrase,
+    startSeconds,
+    endSeconds,
   };
 }
 
-function getMockSourceSegment(input: SocialReelsRequest, index: number) {
-  const usableSegments = input.segments.filter((segment) => findAnchorQuotes(segment.text, index));
+function getMockSourceSegment(input: SocialReelsRequest, bucket: ConcreteDurationBucket, index: number) {
+  const usableSegments = input.segments.filter((segment) => findDurationAwareAnchors(segment, bucket, index));
   return usableSegments[index % usableSegments.length] || input.segments[index % input.segments.length];
 }
 
@@ -211,18 +270,15 @@ function makeScoreBreakdown(index: number) {
 }
 
 function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReelsCandidate {
-  const segment = getMockSourceSegment(input, index);
-  const anchors = findAnchorQuotes(segment.text, index);
+  const durationBucket = pickCandidateBucket(input, index);
+  const segment = getMockSourceSegment(input, durationBucket, index);
+  const anchors = findDurationAwareAnchors(segment, durationBucket, index);
   if (!anchors) {
-    throw new Error("Mock social reels request needs transcript segments with enough distinctive words for anchor quotes.");
+    throw new Error("Mock social reels request needs transcript segments long enough for the requested duration bucket.");
   }
 
-  const durationBucket = pickCandidateBucket(input, index);
-  const start = Math.max(0, Math.round(segment.start_seconds));
-  const targetDuration = bucketDurationSeconds(durationBucket);
-  const segmentDuration = Math.max(5, Math.round(segment.end_seconds - segment.start_seconds));
-  const duration = Math.max(5, Math.min(targetDuration, segmentDuration));
-  const end = Math.min(Math.round(segment.end_seconds), start + duration);
+  const start = Math.max(0, Math.round(anchors.startSeconds));
+  const end = Math.max(start + 5, Math.min(Math.round(segment.end_seconds), Math.round(anchors.endSeconds)));
   const ordinal = index + 1;
   const clipType = pickClipType(index);
   const scores = makeScoreBreakdown(index);
@@ -272,7 +328,7 @@ function buildPromptInput(input: SocialReelsRequest) {
     {
       role: "system",
       content:
-        "You identify short-form social reel candidates from podcast or multicam transcript segments. Return only schema-valid JSON. Build a large, editorially diverse candidate pool with varied concrete duration buckets and varied clip_type values. Copy start_anchor_quote and end_anchor_quote exactly from the provided segment text; do not invent anchor quotes. rough start/end times are hints only, not final timing claims. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
+        "You identify short-form social reel candidates from podcast or multicam transcript segments. Return only schema-valid JSON. Build a large, editorially diverse candidate pool with varied concrete duration buckets and varied clip_type values. duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate duration locally, and candidates outside their requested bucket may be rejected. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
     },
     {
       role: "user",

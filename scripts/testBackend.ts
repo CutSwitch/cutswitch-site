@@ -102,6 +102,28 @@ function booleanField(body: unknown, key: string): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
+function makeSocialReelsSmokeText() {
+  const sentences = [
+    "CutSwitch helps editors find the strongest moments in a long conversation without guessing where the story begins.",
+    "The best clip usually starts when someone makes a clear claim and ends when they land the payoff with a memorable line.",
+    "This smoke segment gives the backend enough transcript density to choose anchors for short reels and longer highlights.",
+    "The speaker explains a practical lesson, shares a transformation, challenges a common belief, and gives producers a reason to keep watching.",
+    "A good social moment has context, escalation, and a clean final thought that can stand alone outside the full episode.",
+  ];
+
+  return Array.from({ length: 3 }, () => sentences.join(" ")).join(" ");
+}
+
+function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
+  if (typeof bucket !== "string" || typeof duration !== "number") return false;
+  if (bucket === "15s") return duration >= 12 && duration <= 18;
+  if (bucket === "30s") return duration >= 26 && duration <= 34;
+  if (bucket === "60s") return duration >= 54 && duration <= 66;
+  if (bucket === "90s") return duration >= 82 && duration <= 98;
+  if (bucket === "5-10m") return duration >= 300 && duration <= 600;
+  return false;
+}
+
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");
   process.exitCode = 1;
@@ -231,6 +253,7 @@ if (!email || !password) {
     }
 
     if (testSocialReels) {
+      const socialReelsSmokeText = makeSocialReelsSmokeText();
       const invalidSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -266,10 +289,7 @@ if (!email || !password) {
               start_seconds: 0,
               end_seconds: 720,
               speaker: "Speaker 1",
-              text:
-                "CutSwitch helps editors find the strongest moments in a long conversation without guessing where the story begins. " +
-                "The best clip usually starts when someone makes a clear claim and ends when they land the payoff with a memorable line. " +
-                "This longer smoke segment gives the backend enough room to create short reels, sixty second highlights, ninety second clips, and longer five minute moments without inventing timing.",
+              text: socialReelsSmokeText,
             },
           ],
         }),
@@ -292,8 +312,10 @@ if (!email || !password) {
         return (
           typeof record.start_anchor_quote !== "string" ||
           record.start_anchor_quote.trim().length === 0 ||
+          !socialReelsSmokeText.includes(record.start_anchor_quote) ||
           typeof record.end_anchor_quote !== "string" ||
-          record.end_anchor_quote.trim().length === 0
+          record.end_anchor_quote.trim().length === 0 ||
+          !socialReelsSmokeText.includes(record.end_anchor_quote)
         );
       });
       if (missingAnchors) {
@@ -321,6 +343,15 @@ if (!email || !password) {
       }
       if (buckets.size < 2) {
         markFailed("Mixed social reels request did not return multiple concrete duration buckets.");
+      }
+
+      const invalidBucketDurations = candidates.some((candidate) => {
+        if (!candidate || typeof candidate !== "object") return true;
+        const record = candidate as Record<string, unknown>;
+        return !durationFitsSocialReelsBucket(record.duration_bucket, record.duration_seconds);
+      });
+      if (invalidBucketDurations) {
+        markFailed("Social reels candidates included rough durations outside their duration buckets.");
       }
     } else {
       console.log("SOCIAL_REELS: skipped. Set TEST_SOCIAL_REELS=1 after deploying /api/social-reels/discover.");

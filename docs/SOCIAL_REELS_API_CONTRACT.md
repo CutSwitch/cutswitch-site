@@ -89,6 +89,18 @@ Returned candidates never use `mixed` as `duration_bucket`.
 
 If `duration_preferences` includes `mixed`, mock mode returns a balanced spread across the concrete duration buckets. If a request includes only one concrete duration, such as `["60s"]`, candidates may all use that bucket while still respecting the requested pool size.
 
+Mock duration targets:
+
+- `15s`: approximately 12 to 18 seconds
+- `30s`: approximately 26 to 34 seconds
+- `60s`: approximately 54 to 66 seconds
+- `90s`: approximately 82 to 98 seconds
+- `5-10m`: approximately 300 to 600 seconds when source segment timing supports it
+
+Mock mode estimates token positions inside each segment using `segmentDuration / tokenCount`, then chooses start and end anchor phrases spaced near the target duration. This is still an approximation; the macOS app remains responsible for word-aligned validation and final frame snapping.
+
+For `5-10m` mock candidates, source segments must be long enough to support realistic anchor spacing. Multi-segment long-form mock stitching is deferred until the app/backend contract requires it.
+
 ## Custom Duration Shape
 
 ```json
@@ -187,6 +199,7 @@ Rules:
 - `SOCIAL_REELS_OPENAI_MODE=live` requires `OPENAI_API_KEY`.
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
+- In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
 
 ## Timing Notes
 

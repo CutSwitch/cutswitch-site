@@ -189,6 +189,9 @@ When a trialing user would exceed the 4-hour trial allowance, the backend reject
 - A duplicate successful transcript for the same reuse key bills `0`.
 - A failed transcript bills `0`.
 - A cached/reused transcript bills `0`.
+- Social Reels discovery bills `0` editing time.
+- Social Reels `Different Moments` regeneration should be local from the cached candidate pool and bills `0` editing time.
+- Explicit Social Reels `Find Entirely New Moments` may call the backend and is rate-limited.
 - Exporting does not bill editing time.
 - Re-exporting does not bill editing time.
 - Editing time is used only when CutSwitch creates a new successful transcript/diarization.
@@ -205,6 +208,22 @@ When a trialing user would exceed the 4-hour trial allowance, the backend reject
 8. Treat `billableSeconds` in the response as the source of truth for whether the operation consumed editing time.
 9. If the endpoint returns `401`, refresh/re-authenticate the user before retrying.
 10. If the endpoint returns `reused: true`, the app should not show the operation as newly billed.
+
+## POST /api/social-reels/discover
+
+Authenticated Social Reels discovery endpoint for explicit cloud discovery / `Find Entirely New Moments`.
+
+See `/Users/jamisonerwin/GitHub/cutswitch-site/docs/SOCIAL_REELS_API_CONTRACT.md` for the full request/response schema.
+
+Key billing and safety rules:
+
+- Requires `Authorization: Bearer <access_token>`.
+- Server derives the user from the token and never trusts a client `userId`.
+- Requires an active or trialing subscription.
+- Does not consume editing time.
+- Is rate-limited by IP and user.
+- Does not store raw transcript text, local file paths, FCPXML, tokens, emails, or provider secrets.
+- Normal `Different Moments` regeneration should be local from the cached candidate pool and should not call the backend.
 
 ## Production Trial Billing Verification (2026-04-28)
 

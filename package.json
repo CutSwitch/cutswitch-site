@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "test:backend": "tsx scripts/testBackend.ts",
+    "test:social-reels-prompt": "tsx scripts/testSocialReelsPrompt.ts",
     "lint": "next lint"
   },
   "dependencies": {

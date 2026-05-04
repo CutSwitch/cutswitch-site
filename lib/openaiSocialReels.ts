@@ -15,8 +15,19 @@ import {
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4o-mini";
 const SOCIAL_REELS_OPENAI_MODE_ENV = "SOCIAL_REELS_OPENAI_MODE";
-export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT =
-  "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits. Return only schema-valid JSON. Return candidates ranked from strongest to weakest by viral/editorial potential; do not pad the list with weak clips. Avoid countdowns, timers, pre-show chatter, mic checks, technical setup, sponsor/ad reads unless explicitly requested, intro/outro logistics, vague greetings, housekeeping, dead air, generic motivational filler, purely transitional moments, clips that begin mid-thought, clips that require too much prior context, and clips with missing payoff. A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff. duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript. rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.";
+export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
+  "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
+  "Return only schema-valid JSON. Return candidates ranked from strongest to weakest by viral/editorial potential; do not pad the list with weak clips.",
+  "A strong reel should contain a miniature story arc: Question -> Tension -> Answer -> Reframe. Prefer moments where a question, claim, confession, or tension creates curiosity, escalates into conflict or emotional stakes, lands a clear answer/punchline/lesson, then reframes how the viewer sees the topic.",
+  "Prefer moments with viral atoms: question, conflict, contrarian_take, personal_confession, social_tension, high_emotion, clear_answer, reframe, practical_takeaway, identity_trigger. Use viral_atoms to name the atoms that actually appear in the clip.",
+  "Build candidates around story boundaries: start where the question, claim, confession, or tension begins; remove dead setup; end immediately after the answer, punchline, lesson, or reframe lands; avoid trailing explanation unless it increases emotional force; prefer clips that stand alone without requiring the whole episode.",
+  "A title should create curiosity without misleading the viewer. It should imply conflict, tension, or an unanswered question, and it must be truthful to the actual clip. Give title_options that are accurate, curiosity-forward, and scored for title strength.",
+  "Score harshly. Most clips should not score above 0.80. A score above 0.90 requires a strong hook, clear tension/conflict, satisfying payoff, standalone clarity, title potential, and clean editability. Apply risk_penalty for weak hooks, missing payoff, context dependence, unsafe/sensitive material, low editability, junk setup, misleading title potential, or any anti-junk risk.",
+  "Avoid countdowns, timers, pre-show chatter, mic checks, technical setup, sponsor/ad reads unless explicitly requested, intro/outro logistics, vague greetings, housekeeping, dead air, generic motivational filler, purely transitional moments, clips that begin mid-thought, clips that require too much prior context, and clips with missing payoff.",
+  "A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff.",
+  "duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript.",
+  "rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
+].join(" ");
 
 type OpenAIUsage = {
   input_tokens?: number;
@@ -284,7 +295,7 @@ function makeTopicTag(text: string, index: number) {
 }
 
 function makeScoreBreakdown(index: number) {
-  const overall = clampScore(0.96 - (index % 30) * 0.01);
+  const overall = clampScore(0.9 - (index % 30) * 0.01);
   return {
     hook_strength: clampScore(overall - (index % 5) * 0.01),
     standalone_clarity: clampScore(overall - ((index + 2) % 6) * 0.01),
@@ -315,6 +326,9 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
   const hookTitle = `Clip ${ordinal}: ${topicTag}`;
   const socialCaption = `${anchors.startAnchorQuote}... ${anchors.endAnchorQuote}`.slice(0, 280);
   const rejectionRiskFlags = getRejectionRiskFlags(segment.text);
+  const titleScore = clampScore(Math.max(0.58, scores.hook_strength - 0.03));
+  const editFeasibilityScore = scores.editability;
+  const riskPenalty = rejectionRiskFlags.length > 0 ? clampScore(Math.min(0.4, rejectionRiskFlags.length * 0.08)) : 0;
 
   return {
     candidate_id: `mock-reel-${String(ordinal).padStart(2, "0")}`,
@@ -329,6 +343,17 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
     subtitle_intro: anchors.startAnchorQuote.slice(0, 160),
     social_caption: socialCaption,
     why_it_works: "The moment has a clear opening anchor, a later payoff, and enough context to stand alone as a social clip.",
+    viral_atoms: ["question", "clear_answer", "practical_takeaway"],
+    core_question: "What makes this moment useful as a standalone social clip?",
+    conflict: "The clip needs to cut past setup and keep only the strongest idea.",
+    payoff: anchors.endAnchorQuote,
+    title_options: [
+      { title: hookTitle, score: titleScore },
+      { title: `${topicTag}: the payoff`, score: clampScore(titleScore - 0.04) },
+    ],
+    title_score: titleScore,
+    edit_feasibility_score: editFeasibilityScore,
+    risk_penalty: riskPenalty,
     rejection_risk_flags: rejectionRiskFlags,
     risk_flags: rejectionRiskFlags,
     duration_bucket: durationBucket,

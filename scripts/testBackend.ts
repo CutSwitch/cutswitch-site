@@ -327,6 +327,7 @@ if (!email || !password) {
         if (!candidate || typeof candidate !== "object") return true;
         const record = candidate as Record<string, unknown>;
         const scores = record.scores as Record<string, unknown> | undefined;
+        const titleOptions = record.title_options as Array<Record<string, unknown>> | undefined;
         if (record.duration_bucket === "mixed") return true;
         if (typeof record.duration_bucket === "string") buckets.add(record.duration_bucket);
         return (
@@ -335,6 +336,23 @@ if (!email || !password) {
           typeof record.hook_title !== "string" ||
           typeof record.social_caption !== "string" ||
           typeof record.why_it_works !== "string" ||
+          !Array.isArray(record.viral_atoms) ||
+          record.viral_atoms.some((atom) => typeof atom !== "string" || atom.length === 0) ||
+          typeof record.core_question !== "string" ||
+          typeof record.conflict !== "string" ||
+          typeof record.payoff !== "string" ||
+          !Array.isArray(titleOptions) ||
+          titleOptions.length === 0 ||
+          titleOptions.some((option) => typeof option.title !== "string" || typeof option.score !== "number") ||
+          typeof record.title_score !== "number" ||
+          record.title_score < 0 ||
+          record.title_score > 1 ||
+          typeof record.edit_feasibility_score !== "number" ||
+          record.edit_feasibility_score < 0 ||
+          record.edit_feasibility_score > 1 ||
+          typeof record.risk_penalty !== "number" ||
+          record.risk_penalty < 0 ||
+          record.risk_penalty > 1 ||
           !Array.isArray(record.rejection_risk_flags) ||
           !Array.isArray(record.risk_flags) ||
           typeof record.score !== "number" ||

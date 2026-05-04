@@ -19,6 +19,18 @@ export const SOCIAL_REELS_CLIP_TYPES = [
   "educational_explainer",
   "long_form_highlight",
 ] as const;
+export const SOCIAL_REELS_VIRAL_ATOMS = [
+  "question",
+  "conflict",
+  "contrarian_take",
+  "personal_confession",
+  "social_tension",
+  "high_emotion",
+  "clear_answer",
+  "reframe",
+  "practical_takeaway",
+  "identity_trigger",
+] as const;
 export const SOCIAL_REELS_REJECTION_RISK_FLAGS = [
   "countdown_or_timer",
   "pre_show_chatter",
@@ -49,6 +61,10 @@ function looksLikeRawPath(value: string) {
 
 const safeOptionalText = (max: number) => z.string().trim().max(max).optional().nullable();
 const scoreSchema = z.number().min(0).max(1);
+const socialReelsTitleOptionSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  score: scoreSchema,
+});
 const requestedCandidateCountSchema = z
   .number()
   .int()
@@ -193,6 +209,14 @@ export const socialReelsCandidateSchema = z
     subtitle_intro: z.string().trim().min(1).max(160),
     social_caption: z.string().trim().min(1).max(280),
     why_it_works: z.string().trim().min(1).max(500),
+    viral_atoms: z.array(z.enum(SOCIAL_REELS_VIRAL_ATOMS)).max(SOCIAL_REELS_VIRAL_ATOMS.length).optional().nullable(),
+    core_question: safeOptionalText(240),
+    conflict: safeOptionalText(240),
+    payoff: safeOptionalText(240),
+    title_options: z.array(socialReelsTitleOptionSchema).max(5).optional().nullable(),
+    title_score: scoreSchema.optional().nullable(),
+    edit_feasibility_score: scoreSchema.optional().nullable(),
+    risk_penalty: scoreSchema.optional().nullable(),
     rejection_risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     duration_bucket: z.enum(SOCIAL_REELS_DURATION_BUCKETS),
@@ -282,6 +306,14 @@ export const openAISocialReelsResponseFormat = {
             "subtitle_intro",
             "social_caption",
             "why_it_works",
+            "viral_atoms",
+            "core_question",
+            "conflict",
+            "payoff",
+            "title_options",
+            "title_score",
+            "edit_feasibility_score",
+            "risk_penalty",
             "rejection_risk_flags",
             "risk_flags",
             "duration_bucket",
@@ -309,6 +341,31 @@ export const openAISocialReelsResponseFormat = {
             subtitle_intro: { type: "string", minLength: 1, maxLength: 160 },
             social_caption: { type: "string", minLength: 1, maxLength: 280 },
             why_it_works: { type: "string", minLength: 1, maxLength: 500 },
+            viral_atoms: {
+              type: "array",
+              maxItems: SOCIAL_REELS_VIRAL_ATOMS.length,
+              items: { type: "string", enum: SOCIAL_REELS_VIRAL_ATOMS },
+            },
+            core_question: { type: "string", maxLength: 240 },
+            conflict: { type: "string", maxLength: 240 },
+            payoff: { type: "string", maxLength: 240 },
+            title_options: {
+              type: "array",
+              minItems: 1,
+              maxItems: 5,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["title", "score"],
+                properties: {
+                  title: { type: "string", minLength: 1, maxLength: 120 },
+                  score: { type: "number", minimum: 0, maximum: 1 },
+                },
+              },
+            },
+            title_score: { type: "number", minimum: 0, maximum: 1 },
+            edit_feasibility_score: { type: "number", minimum: 0, maximum: 1 },
+            risk_penalty: { type: "number", minimum: 0, maximum: 1 },
             rejection_risk_flags: {
               type: "array",
               maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,

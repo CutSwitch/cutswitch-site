@@ -21,6 +21,15 @@ Backend candidate pool policy:
 - Maximum: `80`
 - Mock mode should not return fewer than `30` candidates when enough transcript text exists.
 
+Entitlement and rediscovery policy:
+
+- The first Social Reels discovery is allowed for a valid signed-in account with an active or trialing subscription.
+- Social Reels discovery does not consume editing time. Editing time is still consumed only by successful new transcript/diarization creation.
+- Normal `Different Moments` regeneration is local in the macOS app and should use the cached full candidate pool. It should not call this backend endpoint.
+- Explicit `Find Entirely New Moments` may call this endpoint and is rate-limited.
+- Failed OpenAI/provider calls do not consume editing time.
+- Exports consume `0` editing time and do not use this endpoint.
+
 ## Request
 
 ```json
@@ -137,23 +146,36 @@ Limits:
       "subtitle_intro": "Exact words copied from the segment text",
       "social_caption": "Exact words copied from the segment text...",
       "why_it_works": "The moment has a clear opening anchor and payoff.",
+      "viral_atoms": ["question", "clear_answer", "practical_takeaway"],
+      "core_question": "What question or claim makes this clip worth watching?",
+      "conflict": "The tension, disagreement, confession, or emotional stakes in the clip.",
+      "payoff": "The answer, punchline, lesson, or reframe that lands before the cut.",
+      "title_options": [
+        {
+          "title": "A truthful curiosity title",
+          "score": 0.84
+        }
+      ],
+      "title_score": 0.84,
+      "edit_feasibility_score": 0.88,
+      "risk_penalty": 0,
       "rejection_risk_flags": [],
       "risk_flags": [],
       "duration_bucket": "30s",
       "start_seconds": 12,
       "end_seconds": 42,
       "duration_seconds": 30,
-      "score": 0.92,
+      "score": 0.88,
       "scores": {
-        "hook_strength": 0.92,
-        "standalone_clarity": 0.91,
-        "payoff_strength": 0.9,
+        "hook_strength": 0.88,
+        "standalone_clarity": 0.87,
+        "payoff_strength": 0.86,
         "emotional_charge": 0.78,
         "novelty": 0.8,
         "editability": 0.88,
-        "shareability": 0.9,
-        "context_independence": 0.89,
-        "overall": 0.92
+        "shareability": 0.86,
+        "context_independence": 0.85,
+        "overall": 0.88
       },
       "rationale": "Why this should work as a reel.",
       "segment_ids": ["seg-1"],
@@ -185,8 +207,29 @@ Each candidate includes:
 - `subtitle_intro`: suggested opening caption/subtitle.
 - `social_caption`: suggested post caption.
 - `why_it_works`: concise editorial rationale.
+- `viral_atoms`: optional list of the viral atoms present in the clip.
+- `core_question`: optional question, claim, confession, or tension that opens the miniature story.
+- `conflict`: optional tension, disagreement, confession, social friction, or emotional stakes.
+- `payoff`: optional answer, punchline, lesson, or reframe that makes the clip satisfying.
+- `title_options`: optional scored title ideas, each with `title` and normalized `score`.
+- `title_score`: optional normalized score for the strongest truthful title potential.
+- `edit_feasibility_score`: optional normalized score for clean editability.
+- `risk_penalty`: optional normalized penalty applied for weak hook, missing payoff, context dependence, low editability, misleading title risk, or anti-junk flags.
 - `rejection_risk_flags` / `risk_flags`: anti-junk flags that identify possible editorial weaknesses.
 - `scores`: normalized `0.0` to `1.0` score breakdown for hook strength, standalone clarity, payoff strength, emotional charge, novelty, editability, shareability, context independence, and overall.
+
+Allowed viral atoms:
+
+- `question`
+- `conflict`
+- `contrarian_take`
+- `personal_confession`
+- `social_tension`
+- `high_emotion`
+- `clear_answer`
+- `reframe`
+- `practical_takeaway`
+- `identity_trigger`
 
 Allowed rejection risk flags:
 
@@ -226,6 +269,31 @@ Rules:
 
 The live OpenAI prompt treats all segments as one chronological episode and asks for candidates ranked strongest to weakest by viral/editorial potential.
 
+A strong reel should contain a miniature story arc:
+
+`Question -> Tension -> Answer -> Reframe`
+
+OpenAI should prefer moments with visible viral atoms:
+
+- question
+- conflict
+- contrarian_take
+- personal_confession
+- social_tension
+- high_emotion
+- clear_answer
+- reframe
+- practical_takeaway
+- identity_trigger
+
+OpenAI should build candidates around story boundaries:
+
+1. Start where the question, claim, confession, or tension begins.
+2. Remove dead setup.
+3. End immediately after the answer, punchline, lesson, or reframe lands.
+4. Avoid trailing explanation unless it increases emotional force.
+5. Prefer clips that stand alone without requiring the whole episode.
+
 Candidates should be chosen for:
 
 - strong first 1 to 3 seconds
@@ -237,6 +305,15 @@ Candidates should be chosen for:
 - shareability
 - clean editability
 - context independence
+- title potential
+
+Titles should create curiosity without misleading the viewer. They should imply conflict, tension, or an unanswered question while staying truthful to the actual clip.
+
+Scoring should be harsh:
+
+- Most clips should not score above `0.80`.
+- A score above `0.90` requires a strong hook, clear tension/conflict, satisfying payoff, standalone clarity, title potential, and clean editability.
+- Use `risk_penalty` for weak hooks, missing payoff, context dependence, unsafe or sensitive material, low editability, junk setup, or misleading title risk.
 
 Candidates should avoid:
 

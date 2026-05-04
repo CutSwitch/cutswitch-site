@@ -264,9 +264,11 @@ if (!email || !password) {
             {
               segment_id: "codex-seg-1",
               start_seconds: 0,
-              end_seconds: 30,
+              end_seconds: 120,
               speaker: "Speaker 1",
-              text: "This is a safe smoke-test transcript segment about editing faster with CutSwitch.",
+              text:
+                "CutSwitch helps editors find the strongest moments in a long conversation without guessing where the story begins. " +
+                "The best clip usually starts when someone makes a clear claim and ends when they land the payoff with a memorable line.",
             },
           ],
         }),
@@ -282,6 +284,19 @@ if (!email || !password) {
           : [];
       if (!socialReels.ok || candidates.length < 30) {
         markFailed("Valid social reels discovery did not return at least 30 candidates.");
+      }
+      const missingAnchors = candidates.some((candidate) => {
+        if (!candidate || typeof candidate !== "object") return true;
+        const record = candidate as Record<string, unknown>;
+        return (
+          typeof record.start_anchor_quote !== "string" ||
+          record.start_anchor_quote.trim().length === 0 ||
+          typeof record.end_anchor_quote !== "string" ||
+          record.end_anchor_quote.trim().length === 0
+        );
+      });
+      if (missingAnchors) {
+        markFailed("Social reels candidates included empty anchor quotes.");
       }
     } else {
       console.log("SOCIAL_REELS: skipped. Set TEST_SOCIAL_REELS=1 after deploying /api/social-reels/discover.");

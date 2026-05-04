@@ -94,12 +94,94 @@ function extractOutputText(body: OpenAIResponseBody) {
   return null;
 }
 
+const GENERIC_ANCHOR_WORDS = new Set([
+  "yeah",
+  "okay",
+  "ok",
+  "um",
+  "uh",
+  "like",
+  "right",
+  "so",
+  "well",
+  "yes",
+  "no",
+  "cool",
+  "totally",
+  "basically",
+  "actually",
+  "think",
+]);
+
+function cleanWords(text: string) {
+  return text
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean);
+}
+
+function normalizeForSearch(text: string) {
+  return text.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, "").replace(/\s+/g, " ").trim();
+}
+
+function phraseIsDistinctive(phrase: string) {
+  const normalizedWords = normalizeForSearch(phrase).split(" ").filter(Boolean);
+  if (phrase.length < 20 || normalizedWords.length < 5) return false;
+  const meaningfulWords = normalizedWords.filter((word) => !GENERIC_ANCHOR_WORDS.has(word));
+  return meaningfulWords.length >= 3;
+}
+
+function phraseFromWords(words: string[], startIndex: number, preferredLength = 8) {
+  const maxStart = Math.max(0, words.length - 5);
+  const safeStart = Math.min(Math.max(0, startIndex), maxStart);
+
+  for (let length = Math.min(12, words.length - safeStart); length >= 5; length -= 1) {
+    const phrase = words.slice(safeStart, safeStart + Math.min(length, preferredLength)).join(" ").trim();
+    if (phraseIsDistinctive(phrase)) return phrase;
+  }
+
+  return null;
+}
+
+function findAnchorQuotes(text: string, index: number) {
+  const words = cleanWords(text);
+  if (words.length < 10) return null;
+
+  const maxStart = Math.max(0, words.length - 10);
+  const firstStart = Math.min(maxStart, (index * 3) % Math.max(1, Math.floor(words.length / 2)));
+  const secondStart = Math.min(maxStart, Math.max(firstStart + 5, Math.floor(words.length / 2) + (index % 4)));
+
+  const startQuote = phraseFromWords(words, firstStart);
+  const endQuote = phraseFromWords(words, secondStart) || phraseFromWords(words, Math.max(firstStart + 5, words.length - 8));
+
+  if (!startQuote || !endQuote || normalizeForSearch(startQuote) === normalizeForSearch(endQuote)) return null;
+
+  return {
+    startAnchorQuote: startQuote,
+    endAnchorQuote: endQuote,
+  };
+}
+
+function getMockSourceSegment(input: SocialReelsRequest, index: number) {
+  const usableSegments = input.segments.filter((segment) => findAnchorQuotes(segment.text, index));
+  return usableSegments[index % usableSegments.length] || input.segments[index % input.segments.length];
+}
+
 function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReelsCandidate {
-  const segment = input.segments[index % input.segments.length];
+  const segment = getMockSourceSegment(input, index);
+  const anchors = findAnchorQuotes(segment.text, index);
+  if (!anchors) {
+    throw new Error("Mock social reels request needs transcript segments with enough distinctive words for anchor quotes.");
+  }
+
   const durationBucket = pickCandidateBucket(input, index);
   const start = Math.max(0, Math.round(segment.start_seconds));
   const targetDuration = bucketDurationSeconds(durationBucket);
-  const duration = Math.max(5, Math.min(targetDuration, Math.max(5, input.source_duration_seconds - start)));
+  const segmentDuration = Math.max(5, Math.round(segment.end_seconds - segment.start_seconds));
+  const duration = Math.max(5, Math.min(targetDuration, segmentDuration));
+  const end = Math.min(Math.round(segment.end_seconds), start + duration);
   const ordinal = index + 1;
 
   return {
@@ -107,10 +189,12 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
     title: `Clip ${ordinal}: Strong moment`,
     hook: segment.text.slice(0, 140) || "A concise moment from the conversation.",
     summary: `Mock social reel candidate ${ordinal} based on transcript segment ${segment.id}.`,
+    start_anchor_quote: anchors.startAnchorQuote,
+    end_anchor_quote: anchors.endAnchorQuote,
     duration_bucket: durationBucket,
     start_seconds: start,
-    end_seconds: start + duration,
-    duration_seconds: duration,
+    end_seconds: end,
+    duration_seconds: Math.max(5, Math.round(end - start)),
     score: Math.max(60, 96 - (index % 30)),
     rationale: "Mock candidate for local development and schema validation.",
     segment_ids: [segment.id],

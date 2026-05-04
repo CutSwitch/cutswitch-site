@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  SOCIAL_REELS_CLIP_TYPES,
   SOCIAL_REELS_DURATION_BUCKETS,
   openAISocialReelsResponseFormat,
   socialReelsRequestSchema,
@@ -68,12 +69,22 @@ function bucketDurationSeconds(bucket: (typeof SOCIAL_REELS_DURATION_BUCKETS)[nu
   return 300;
 }
 
-function pickCandidateBucket(input: SocialReelsRequest, index: number) {
-  if (input.duration_bucket === "mixed" || input.duration_bucket === "custom") {
-    return SOCIAL_REELS_DURATION_BUCKETS[index % SOCIAL_REELS_DURATION_BUCKETS.length];
+function getConcreteDurationBuckets(input: SocialReelsRequest) {
+  const preferences = input.duration_preferences || [input.duration_bucket];
+  if (preferences.includes("mixed") || preferences.includes("custom")) {
+    return SOCIAL_REELS_DURATION_BUCKETS;
   }
 
-  return input.duration_bucket;
+  const concreteBuckets = preferences.filter((preference): preference is (typeof SOCIAL_REELS_DURATION_BUCKETS)[number] =>
+    SOCIAL_REELS_DURATION_BUCKETS.includes(preference as (typeof SOCIAL_REELS_DURATION_BUCKETS)[number])
+  );
+
+  return concreteBuckets.length > 0 ? concreteBuckets : SOCIAL_REELS_DURATION_BUCKETS;
+}
+
+function pickCandidateBucket(input: SocialReelsRequest, index: number) {
+  const buckets = getConcreteDurationBuckets(input);
+  return buckets[index % buckets.length];
 }
 
 function extractOutputText(body: OpenAIResponseBody) {
@@ -169,6 +180,36 @@ function getMockSourceSegment(input: SocialReelsRequest, index: number) {
   return usableSegments[index % usableSegments.length] || input.segments[index % input.segments.length];
 }
 
+function clampScore(score: number) {
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function pickClipType(index: number) {
+  return SOCIAL_REELS_CLIP_TYPES[index % SOCIAL_REELS_CLIP_TYPES.length];
+}
+
+function makeTopicTag(text: string, index: number) {
+  const words = normalizeForSearch(text)
+    .split(" ")
+    .filter((word) => word.length > 3 && !GENERIC_ANCHOR_WORDS.has(word));
+  const start = words.length ? index % words.length : 0;
+  const tag = words.slice(start, start + 2).join(" ").trim() || "conversation moment";
+  return tag.slice(0, 80);
+}
+
+function makeScoreBreakdown(index: number) {
+  const overall = clampScore(96 - (index % 30));
+  return {
+    hook_strength: clampScore(overall - (index % 5)),
+    standalone_clarity: clampScore(overall - ((index + 2) % 6)),
+    payoff_strength: clampScore(overall - ((index + 4) % 7)),
+    emotional_charge: clampScore(70 + (index % 24)),
+    novelty: clampScore(68 + ((index * 3) % 27)),
+    editability: clampScore(82 + ((index * 2) % 14)),
+    overall,
+  };
+}
+
 function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReelsCandidate {
   const segment = getMockSourceSegment(input, index);
   const anchors = findAnchorQuotes(segment.text, index);
@@ -183,19 +224,31 @@ function makeMockCandidate(input: SocialReelsRequest, index: number): SocialReel
   const duration = Math.max(5, Math.min(targetDuration, segmentDuration));
   const end = Math.min(Math.round(segment.end_seconds), start + duration);
   const ordinal = index + 1;
+  const clipType = pickClipType(index);
+  const scores = makeScoreBreakdown(index);
+  const topicTag = makeTopicTag(segment.text, index);
+  const hookTitle = `Clip ${ordinal}: ${topicTag}`;
+  const socialCaption = `${anchors.startAnchorQuote}... ${anchors.endAnchorQuote}`.slice(0, 280);
 
   return {
     candidate_id: `mock-reel-${String(ordinal).padStart(2, "0")}`,
-    title: `Clip ${ordinal}: Strong moment`,
+    title: hookTitle,
     hook: segment.text.slice(0, 140) || "A concise moment from the conversation.",
     summary: `Mock social reel candidate ${ordinal} based on transcript segment ${segment.id}.`,
     start_anchor_quote: anchors.startAnchorQuote,
     end_anchor_quote: anchors.endAnchorQuote,
+    clip_type: clipType,
+    topic_tag: topicTag,
+    hook_title: hookTitle,
+    subtitle_intro: anchors.startAnchorQuote.slice(0, 160),
+    social_caption: socialCaption,
+    why_it_works: "The moment has a clear opening anchor, a later payoff, and enough context to stand alone as a social clip.",
     duration_bucket: durationBucket,
     start_seconds: start,
     end_seconds: end,
     duration_seconds: Math.max(5, Math.round(end - start)),
-    score: Math.max(60, 96 - (index % 30)),
+    score: scores.overall,
+    scores,
     rationale: "Mock candidate for local development and schema validation.",
     segment_ids: [segment.id],
     captions: [
@@ -219,7 +272,7 @@ function buildPromptInput(input: SocialReelsRequest) {
     {
       role: "system",
       content:
-        "You identify short-form social reel candidates from podcast or multicam transcript segments. Return only schema-valid JSON. Do not include raw file paths, private metadata, or invented timestamps.",
+        "You identify short-form social reel candidates from podcast or multicam transcript segments. Return only schema-valid JSON. Build a large, editorially diverse candidate pool with varied concrete duration buckets and varied clip_type values. Copy start_anchor_quote and end_anchor_quote exactly from the provided segment text; do not invent anchor quotes. rough start/end times are hints only, not final timing claims. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
     },
     {
       role: "user",

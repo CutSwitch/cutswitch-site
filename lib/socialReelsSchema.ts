@@ -6,6 +6,19 @@ export const SOCIAL_REELS_PLATFORMS = ["instagram_reels", "tiktok", "youtube_sho
 export const SOCIAL_REELS_STYLES = ["balanced", "educational", "funny", "dramatic", "promo", "story"] as const;
 export const SOCIAL_REELS_LAYOUTS = ["vertical", "square", "horizontal"] as const;
 export const SOCIAL_REELS_CAPTION_STYLES = ["none", "minimal", "bold", "karaoke", "subtitles"] as const;
+export const SOCIAL_REELS_CLIP_TYPES = [
+  "strong_opinion",
+  "story_beat",
+  "emotional_moment",
+  "funny_moment",
+  "useful_lesson",
+  "contrarian_take",
+  "quote_worthy_line",
+  "debate_conflict",
+  "transformation",
+  "educational_explainer",
+  "long_form_highlight",
+] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
 export const SOCIAL_REELS_DEFAULT_CANDIDATES = 50;
@@ -20,6 +33,7 @@ function looksLikeRawPath(value: string) {
 }
 
 const safeOptionalText = (max: number) => z.string().trim().max(max).optional().nullable();
+const scoreSchema = z.number().int().min(0).max(100);
 const requestedCandidateCountSchema = z
   .number()
   .int()
@@ -158,11 +172,26 @@ export const socialReelsCandidateSchema = z
     summary: z.string().trim().min(1).max(500),
     start_anchor_quote: z.string().trim().min(20).max(240),
     end_anchor_quote: z.string().trim().min(20).max(240),
+    clip_type: z.enum(SOCIAL_REELS_CLIP_TYPES),
+    topic_tag: z.string().trim().min(1).max(80),
+    hook_title: z.string().trim().min(1).max(120),
+    subtitle_intro: z.string().trim().min(1).max(160),
+    social_caption: z.string().trim().min(1).max(280),
+    why_it_works: z.string().trim().min(1).max(500),
     duration_bucket: z.enum(SOCIAL_REELS_DURATION_BUCKETS),
     start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
     duration_seconds: z.number().int().min(5).max(10 * 60),
-    score: z.number().int().min(0).max(100),
+    score: scoreSchema,
+    scores: z.object({
+      hook_strength: scoreSchema,
+      standalone_clarity: scoreSchema,
+      payoff_strength: scoreSchema,
+      emotional_charge: scoreSchema,
+      novelty: scoreSchema,
+      editability: scoreSchema,
+      overall: scoreSchema,
+    }),
     rationale: z.string().trim().min(1).max(500),
     segment_ids: z.array(z.string().trim().min(1).max(128)).min(1).max(30),
     captions: z.array(z.string().trim().min(1).max(160)).min(1).max(5),
@@ -228,11 +257,18 @@ export const openAISocialReelsResponseFormat = {
             "summary",
             "start_anchor_quote",
             "end_anchor_quote",
+            "clip_type",
+            "topic_tag",
+            "hook_title",
+            "subtitle_intro",
+            "social_caption",
+            "why_it_works",
             "duration_bucket",
             "start_seconds",
             "end_seconds",
             "duration_seconds",
             "score",
+            "scores",
             "rationale",
             "segment_ids",
             "captions",
@@ -246,11 +282,39 @@ export const openAISocialReelsResponseFormat = {
             summary: { type: "string", minLength: 1, maxLength: 500 },
             start_anchor_quote: { type: "string", minLength: 20, maxLength: 240 },
             end_anchor_quote: { type: "string", minLength: 20, maxLength: 240 },
+            clip_type: { type: "string", enum: SOCIAL_REELS_CLIP_TYPES },
+            topic_tag: { type: "string", minLength: 1, maxLength: 80 },
+            hook_title: { type: "string", minLength: 1, maxLength: 120 },
+            subtitle_intro: { type: "string", minLength: 1, maxLength: 160 },
+            social_caption: { type: "string", minLength: 1, maxLength: 280 },
+            why_it_works: { type: "string", minLength: 1, maxLength: 500 },
             duration_bucket: { type: "string", enum: SOCIAL_REELS_DURATION_BUCKETS },
             start_seconds: { type: "number", minimum: 0, maximum: 86400 },
             end_seconds: { type: "number", minimum: 0, maximum: 86400 },
             duration_seconds: { type: "integer", minimum: 5, maximum: 600 },
             score: { type: "integer", minimum: 0, maximum: 100 },
+            scores: {
+              type: "object",
+              additionalProperties: false,
+              required: [
+                "hook_strength",
+                "standalone_clarity",
+                "payoff_strength",
+                "emotional_charge",
+                "novelty",
+                "editability",
+                "overall",
+              ],
+              properties: {
+                hook_strength: { type: "integer", minimum: 0, maximum: 100 },
+                standalone_clarity: { type: "integer", minimum: 0, maximum: 100 },
+                payoff_strength: { type: "integer", minimum: 0, maximum: 100 },
+                emotional_charge: { type: "integer", minimum: 0, maximum: 100 },
+                novelty: { type: "integer", minimum: 0, maximum: 100 },
+                editability: { type: "integer", minimum: 0, maximum: 100 },
+                overall: { type: "integer", minimum: 0, maximum: 100 },
+              },
+            },
             rationale: { type: "string", minLength: 1, maxLength: 500 },
             segment_ids: {
               type: "array",

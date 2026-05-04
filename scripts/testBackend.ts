@@ -264,11 +264,12 @@ if (!email || !password) {
             {
               segment_id: "codex-seg-1",
               start_seconds: 0,
-              end_seconds: 120,
+              end_seconds: 720,
               speaker: "Speaker 1",
               text:
                 "CutSwitch helps editors find the strongest moments in a long conversation without guessing where the story begins. " +
-                "The best clip usually starts when someone makes a clear claim and ends when they land the payoff with a memorable line.",
+                "The best clip usually starts when someone makes a clear claim and ends when they land the payoff with a memorable line. " +
+                "This longer smoke segment gives the backend enough room to create short reels, sixty second highlights, ninety second clips, and longer five minute moments without inventing timing.",
             },
           ],
         }),
@@ -297,6 +298,29 @@ if (!email || !password) {
       });
       if (missingAnchors) {
         markFailed("Social reels candidates included empty anchor quotes.");
+      }
+
+      const buckets = new Set<string>();
+      const invalidCandidateDiversity = candidates.some((candidate) => {
+        if (!candidate || typeof candidate !== "object") return true;
+        const record = candidate as Record<string, unknown>;
+        if (record.duration_bucket === "mixed") return true;
+        if (typeof record.duration_bucket === "string") buckets.add(record.duration_bucket);
+        return (
+          typeof record.clip_type !== "string" ||
+          typeof record.topic_tag !== "string" ||
+          typeof record.hook_title !== "string" ||
+          typeof record.social_caption !== "string" ||
+          typeof record.why_it_works !== "string" ||
+          !record.scores ||
+          typeof record.scores !== "object"
+        );
+      });
+      if (invalidCandidateDiversity) {
+        markFailed("Social reels candidates were missing editorial diversity fields or returned mixed as a concrete bucket.");
+      }
+      if (buckets.size < 2) {
+        markFailed("Mixed social reels request did not return multiple concrete duration buckets.");
       }
     } else {
       console.log("SOCIAL_REELS: skipped. Set TEST_SOCIAL_REELS=1 after deploying /api/social-reels/discover.");

@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { runOpenAIProbeLadder } from "./openAIProbeLadder";
+
 type ApiResult = {
   ok: boolean;
   status: number | "NETWORK_ERROR";
@@ -19,6 +21,7 @@ const transcriptDuration = Number(process.env.TEST_TRANSCRIPT_DURATION_SECONDS |
 const testProductEvents = process.env.TEST_PRODUCT_EVENTS === "1";
 const testSocialReels = process.env.TEST_SOCIAL_REELS === "1";
 const testSocialReelsLive = process.env.TEST_SOCIAL_REELS_LIVE === "1";
+const testOpenAIProbe = process.env.TEST_OPENAI_PROBE === "1";
 
 let failed = false;
 
@@ -151,6 +154,11 @@ function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
   if (bucket === "90s") return duration >= 82 && duration <= 98;
   if (bucket === "5-10m") return duration >= 300 && duration <= 600;
   return false;
+}
+
+if (testOpenAIProbe) {
+  const probePassed = await runOpenAIProbeLadder();
+  if (!probePassed) markFailed("OpenAI probe ladder failed. See OPENAI_PROBE_RESULT above for the first failing stage.");
 }
 
 if (!email || !password) {

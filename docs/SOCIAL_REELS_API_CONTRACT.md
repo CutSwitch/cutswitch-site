@@ -254,7 +254,12 @@ Environment variables:
 ```text
 OPENAI_API_KEY=
 SOCIAL_REELS_OPENAI_MODE=mock
+SOCIAL_REELS_OPENAI_MODEL=gpt-5-mini
+SOCIAL_REELS_OPENAI_REASONING_EFFORT=minimal
+SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS=6000
+SOCIAL_REELS_OPENAI_SERVICE_TIER=standard
 SOCIAL_REELS_OPENAI_TIMEOUT_MS=120000
+SOCIAL_REELS_OPENAI_PROBE_TIMEOUT_MS=30000
 ```
 
 Rules:
@@ -262,6 +267,10 @@ Rules:
 - Missing `SOCIAL_REELS_OPENAI_MODE` defaults to `mock`.
 - `SOCIAL_REELS_OPENAI_MODE=mock` never calls OpenAI, even when `OPENAI_API_KEY` exists.
 - `SOCIAL_REELS_OPENAI_MODE=live` requires `OPENAI_API_KEY`.
+- `SOCIAL_REELS_OPENAI_MODEL` controls the production live model when the route is in live mode. The probe ladder uses its own model sequence unless the code is edited intentionally for a focused model-only check.
+- `SOCIAL_REELS_OPENAI_REASONING_EFFORT` defaults to a fast diagnostic value in probe mode. If set to `none`, the backend omits `reasoning`. Unsupported model/effort combinations should fail visibly with a safe non-2xx diagnostic rather than silently changing production behavior.
+- `SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS` bounds live output. The default is `6000`.
+- `SOCIAL_REELS_OPENAI_SERVICE_TIER` defaults to `standard`, which means no priority tier is requested. Set it only for an intentional provider-tier test.
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
 - `SOCIAL_REELS_OPENAI_TIMEOUT_MS` controls the backend OpenAI fetch timeout. It defaults to `120000` milliseconds and is bounded so the route can fail before the platform function limit.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
@@ -332,6 +341,52 @@ TEST_SOCIAL_REELS=1 npm run test:backend
 ```
 
 Use this for the larger synthetic app-shaped payload. It is gated separately so routine backend tests do not call Social Reels discovery.
+
+## OpenAI Probe Ladder
+
+Normal tests do not call OpenAI. To diagnose provider/model/schema latency without sending private transcript data, run the direct OpenAI probe ladder:
+
+```sh
+TEST_OPENAI_PROBE=1 npm run test:backend
+```
+
+The probe ladder calls the OpenAI Responses API directly from the backend test script with synthetic safe text only. It does not call `/api/social-reels/discover`, does not use app/user transcript payloads, and stops after the first failing probe.
+
+Probe order:
+
+1. `gpt-5-mini`: minimal ping, tiny input, no structured output, `max_output_tokens = 32`.
+2. `gpt-5-mini`: minimal structured output with a tiny strict JSON schema.
+3. `gpt-5-mini`: reduced Social Reels schema, 3 candidates.
+4. `gpt-5-mini`: reduced Social Reels schema, 10 candidates.
+5. `gpt-5-mini`: reduced Social Reels schema, 30 candidates.
+6. `gpt-5.4-mini`: reduced Social Reels schema, 30 candidates.
+7. `gpt-5.4`: reduced Social Reels schema, 10 candidates.
+8. `gpt-5.4`: full Social Reels schema, 10 candidates.
+9. `gpt-5.4`: full Social Reels schema, 30 candidates.
+
+Each probe prints only privacy-safe metadata:
+
+- `probe_name`
+- `request_id`
+- `model`
+- `reasoning_effort`
+- `service_tier`
+- `max_output_tokens`
+- `candidate_count_requested`
+- `schema_mode`: `none`, `tiny`, `reduced_social`, or `full_social`
+- `elapsed_ms`
+- `status`
+- `openai_status_code`
+- `timeout_stage`
+- `output_present`
+- `output_text_length`
+- `candidate_count`
+- `parse_valid`
+- `incomplete_reason`
+- provider response id/model when available
+- safe error type
+
+Do not run `TEST_OPENAI_PROBE=1` repeatedly. Use one ladder run to find the first failing stage, then change one variable at a time, such as `SOCIAL_REELS_OPENAI_REASONING_EFFORT`, `SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS`, or `SOCIAL_REELS_OPENAI_SERVICE_TIER`.
 
 ## Live Editorial Rules
 

@@ -225,6 +225,7 @@ Key billing and safety rules:
 - Returns privacy-safe timing diagnostics, including `request_id`, elapsed timings, provider/model when available, and timeout stage on failures.
 - Does not store raw transcript text, local file paths, FCPXML, tokens, emails, or provider secrets.
 - Normal `Different Moments` regeneration should be local from the cached candidate pool and should not call the backend.
+- Direct OpenAI model/schema probe ladder is available behind `TEST_OPENAI_PROBE=1 npm run test:backend`; it uses synthetic safe text only and does not run during normal tests.
 
 ## Production Trial Billing Verification (2026-04-28)
 

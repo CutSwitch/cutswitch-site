@@ -15,10 +15,17 @@ import {
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4o-mini";
 const SOCIAL_REELS_OPENAI_MODE_ENV = "SOCIAL_REELS_OPENAI_MODE";
+const SOCIAL_REELS_OPENAI_MODEL_ENV = "SOCIAL_REELS_OPENAI_MODEL";
+const SOCIAL_REELS_OPENAI_REASONING_EFFORT_ENV = "SOCIAL_REELS_OPENAI_REASONING_EFFORT";
+const SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS_ENV = "SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS";
+const SOCIAL_REELS_OPENAI_SERVICE_TIER_ENV = "SOCIAL_REELS_OPENAI_SERVICE_TIER";
 const SOCIAL_REELS_OPENAI_TIMEOUT_ENV = "SOCIAL_REELS_OPENAI_TIMEOUT_MS";
 const DEFAULT_OPENAI_TIMEOUT_MS = 120_000;
 const MIN_OPENAI_TIMEOUT_MS = 1_000;
 const MAX_OPENAI_TIMEOUT_MS = 170_000;
+const DEFAULT_MAX_OUTPUT_TOKENS = 6_000;
+const MIN_MAX_OUTPUT_TOKENS = 512;
+const MAX_MAX_OUTPUT_TOKENS = 16_000;
 export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
   "Return only schema-valid JSON. Return candidates ranked from strongest to weakest by viral/editorial potential; do not pad the list with weak clips.",
@@ -108,6 +115,31 @@ export class SocialReelsDiscoveryError extends Error {
 
 export function getSocialReelsOpenAIMode() {
   return process.env[SOCIAL_REELS_OPENAI_MODE_ENV]?.trim().toLowerCase() === "live" ? "live" : "mock";
+}
+
+export function getSocialReelsOpenAIModel() {
+  return process.env[SOCIAL_REELS_OPENAI_MODEL_ENV]?.trim() || DEFAULT_MODEL;
+}
+
+export function getSocialReelsOpenAIReasoningEffort() {
+  const effort = process.env[SOCIAL_REELS_OPENAI_REASONING_EFFORT_ENV]?.trim().toLowerCase();
+  return effort && effort !== "none" ? effort : null;
+}
+
+export function getSocialReelsOpenAIServiceTier() {
+  const serviceTier = process.env[SOCIAL_REELS_OPENAI_SERVICE_TIER_ENV]?.trim().toLowerCase();
+  if (!serviceTier || serviceTier === "none" || serviceTier === "standard") return null;
+  return serviceTier;
+}
+
+export function getSocialReelsOpenAIMaxOutputTokens() {
+  const raw = process.env[SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS_ENV]?.trim();
+  if (!raw) return DEFAULT_MAX_OUTPUT_TOKENS;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MAX_OUTPUT_TOKENS;
+
+  return Math.min(MAX_MAX_OUTPUT_TOKENS, Math.max(MIN_MAX_OUTPUT_TOKENS, Math.round(parsed)));
 }
 
 export function getSocialReelsOpenAITimeoutMs() {
@@ -458,7 +490,7 @@ export async function discoverSocialReelsCandidates(
   options: DiscoverSocialReelsOptions = {}
 ): Promise<DiscoverSocialReelsResult> {
   const input = socialReelsRequestSchema.parse(rawInput);
-  const model = options.model || DEFAULT_MODEL;
+  const model = options.model || getSocialReelsOpenAIModel();
 
   if (shouldUseMock(options)) {
     const response = socialReelsResponseSchema.parse(buildMockResponse(input));
@@ -488,10 +520,27 @@ export async function discoverSocialReelsCandidates(
   }
 
   const timeoutMs = getSocialReelsOpenAITimeoutMs();
+  const maxOutputTokens = getSocialReelsOpenAIMaxOutputTokens();
+  const reasoningEffort = getSocialReelsOpenAIReasoningEffort();
+  const serviceTier = getSocialReelsOpenAIServiceTier();
   const controller = new AbortController();
   const openaiStartedMs = Date.now();
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const requestBody: Record<string, unknown> = {
+    model,
+    input: buildPromptInput(input),
+    max_output_tokens: maxOutputTokens,
+    text: {
+      format: openAISocialReelsResponseFormat,
+    },
+  };
+  if (reasoningEffort) {
+    requestBody.reasoning = { effort: reasoningEffort };
+  }
+  if (serviceTier) {
+    requestBody.service_tier = serviceTier;
+  }
 
   let res: Response;
   try {
@@ -501,13 +550,7 @@ export async function discoverSocialReelsCandidates(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        input: buildPromptInput(input),
-        text: {
-          format: openAISocialReelsResponseFormat,
-        },
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
   } catch (error) {

@@ -4,22 +4,28 @@ import {
   SOCIAL_REELS_CLIP_TYPES,
   SOCIAL_REELS_DURATION_BUCKETS,
   SOCIAL_REELS_REJECTION_RISK_FLAGS,
-  openAISocialReelsResponseFormat,
   socialReelsRequestSchema,
   socialReelsResponseSchema,
   type SocialReelsCandidate,
   type SocialReelsRequest,
   type SocialReelsResponse,
 } from "@/lib/socialReelsSchema";
+import {
+  getEffectiveLiveShortlistCandidateCount,
+  hydrateSocialReelsShortlistResponse,
+  openAISocialReelsShortlistResponseFormat,
+  socialReelsShortlistResponseSchema,
+} from "@/lib/socialReelsShortlist";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-5-mini";
 const SOCIAL_REELS_OPENAI_MODE_ENV = "SOCIAL_REELS_OPENAI_MODE";
 const SOCIAL_REELS_OPENAI_MODEL_ENV = "SOCIAL_REELS_OPENAI_MODEL";
 const SOCIAL_REELS_OPENAI_REASONING_EFFORT_ENV = "SOCIAL_REELS_OPENAI_REASONING_EFFORT";
 const SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS_ENV = "SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS";
 const SOCIAL_REELS_OPENAI_SERVICE_TIER_ENV = "SOCIAL_REELS_OPENAI_SERVICE_TIER";
 const SOCIAL_REELS_OPENAI_TIMEOUT_ENV = "SOCIAL_REELS_OPENAI_TIMEOUT_MS";
+const SOCIAL_REELS_LIVE_CANDIDATE_COUNT_ENV = "SOCIAL_REELS_LIVE_CANDIDATE_COUNT";
 const DEFAULT_OPENAI_TIMEOUT_MS = 120_000;
 const MIN_OPENAI_TIMEOUT_MS = 1_000;
 const MAX_OPENAI_TIMEOUT_MS = 170_000;
@@ -80,6 +86,8 @@ export type DiscoverSocialReelsOptions = {
   model?: string;
 };
 
+export type SocialReelsDiscoveryMode = "mock_full_pool" | "live_shortlist";
+
 export type SocialReelsServiceDiagnostics = {
   mode: "mock" | "live";
   openaiRequestStartedAt: string | null;
@@ -96,6 +104,9 @@ export type DiscoverSocialReelsResult = {
   providerResponseId: string | null;
   model: string;
   mock: boolean;
+  requestedCandidateCount: number;
+  effectiveCandidateCount: number;
+  discoveryMode: SocialReelsDiscoveryMode;
   diagnostics: SocialReelsServiceDiagnostics;
 };
 
@@ -150,6 +161,10 @@ export function getSocialReelsOpenAITimeoutMs() {
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_OPENAI_TIMEOUT_MS;
 
   return Math.min(MAX_OPENAI_TIMEOUT_MS, Math.max(MIN_OPENAI_TIMEOUT_MS, Math.round(parsed)));
+}
+
+export function getSocialReelsLiveCandidateCount(requestedCandidateCount: number) {
+  return getEffectiveLiveShortlistCandidateCount(requestedCandidateCount, process.env[SOCIAL_REELS_LIVE_CANDIDATE_COUNT_ENV]);
 }
 
 function shouldUseMock(options: DiscoverSocialReelsOptions) {
@@ -460,7 +475,7 @@ function buildMockResponse(input: SocialReelsRequest): SocialReelsResponse {
   };
 }
 
-function buildPromptInput(input: SocialReelsRequest) {
+function buildPromptInput(input: SocialReelsRequest, metadata?: { discoveryMode?: SocialReelsDiscoveryMode; requestedCandidateCount?: number; effectiveCandidateCount?: number }) {
   return [
     {
       role: "system",
@@ -473,6 +488,13 @@ function buildPromptInput(input: SocialReelsRequest) {
         duration_bucket: input.duration_bucket,
         duration_preferences: input.duration_preferences,
         requested_candidate_count: input.requested_candidate_count,
+        original_requested_candidate_count: metadata?.requestedCandidateCount ?? input.requested_candidate_count,
+        effective_candidate_count: metadata?.effectiveCandidateCount ?? input.requested_candidate_count,
+        discovery_mode: metadata?.discoveryMode ?? "mock_full_pool",
+        live_shortlist_note:
+          metadata?.discoveryMode === "live_shortlist"
+            ? "Return exactly effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices."
+            : null,
         custom_duration_seconds: input.custom_duration_seconds || null,
         style: input.style,
         layout: input.layout,
@@ -500,6 +522,9 @@ export async function discoverSocialReelsCandidates(
       providerResponseId: null,
       model: "mock",
       mock: true,
+      requestedCandidateCount: input.requested_candidate_count,
+      effectiveCandidateCount: input.requested_candidate_count,
+      discoveryMode: "mock_full_pool",
       diagnostics: {
         mode: "mock",
         openaiRequestStartedAt: null,
@@ -523,16 +548,26 @@ export async function discoverSocialReelsCandidates(
   const maxOutputTokens = getSocialReelsOpenAIMaxOutputTokens();
   const reasoningEffort = getSocialReelsOpenAIReasoningEffort();
   const serviceTier = getSocialReelsOpenAIServiceTier();
+  const requestedCandidateCount = input.requested_candidate_count;
+  const effectiveCandidateCount = getSocialReelsLiveCandidateCount(requestedCandidateCount);
+  const liveShortlistInput: SocialReelsRequest = {
+    ...input,
+    requested_candidate_count: effectiveCandidateCount,
+  };
   const controller = new AbortController();
   const openaiStartedMs = Date.now();
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const requestBody: Record<string, unknown> = {
     model,
-    input: buildPromptInput(input),
+    input: buildPromptInput(liveShortlistInput, {
+      discoveryMode: "live_shortlist",
+      requestedCandidateCount,
+      effectiveCandidateCount,
+    }),
     max_output_tokens: maxOutputTokens,
     text: {
-      format: openAISocialReelsResponseFormat,
+      format: openAISocialReelsShortlistResponseFormat(effectiveCandidateCount),
     },
   };
   if (reasoningEffort) {
@@ -589,7 +624,8 @@ export async function discoverSocialReelsCandidates(
     }
 
     const parsedOutput = JSON.parse(outputText) as unknown;
-    const response = socialReelsResponseSchema.parse(parsedOutput);
+    const shortlist = socialReelsShortlistResponseSchema.parse(parsedOutput);
+    const response = hydrateSocialReelsShortlistResponse(shortlist, liveShortlistInput);
     const responseParseMs = Date.now() - responseParseStartedMs;
 
     return {
@@ -598,6 +634,9 @@ export async function discoverSocialReelsCandidates(
       providerResponseId: body.id || null,
       model: body.model || model,
       mock: false,
+      requestedCandidateCount,
+      effectiveCandidateCount,
+      discoveryMode: "live_shortlist",
       diagnostics: {
         mode: "live",
         openaiRequestStartedAt,

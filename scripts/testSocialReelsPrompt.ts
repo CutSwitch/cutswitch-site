@@ -5,8 +5,15 @@ import {
   SOCIAL_REELS_VIRAL_ATOMS,
   openAISocialReelsResponseFormat,
   socialReelsCandidateSchema,
+  socialReelsRequestSchema,
   socialReelsResponseSchema,
 } from "../lib/socialReelsSchema";
+import {
+  getEffectiveLiveShortlistCandidateCount,
+  hydrateSocialReelsShortlistResponse,
+  openAISocialReelsShortlistResponseFormat,
+  socialReelsShortlistResponseSchema,
+} from "../lib/socialReelsShortlist";
 
 let failed = false;
 
@@ -99,6 +106,14 @@ assert(
     promptSource.indexOf("if (shouldUseMock(options))") < promptSource.indexOf("await fetch(OPENAI_RESPONSES_URL"),
   "Mock mode guard must run before the OpenAI fetch."
 );
+assert(
+  promptSource.includes("buildMockResponse(input)") && promptSource.includes("input.requested_candidate_count"),
+  "Mock mode should keep using the requested 30-80 candidate pool."
+);
+assert(
+  promptSource.includes("live_shortlist") && promptSource.includes("getSocialReelsLiveCandidateCount"),
+  "Live mode should use the capped shortlist path."
+);
 
 socialReelsCandidateSchema.parse(candidate(0, false));
 socialReelsCandidateSchema.parse(candidate(0, true));
@@ -106,6 +121,54 @@ socialReelsResponseSchema.parse({
   candidates: Array.from({ length: 30 }, (_, index) => candidate(index, true)),
   model_notes: "Schema smoke only; no provider call.",
 });
+
+assert(getEffectiveLiveShortlistCandidateCount(30, undefined) === 10, "Live shortlist should default to 10 candidates.");
+assert(getEffectiveLiveShortlistCandidateCount(30, "8") === 8, "Live shortlist env override should be honored.");
+assert(getEffectiveLiveShortlistCandidateCount(30, "80") === 30, "Live shortlist env override should be capped to 30.");
+
+const shortlistFormat = openAISocialReelsShortlistResponseFormat(10);
+assert(shortlistFormat.schema.properties.candidates.minItems === 10, "Live shortlist response format should require 10 items.");
+assert(shortlistFormat.schema.properties.candidates.maxItems === 10, "Live shortlist response format should cap at 10 items.");
+
+const shortlistRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-social-reels-project",
+  source_duration_seconds: 600,
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Schema smoke" },
+  context: { platform: "social" },
+  segments: [
+    {
+      segment_id: "seg-1",
+      start_seconds: 0,
+      end_seconds: 120,
+      speaker: "Speaker 1",
+      text: "A useful clip starts with a question, creates tension, gives a clear answer, and lands a clean final reframe for the viewer.",
+    },
+  ],
+});
+const reducedShortlist = socialReelsShortlistResponseSchema.parse({
+  candidates: Array.from({ length: 10 }, (_, index) => ({
+    candidate_id: `live-shortlist-${String(index + 1).padStart(2, "0")}`,
+    title: `Live shortlist ${index + 1}`,
+    duration_bucket: "60s",
+    segment_id: "seg-1",
+    start_seconds: 10,
+    end_seconds: 70,
+    start_anchor_quote: "A useful clip starts with a question",
+    end_anchor_quote: "lands a clean final reframe for the viewer",
+    score: 0.76,
+  })),
+  model_notes: "Reduced shortlist smoke only.",
+});
+const hydratedShortlist = hydrateSocialReelsShortlistResponse(reducedShortlist, shortlistRequest);
+assert(hydratedShortlist.candidates.length === 10, "Live shortlist hydration should preserve the effective 10-candidate count.");
+for (const hydratedCandidate of hydratedShortlist.candidates) {
+  socialReelsCandidateSchema.parse(hydratedCandidate);
+}
 
 const responseFormatCandidate = openAISocialReelsResponseFormat.schema.properties.candidates.items;
 const responseFormatRequired = responseFormatCandidate.required as readonly string[];

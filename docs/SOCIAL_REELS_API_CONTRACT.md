@@ -20,6 +20,7 @@ Backend candidate pool policy:
 - Default: `50`
 - Maximum: `80`
 - Mock mode should not return fewer than `30` candidates when enough transcript text exists.
+- Live mode currently uses a fast shortlist path: requests may still ask for `30` to `80`, but the backend internally caps the effective live candidate count to `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` (default `10`) to avoid synchronous OpenAI timeouts.
 
 Entitlement and rediscovery policy:
 
@@ -187,6 +188,10 @@ Limits:
   "modelNotes": "Optional model note.",
   "usage": null,
   "providerResponseId": null,
+  "requested_candidate_count": 30,
+  "effective_candidate_count": 30,
+  "discovery_mode": "mock_full_pool",
+  "provider": "mock",
   "model": "mock",
   "mock": true,
   "entitlement": {
@@ -259,6 +264,7 @@ SOCIAL_REELS_OPENAI_REASONING_EFFORT=minimal
 SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS=6000
 SOCIAL_REELS_OPENAI_SERVICE_TIER=standard
 SOCIAL_REELS_OPENAI_TIMEOUT_MS=120000
+SOCIAL_REELS_LIVE_CANDIDATE_COUNT=10
 SOCIAL_REELS_OPENAI_PROBE_TIMEOUT_MS=30000
 ```
 
@@ -273,8 +279,10 @@ Rules:
 - `SOCIAL_REELS_OPENAI_SERVICE_TIER` defaults to `standard`, which means no priority tier is requested. Set it only for an intentional provider-tier test.
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
 - `SOCIAL_REELS_OPENAI_TIMEOUT_MS` controls the backend OpenAI fetch timeout. It defaults to `120000` milliseconds and is bounded so the route can fail before the platform function limit.
+- `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` controls the effective live shortlist size. It defaults to `10`, is bounded to `1` through `30`, and never exceeds the client's validated `requested_candidate_count`.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
+- Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The response is hydrated back into app-decodable candidate objects. Full viral/editorial enrichment remains in the contract and is reserved for a later refinement pass.
 
 ## Timeout Diagnostics
 
@@ -290,6 +298,8 @@ Captured fields:
 - `segment_count`
 - `approximate_total_text_chars`
 - `requested_candidate_count`
+- `effective_candidate_count`
+- `discovery_mode`
 - `duration_preferences`
 - `openai_request_started_at`
 - `openai_elapsed_ms`
@@ -333,6 +343,8 @@ TEST_SOCIAL_REELS_LIVE=1 npm run test:backend
 ```
 
 This sends a small synthetic three-segment request with `requested_candidate_count = 30` and `duration_preferences = ["60s"]`. It expects the target environment to have `SOCIAL_REELS_OPENAI_MODE=live` and `OPENAI_API_KEY` configured. The canary uses synthetic transcript text only.
+
+In live mode, the expected candidate count is currently the effective shortlist count, default `10`, not the requested backend pool floor. Mock mode still returns the requested `30` to `80` candidates.
 
 Large app-shaped mock/prod smoke:
 

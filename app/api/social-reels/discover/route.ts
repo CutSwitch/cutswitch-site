@@ -33,6 +33,8 @@ type RouteDiagnostics = {
   segment_count: number | null;
   approximate_total_text_chars: number | null;
   requested_candidate_count: number | null;
+  effective_candidate_count: number | null;
+  discovery_mode: string | null;
   duration_preferences: string[] | null;
   openai_request_started_at: string | null;
   openai_elapsed_ms: number | null;
@@ -86,6 +88,8 @@ function createDiagnostics(input: {
   timeoutStage?: string | null;
   provider?: string | null;
   model?: string | null;
+  effectiveCandidateCount?: number | null;
+  discoveryMode?: string | null;
   openaiRequestStartedAt?: string | null;
   openaiElapsedMs?: number | null;
   responseParseMs?: number | null;
@@ -99,6 +103,8 @@ function createDiagnostics(input: {
     segment_count: input.shape.segment_count,
     approximate_total_text_chars: input.shape.approximate_total_text_chars,
     requested_candidate_count: input.shape.requested_candidate_count,
+    effective_candidate_count: input.effectiveCandidateCount ?? null,
+    discovery_mode: input.discoveryMode ?? null,
     duration_preferences: input.shape.duration_preferences,
     openai_request_started_at: input.openaiRequestStartedAt ?? null,
     openai_elapsed_ms: input.openaiElapsedMs ?? null,
@@ -268,6 +274,8 @@ export async function POST(req: Request) {
       shape: payloadShape,
       provider: result.diagnostics.provider,
       model: result.diagnostics.model || result.model,
+      effectiveCandidateCount: result.effectiveCandidateCount,
+      discoveryMode: result.discoveryMode,
       openaiRequestStartedAt: result.diagnostics.openaiRequestStartedAt,
       openaiElapsedMs: result.diagnostics.openaiElapsedMs,
       responseParseMs: result.diagnostics.responseParseMs,
@@ -282,6 +290,10 @@ export async function POST(req: Request) {
       modelNotes: result.response.model_notes,
       usage: result.usage,
       providerResponseId: result.providerResponseId,
+      requested_candidate_count: result.requestedCandidateCount,
+      effective_candidate_count: result.effectiveCandidateCount,
+      discovery_mode: result.discoveryMode,
+      provider: result.diagnostics.provider,
       model: result.model,
       mock: result.mock,
       entitlement: {

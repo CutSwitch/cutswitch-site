@@ -311,8 +311,15 @@ if (!email || !password) {
       const candidates =
         body && typeof body === "object" && "candidates" in body && Array.isArray(body.candidates) ? body.candidates : [];
       const mock = booleanField(body, "mock");
-      if (!tinyLiveSocialReels.ok || candidates.length < 30) {
-        markFailed("Tiny live social reels canary did not return at least 30 candidates.");
+      const effectiveCandidateCount = numberField(body, "effective_candidate_count");
+      const requestedCandidateCount = numberField(body, "requested_candidate_count");
+      const discoveryMode =
+        body && typeof body === "object" && "discovery_mode" in body ? (body as Record<string, unknown>).discovery_mode : null;
+      if (!tinyLiveSocialReels.ok || candidates.length !== 10 || effectiveCandidateCount !== 10 || requestedCandidateCount !== 30) {
+        markFailed("Tiny live social reels canary did not return the 10-candidate live shortlist.");
+      }
+      if (discoveryMode !== "live_shortlist") {
+        markFailed("Tiny live social reels canary did not use live_shortlist discovery mode.");
       }
       if (mock !== false) {
         markFailed("Tiny live social reels canary did not use the live provider. Confirm SOCIAL_REELS_OPENAI_MODE=live in the target environment.");

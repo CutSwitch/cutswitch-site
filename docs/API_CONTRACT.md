@@ -222,6 +222,7 @@ Key billing and safety rules:
 - Requires an active or trialing subscription.
 - Does not consume editing time.
 - Is rate-limited by IP and user.
+- Accepts `requested_candidate_count` between `30` and `80`. Mock mode returns the requested full pool; live mode currently returns a capped shortlist using `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` (default `10`) and includes `requested_candidate_count`, `effective_candidate_count`, and `discovery_mode` in the response.
 - Returns privacy-safe timing diagnostics, including `request_id`, elapsed timings, provider/model when available, and timeout stage on failures.
 - Does not store raw transcript text, local file paths, FCPXML, tokens, emails, or provider secrets.
 - Normal `Different Moments` regeneration should be local from the cached candidate pool and should not call the backend.

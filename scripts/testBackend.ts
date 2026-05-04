@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { socialReelsRequestSchema } from "../lib/socialReelsSchema";
+import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
 import { runOpenAIProbeLadder } from "./openAIProbeLadder";
 
 type ApiResult = {
@@ -121,29 +123,88 @@ function makeSocialReelsSmokeText() {
 function makeTinyLiveSocialReelsSegments() {
   const safeSegments = [
     [
-      "The strongest social clips do not begin with setup, they begin when someone states the problem in plain language.",
-      "A viewer keeps watching because there is tension, not because the transcript happens to contain a keyword.",
-      "The useful lesson is that a clean clip should answer one question and then stop after the payoff lands.",
+      "The opening claim is that a great social clip makes one promise and then keeps it before the viewer has time to drift.",
+      "The first question is why some clips feel complete while sharper quotes still feel unfinished when they are posted alone.",
+      "The tension comes from the fact that transcript search can find a clever sentence, but it cannot prove the audience understands the stakes.",
+      "A producer needs the first twenty seconds to name the problem, because otherwise the payoff has nothing to push against.",
+      "Around the middle of the minute, the speaker should turn the idea and explain why the obvious shortcut creates weaker edits.",
+      "That turn matters because cutting only the punchline removes the pressure that made the punchline satisfying.",
+      "The answer is to keep enough spoken context that the viewer can feel the setup, the friction, the decision, and the consequence.",
+      "Near the end of the span, the point becomes clear: duration is not filler, duration is the room where the payoff earns trust.",
+      "The closing reframe is that a sixty second reel is not a stretched highlight, it is a compact story with a door that closes.",
+      "That final beat gives the editor permission to stop instead of trailing into the next topic.",
     ].join(" "),
     [
-      "A producer can feel the difference between a random quote and a story beat that has a beginning, middle, and ending.",
-      "The clip earns attention when the speaker challenges a common assumption and then gives a practical reframe.",
-      "That is the kind of moment CutSwitch should surface before anyone starts trimming by hand.",
+      "The opening question is whether automation should find the fastest cut or the moment that actually deserves to move fast.",
+      "A random quote can sound impressive for a few seconds, but it collapses because the viewer never learns what was at risk.",
+      "The stronger story beat starts with a claim, reveals why the claim is harder than it sounds, and then turns the corner.",
+      "The pressure builds when the speaker admits that faster tools can create faster mistakes if the moment is chosen badly.",
+      "Around the first minute, the useful distinction appears: speed helps only after the edit has a clear reason to exist.",
+      "That distinction gives the clip a middle, because now the viewer is comparing two kinds of efficiency instead of hearing a slogan.",
+      "The answer is that automation should protect editorial judgment, not replace the human decision about what is worth sharing.",
+      "Near the end, the speaker lands the practical lesson: the best tool removes busywork so the editor can spend attention on taste.",
+      "The reframe is that CutSwitch should surface complete story beats before anyone starts trimming by hand.",
+      "The payoff is a clean sentence the audience can remember: faster is only valuable when the moment is already worth the speed.",
     ].join(" "),
     [
-      "The title should be truthful, but it should still create curiosity about the conflict inside the idea.",
+      "The opening question is how to write a title that creates curiosity without making a promise the clip cannot honestly keep.",
+      "A misleading title gets the first click and loses the second viewer, because the audience feels the gap before the story resolves.",
+      "The tension is that truthful titles can sound flat, while dramatic titles can outrun the actual idea.",
+      "The better approach is to ask what question the viewer will carry into the first three seconds and what answer will satisfy it.",
+      "Around the middle, the speaker explains that the title should point at a conflict already present in the clip, not invent a conflict from outside it.",
+      "That gives the editor a practical test: if the title disappears when the ending is removed, the clip probably has a real payoff.",
+      "The answer is to pair a specific question with a clean ending so the title and the final line support each other.",
+      "Near the end, the reframe lands: a good title is not a trick, it is a map to the tension the viewer is about to feel.",
       "If the ending does not land, the candidate should be rejected instead of padded into the list.",
-      "A good reel has a hook, a turn, and a final thought that makes sense without the entire episode.",
+      "The payoff is that a good reel has a hook, a turn, and a final thought that makes sense without the entire episode.",
     ].join(" "),
   ];
 
   return safeSegments.map((text, index) => ({
     segment_id: `tiny-live-seg-${index + 1}`,
-    start_seconds: index * 80,
-    end_seconds: index * 80 + 80,
+    start_seconds: index * 210,
+    end_seconds: index * 210 + 210,
     speaker: "Speaker 1",
     text,
   }));
+}
+
+function makeTinyLiveSocialReelsPayload(projectHash: string) {
+  const segments = makeTinyLiveSocialReelsSegments();
+
+  return {
+    project_hash: projectHash,
+    source_duration_seconds: Math.ceil(Math.max(...segments.map((segment) => segment.end_seconds))),
+    duration_preferences: ["60s"],
+    requested_candidate_count: 30,
+    style: "balanced",
+    layout: "vertical",
+    caption_style: "bold",
+    episode_metadata: { title: "Tiny live social reels canary" },
+    context: { platform: "social", content_notes: "Synthetic tiny live canary only." },
+    segments,
+  };
+}
+
+function validateTinyLiveCanaryFixture() {
+  const parsed = socialReelsRequestSchema.parse(makeTinyLiveSocialReelsPayload("codex-social-live-fixture"));
+  const segmentDurations = parsed.segments.map((segment) => segment.end_seconds - segment.start_seconds);
+  const allSegmentsDurationRealistic = segmentDurations.every((duration) => duration >= 180 && duration <= 240);
+  if (!allSegmentsDurationRealistic) {
+    markFailed("Tiny live social reels fixture segments must each be 180-240 seconds.");
+  }
+
+  const eligibleWindows = buildSocialReelsLiveDurationWindows(
+    {
+      ...parsed,
+      requested_candidate_count: 10,
+    },
+    10
+  ).filter((window) => window.duration_bucket === "60s");
+
+  if (eligibleWindows.length < 10) {
+    markFailed("Tiny live social reels fixture must provide at least 10 eligible 60s duration windows.");
+  }
 }
 
 function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
@@ -173,6 +234,8 @@ if (testOpenAIProbe) {
   const probePassed = await runOpenAIProbeLadder();
   if (!probePassed) markFailed("OpenAI probe ladder failed. See OPENAI_PROBE_RESULT above for the first failing stage.");
 }
+
+validateTinyLiveCanaryFixture();
 
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");
@@ -305,18 +368,7 @@ if (!email || !password) {
     if (testSocialReelsLive) {
       const tinyLiveSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          project_hash: `codex-social-live-tiny-${Date.now()}`,
-          source_duration_seconds: 240,
-          duration_preferences: ["60s"],
-          requested_candidate_count: 30,
-          style: "balanced",
-          layout: "vertical",
-          caption_style: "bold",
-          episode_metadata: { title: "Tiny live social reels canary" },
-          context: { platform: "social", content_notes: "Synthetic tiny live canary only." },
-          segments: makeTinyLiveSocialReelsSegments(),
-        }),
+        body: JSON.stringify(makeTinyLiveSocialReelsPayload(`codex-social-live-tiny-${Date.now()}`)),
       });
       logResult("SOCIAL_REELS_TINY_LIVE", tinyLiveSocialReels);
 
@@ -328,6 +380,7 @@ if (!email || !password) {
       const requestedCandidateCount = numberField(body, "requested_candidate_count");
       const returnedCandidateCount = numberField(body, "returned_candidate_count");
       const filteredCandidateCount = numberField(body, "filtered_candidate_count");
+      const eligibleDurationWindowCount = numberField(body, "eligible_duration_window_count");
       const liveFilterReasons =
         body && typeof body === "object" && "live_filter_reasons" in body
           ? (body as Record<string, unknown>).live_filter_reasons
@@ -344,6 +397,7 @@ if (!email || !password) {
           {
             requested_candidate_count: requestedCandidateCount,
             effective_candidate_count: effectiveCandidateCount,
+            eligible_duration_window_count: eligibleDurationWindowCount,
             returned_candidate_count: returnedCandidateCount,
             filtered_candidate_count: filteredCandidateCount,
             live_filter_reasons: liveFilterReasons,
@@ -355,6 +409,9 @@ if (!email || !password) {
       );
       if (!tinyLiveSocialReels.ok || effectiveCandidateCount !== 10 || requestedCandidateCount !== 30) {
         markFailed("Tiny live social reels canary did not use the 10-candidate live shortlist request.");
+      }
+      if (eligibleDurationWindowCount === null || eligibleDurationWindowCount < 10) {
+        markFailed("Tiny live social reels canary did not report enough eligible duration windows.");
       }
       if (returnedCandidateCount !== candidates.length) {
         markFailed("Tiny live social reels canary returned_candidate_count did not match candidates length.");

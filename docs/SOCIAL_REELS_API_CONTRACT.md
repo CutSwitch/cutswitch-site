@@ -22,6 +22,7 @@ Backend candidate pool policy:
 - Mock mode should not return fewer than `30` candidates when enough transcript text exists.
 - Live mode currently uses a fast shortlist path: requests may still ask for `30` to `80`, but the backend internally caps the effective live candidate count to `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` (default `10`) to avoid synchronous OpenAI timeouts.
 - Live shortlist responses with fewer than `30` candidates are valid when `discovery_mode` is `live_shortlist`; the app should use the returned pool as-is for cache-only `Different Moments`.
+- Live shortlist responses may contain fewer than `effective_candidate_count` candidates when the backend or model cannot produce enough duration-valid spans. Fewer valid candidates are preferred over padded, wrong-duration candidates.
 
 Entitlement and rediscovery policy:
 
@@ -293,6 +294,8 @@ Rules:
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
 - The backend also post-validates live shortlist candidate duration before responding. Current live acceptance ranges are `15s = 10-22`, `30s = 22-42`, `60s = 45-78`, `90s = 70-115`, and `5-10m = 240-660`. Candidates outside the selected bucket are filtered out rather than padded with weak/invalid replacements.
+- For live shortlist requests, the backend provides OpenAI with a small set of backend-generated `duration_windows` that already fit the requested bucket. The model should select from those spans, keep `start_seconds`, `end_seconds`, and `duration_seconds` aligned to the chosen window, and place anchor quotes near the window boundary hints. This helps prevent compact moments from being mislabeled as `60s` candidates.
+- A `60s` candidate is expected to be an actual `45-78` second span, not a 10-second highlight. The prompt explicitly tells the model to return fewer candidates rather than padding with compact quotes when too few duration-valid spans are available.
 - Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as title options and captions are reserved for a later refinement pass.
 
 ## Timeout Diagnostics
@@ -310,6 +313,7 @@ Captured fields:
 - `approximate_total_text_chars`
 - `requested_candidate_count`
 - `effective_candidate_count`
+- `eligible_duration_window_count`
 - `returned_candidate_count`
 - `filtered_candidate_count`
 - `live_filter_reasons`
@@ -357,9 +361,11 @@ Tiny live canary:
 TEST_SOCIAL_REELS_LIVE=1 npm run test:backend
 ```
 
-This sends a small synthetic three-segment request with `requested_candidate_count = 30` and `duration_preferences = ["60s"]`. It expects the target environment to have `SOCIAL_REELS_OPENAI_MODE=live` and `OPENAI_API_KEY` configured. The canary uses synthetic transcript text only.
+This sends a synthetic three-segment request with `requested_candidate_count = 30` and `duration_preferences = ["60s"]`. It expects the target environment to have `SOCIAL_REELS_OPENAI_MODE=live` and `OPENAI_API_KEY` configured. The canary uses synthetic transcript text only.
 
-In live mode, the expected candidate count is currently the effective shortlist count, default `10`, not the requested backend pool floor. Mock mode still returns the requested `30` to `80` candidates.
+The tiny canary fixture intentionally uses denser synthetic transcript segments, each `180-240` seconds long, so a `60s` request contains enough text and timing shape for duration-window selection. A passing live canary should report `eligible_duration_window_count`, return only candidates whose `duration_seconds` are inside or near the `45-78` second backend compliance window, and avoid padding with compact highlights.
+
+In live mode, the effective shortlist count is currently an upper bound, default `10`, not the requested backend pool floor. Mock mode still returns the requested `30` to `80` candidates.
 
 Future expansion can split discovery into a fast shortlist pass plus a later enrichment/refinement pass if the app needs a larger live-generated pool.
 

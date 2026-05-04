@@ -34,6 +34,7 @@ type RouteDiagnostics = {
   approximate_total_text_chars: number | null;
   requested_candidate_count: number | null;
   effective_candidate_count: number | null;
+  eligible_duration_window_count: number | null;
   returned_candidate_count: number | null;
   filtered_candidate_count: number | null;
   live_filter_reasons: Record<string, number> | null;
@@ -93,6 +94,7 @@ function createDiagnostics(input: {
   provider?: string | null;
   model?: string | null;
   effectiveCandidateCount?: number | null;
+  eligibleDurationWindowCount?: number | null;
   returnedCandidateCount?: number | null;
   filteredCandidateCount?: number | null;
   liveFilterReasons?: Record<string, number> | null;
@@ -112,6 +114,7 @@ function createDiagnostics(input: {
     approximate_total_text_chars: input.shape.approximate_total_text_chars,
     requested_candidate_count: input.shape.requested_candidate_count,
     effective_candidate_count: input.effectiveCandidateCount ?? null,
+    eligible_duration_window_count: input.eligibleDurationWindowCount ?? null,
     returned_candidate_count: input.returnedCandidateCount ?? null,
     filtered_candidate_count: input.filteredCandidateCount ?? null,
     live_filter_reasons: input.liveFilterReasons ?? null,
@@ -287,6 +290,7 @@ export async function POST(req: Request) {
       provider: result.diagnostics.provider,
       model: result.diagnostics.model || result.model,
       effectiveCandidateCount: result.effectiveCandidateCount,
+      eligibleDurationWindowCount: result.eligibleDurationWindowCount,
       returnedCandidateCount: result.returnedCandidateCount,
       filteredCandidateCount: result.filteredCandidateCount,
       liveFilterReasons: result.liveFilterReasons,
@@ -308,6 +312,7 @@ export async function POST(req: Request) {
       providerResponseId: result.providerResponseId,
       requested_candidate_count: result.requestedCandidateCount,
       effective_candidate_count: result.effectiveCandidateCount,
+      eligible_duration_window_count: result.eligibleDurationWindowCount,
       returned_candidate_count: result.returnedCandidateCount,
       filtered_candidate_count: result.filteredCandidateCount,
       live_filter_reasons: result.liveFilterReasons,

@@ -11,6 +11,10 @@ import {
   type SocialReelsResponse,
 } from "@/lib/socialReelsSchema";
 import {
+  buildSocialReelsLiveDurationWindows,
+  type SocialReelsDurationWindow,
+} from "@/lib/socialReelsDurationWindows";
+import {
   getEffectiveLiveShortlistCandidateCount,
   getSocialReelsDurationSecondsRange,
   hydrateSocialReelsShortlistResponse,
@@ -47,6 +51,8 @@ export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff.",
   "duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript.",
   "Duration bucket is a hard constraint. 15s clips must be about 10-22 seconds, 30s clips about 22-42 seconds, 60s clips about 45-78 seconds, 90s clips about 70-115 seconds, and 5-10m clips about 240-660 seconds. Do not return a candidate for a bucket if the available transcript span cannot support that duration.",
+  "When duration_windows are provided, use them as the duration source of truth. Choose one duration-valid window per candidate, keep start_seconds/end_seconds/duration_seconds inside that window, and place start/end anchor quotes near the provided boundary hints. For a 60s request, select a real 45-78 second story span; do not compress a small highlight into a fake 60s clip. A 60s clip is not a 10-second highlight.",
+  "If you cannot find enough duration-valid candidates, return fewer candidates rather than padding with compact quotes or weak starts. CutSwitch will filter candidates outside the duration range.",
   "rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
 ].join(" ");
 
@@ -112,6 +118,7 @@ export type DiscoverSocialReelsResult = {
   effectiveCandidateCount: number;
   returnedCandidateCount: number;
   filteredCandidateCount: number;
+  eligibleDurationWindowCount: number | null;
   liveFilterReasons: SocialReelsLiveFilterReasons;
   returnedDurationSecondsRange: SocialReelsDurationSecondsRange;
   discoveryMode: SocialReelsDiscoveryMode;
@@ -483,7 +490,15 @@ function buildMockResponse(input: SocialReelsRequest): SocialReelsResponse {
   };
 }
 
-function buildPromptInput(input: SocialReelsRequest, metadata?: { discoveryMode?: SocialReelsDiscoveryMode; requestedCandidateCount?: number; effectiveCandidateCount?: number }) {
+function buildPromptInput(
+  input: SocialReelsRequest,
+  metadata?: {
+    discoveryMode?: SocialReelsDiscoveryMode;
+    requestedCandidateCount?: number;
+    effectiveCandidateCount?: number;
+    durationWindows?: SocialReelsDurationWindow[];
+  }
+) {
   return [
     {
       role: "system",
@@ -501,8 +516,13 @@ function buildPromptInput(input: SocialReelsRequest, metadata?: { discoveryMode?
         discovery_mode: metadata?.discoveryMode ?? "mock_full_pool",
         live_shortlist_note:
           metadata?.discoveryMode === "live_shortlist"
-            ? "Return exactly effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices. Duration bucket compliance is mandatory: for a 60s request, each candidate must span roughly 45-78 seconds of spoken content; never return 8s, 12s, 16s, 22s, or 32s clips as 60s candidates. start_seconds, end_seconds, and duration_seconds must match that span."
+            ? "Return up to effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices. Duration bucket compliance is mandatory: for a 60s request, each candidate must span roughly 45-78 seconds of spoken content; never return 8s, 12s, 16s, 22s, or 32s clips as 60s candidates. A 60s clip is not a 10-second highlight. Choose from duration_windows when present. Use each window's start/end/duration as the clip span, then copy distinctive transcript anchor quotes near that window's boundary hints. If there are fewer duration-valid candidates than requested, return fewer candidates rather than padding."
             : null,
+        duration_window_instruction:
+          metadata?.discoveryMode === "live_shortlist"
+            ? "duration_windows are backend-generated candidate spans that already fit the requested duration bucket. They are hints, not transcript replacements. Pick windows that contain a complete Question -> Tension -> Answer -> Reframe arc. Set candidate_id to the chosen window_id or a stable derivative."
+            : null,
+        duration_windows: metadata?.durationWindows ?? [],
         custom_duration_seconds: input.custom_duration_seconds || null,
         style: input.style,
         layout: input.layout,
@@ -534,6 +554,7 @@ export async function discoverSocialReelsCandidates(
       effectiveCandidateCount: input.requested_candidate_count,
       returnedCandidateCount: response.candidates.length,
       filteredCandidateCount: 0,
+      eligibleDurationWindowCount: null,
       liveFilterReasons: { duration_outside_bucket: 0 },
       returnedDurationSecondsRange: getSocialReelsDurationSecondsRange(response.candidates),
       discoveryMode: "mock_full_pool",
@@ -566,6 +587,7 @@ export async function discoverSocialReelsCandidates(
     ...input,
     requested_candidate_count: effectiveCandidateCount,
   };
+  const durationWindows = buildSocialReelsLiveDurationWindows(liveShortlistInput, effectiveCandidateCount);
   const controller = new AbortController();
   const openaiStartedMs = Date.now();
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
@@ -576,6 +598,7 @@ export async function discoverSocialReelsCandidates(
       discoveryMode: "live_shortlist",
       requestedCandidateCount,
       effectiveCandidateCount,
+      durationWindows,
     }),
     max_output_tokens: maxOutputTokens,
     text: {
@@ -650,6 +673,7 @@ export async function discoverSocialReelsCandidates(
       effectiveCandidateCount,
       returnedCandidateCount: hydratedShortlist.returnedCandidateCount,
       filteredCandidateCount: hydratedShortlist.filteredCandidateCount,
+      eligibleDurationWindowCount: durationWindows.length,
       liveFilterReasons: hydratedShortlist.liveFilterReasons,
       returnedDurationSecondsRange: hydratedShortlist.returnedDurationSecondsRange,
       discoveryMode: "live_shortlist",

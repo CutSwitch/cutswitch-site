@@ -8,6 +8,7 @@ import {
   socialReelsRequestSchema,
   socialReelsResponseSchema,
 } from "../lib/socialReelsSchema";
+import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
 import {
   durationFitsSocialReelsLiveBucket,
   getEffectiveLiveShortlistCandidateCount,
@@ -105,6 +106,16 @@ for (const exclusion of [
 for (const durationConstraint of ["hard constraint", "10-22", "22-42", "45-78", "70-115", "240-660"]) {
   assert(promptSource.includes(durationConstraint), `Prompt is missing duration compliance guidance: ${durationConstraint}.`);
 }
+for (const durationWindowGuidance of [
+  "duration_windows",
+  "duration_window_instruction",
+  "Choose from duration_windows",
+  "backend-generated candidate spans",
+  "chosen window_id",
+  "return fewer candidates rather than padding",
+]) {
+  assert(promptSource.includes(durationWindowGuidance), `Prompt is missing duration window guidance: ${durationWindowGuidance}.`);
+}
 
 assert(
   promptSource.indexOf("if (shouldUseMock(options))") >= 0 &&
@@ -126,6 +137,11 @@ assert(
 assert(
   promptSource.includes("requested_candidate_count: effectiveCandidateCount"),
   "Live shortlist prompt input should ask OpenAI for the effective count, not the requested full-pool count."
+);
+assert(
+  promptSource.includes("buildSocialReelsLiveDurationWindows(liveShortlistInput, effectiveCandidateCount)") &&
+    promptSource.includes("durationWindows"),
+  "Live shortlist should provide backend-generated duration windows to the OpenAI prompt."
 );
 
 socialReelsCandidateSchema.parse(candidate(0, false));
@@ -158,7 +174,7 @@ assert(durationFitsSocialReelsLiveBucket("5-10m", 420), "5-10m live bucket shoul
 assert(!durationFitsSocialReelsLiveBucket("5-10m", 120), "5-10m live bucket should reject 120 seconds.");
 
 const shortlistFormat = openAISocialReelsShortlistResponseFormat(10);
-assert(shortlistFormat.schema.properties.candidates.minItems === 10, "Live shortlist response format should require 10 items.");
+assert(shortlistFormat.schema.properties.candidates.minItems === 3, "Live shortlist response format should allow fewer than 10 valid items.");
 assert(shortlistFormat.schema.properties.candidates.maxItems === 10, "Live shortlist response format should cap at 10 items.");
 
 const shortlistRequest = socialReelsRequestSchema.parse({
@@ -181,6 +197,45 @@ const shortlistRequest = socialReelsRequestSchema.parse({
     },
   ],
 });
+const durationWindowRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-duration-windows",
+  source_duration_seconds: 630,
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Duration window smoke" },
+  context: { platform: "social" },
+  segments: Array.from({ length: 3 }, (_, index) => ({
+    segment_id: `duration-window-seg-${index + 1}`,
+    start_seconds: index * 210,
+    end_seconds: index * 210 + 210,
+    speaker: "Speaker 1",
+    text: [
+      "The opening question asks why a clip with one sharp line still fails when the viewer lacks context.",
+      "The tension grows because the editor wants speed, but the audience needs enough pressure to understand the payoff.",
+      "The middle turn explains that a sixty second clip must show the claim, the friction, and the practical answer.",
+      "The answer lands when the speaker connects the original question to a clear editorial rule.",
+      "The final reframe says duration is not padding; it is the shape that lets the ending feel earned.",
+      "That complete arc gives the viewer a reason to remember the clip after it ends.",
+    ].join(" "),
+  })),
+});
+const durationWindows = buildSocialReelsLiveDurationWindows(
+  {
+    ...durationWindowRequest,
+    requested_candidate_count: 10,
+  },
+  10
+).filter((window) => window.duration_bucket === "60s");
+assert(durationWindows.length >= 10, "Duration window helper should create at least 10 eligible 60s windows.");
+for (const window of durationWindows) {
+  assert(durationFitsSocialReelsLiveBucket("60s", window.duration_seconds), "Duration window helper should create 60s-compatible windows.");
+  assert(window.end_seconds > window.start_seconds, "Duration window helper should create valid start/end times.");
+  assert(window.start_anchor_hint.length >= 20, "Duration window helper should include a useful start anchor hint.");
+  assert(window.end_anchor_hint.length >= 20, "Duration window helper should include a useful end anchor hint.");
+}
 const reducedShortlist = socialReelsShortlistResponseSchema.parse({
   candidates: Array.from({ length: 10 }, (_, index) => ({
     candidate_id: `live-shortlist-${String(index + 1).padStart(2, "0")}`,

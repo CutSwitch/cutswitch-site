@@ -148,7 +148,7 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
       properties: {
         candidates: {
           type: "array",
-          minItems: boundedCandidateCount,
+          minItems: SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES,
           maxItems: boundedCandidateCount,
           items: {
             type: "object",

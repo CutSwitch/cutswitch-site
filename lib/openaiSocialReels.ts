@@ -12,9 +12,12 @@ import {
 } from "@/lib/socialReelsSchema";
 import {
   getEffectiveLiveShortlistCandidateCount,
+  getSocialReelsDurationSecondsRange,
   hydrateSocialReelsShortlistResponse,
   openAISocialReelsShortlistResponseFormat,
   socialReelsShortlistResponseSchema,
+  type SocialReelsDurationSecondsRange,
+  type SocialReelsLiveFilterReasons,
 } from "@/lib/socialReelsShortlist";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
@@ -43,6 +46,7 @@ export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "Avoid countdowns, timers, pre-show chatter, mic checks, technical setup, sponsor/ad reads unless explicitly requested, intro/outro logistics, vague greetings, housekeeping, dead air, generic motivational filler, purely transitional moments, clips that begin mid-thought, clips that require too much prior context, and clips with missing payoff.",
   "A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff.",
   "duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript.",
+  "Duration bucket is a hard constraint. 15s clips must be about 10-22 seconds, 30s clips about 22-42 seconds, 60s clips about 45-78 seconds, 90s clips about 70-115 seconds, and 5-10m clips about 240-660 seconds. Do not return a candidate for a bucket if the available transcript span cannot support that duration.",
   "rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
 ].join(" ");
 
@@ -106,6 +110,10 @@ export type DiscoverSocialReelsResult = {
   mock: boolean;
   requestedCandidateCount: number;
   effectiveCandidateCount: number;
+  returnedCandidateCount: number;
+  filteredCandidateCount: number;
+  liveFilterReasons: SocialReelsLiveFilterReasons;
+  returnedDurationSecondsRange: SocialReelsDurationSecondsRange;
   discoveryMode: SocialReelsDiscoveryMode;
   diagnostics: SocialReelsServiceDiagnostics;
 };
@@ -493,7 +501,7 @@ function buildPromptInput(input: SocialReelsRequest, metadata?: { discoveryMode?
         discovery_mode: metadata?.discoveryMode ?? "mock_full_pool",
         live_shortlist_note:
           metadata?.discoveryMode === "live_shortlist"
-            ? "Return exactly effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices."
+            ? "Return exactly effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices. Duration bucket compliance is mandatory: for a 60s request, each candidate must span roughly 45-78 seconds of spoken content; never return 8s, 12s, 16s, 22s, or 32s clips as 60s candidates. start_seconds, end_seconds, and duration_seconds must match that span."
             : null,
         custom_duration_seconds: input.custom_duration_seconds || null,
         style: input.style,
@@ -524,6 +532,10 @@ export async function discoverSocialReelsCandidates(
       mock: true,
       requestedCandidateCount: input.requested_candidate_count,
       effectiveCandidateCount: input.requested_candidate_count,
+      returnedCandidateCount: response.candidates.length,
+      filteredCandidateCount: 0,
+      liveFilterReasons: { duration_outside_bucket: 0 },
+      returnedDurationSecondsRange: getSocialReelsDurationSecondsRange(response.candidates),
       discoveryMode: "mock_full_pool",
       diagnostics: {
         mode: "mock",
@@ -625,17 +637,21 @@ export async function discoverSocialReelsCandidates(
 
     const parsedOutput = JSON.parse(outputText) as unknown;
     const shortlist = socialReelsShortlistResponseSchema.parse(parsedOutput);
-    const response = hydrateSocialReelsShortlistResponse(shortlist, liveShortlistInput);
+    const hydratedShortlist = hydrateSocialReelsShortlistResponse(shortlist, liveShortlistInput);
     const responseParseMs = Date.now() - responseParseStartedMs;
 
     return {
-      response,
+      response: hydratedShortlist.response,
       usage: body.usage || null,
       providerResponseId: body.id || null,
       model: body.model || model,
       mock: false,
       requestedCandidateCount,
       effectiveCandidateCount,
+      returnedCandidateCount: hydratedShortlist.returnedCandidateCount,
+      filteredCandidateCount: hydratedShortlist.filteredCandidateCount,
+      liveFilterReasons: hydratedShortlist.liveFilterReasons,
+      returnedDurationSecondsRange: hydratedShortlist.returnedDurationSecondsRange,
       discoveryMode: "live_shortlist",
       diagnostics: {
         mode: "live",

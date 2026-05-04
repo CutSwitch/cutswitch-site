@@ -34,6 +34,10 @@ type RouteDiagnostics = {
   approximate_total_text_chars: number | null;
   requested_candidate_count: number | null;
   effective_candidate_count: number | null;
+  returned_candidate_count: number | null;
+  filtered_candidate_count: number | null;
+  live_filter_reasons: Record<string, number> | null;
+  returned_duration_seconds_range: { min: number | null; max: number | null } | null;
   discovery_mode: string | null;
   duration_preferences: string[] | null;
   openai_request_started_at: string | null;
@@ -89,6 +93,10 @@ function createDiagnostics(input: {
   provider?: string | null;
   model?: string | null;
   effectiveCandidateCount?: number | null;
+  returnedCandidateCount?: number | null;
+  filteredCandidateCount?: number | null;
+  liveFilterReasons?: Record<string, number> | null;
+  returnedDurationSecondsRange?: { min: number | null; max: number | null } | null;
   discoveryMode?: string | null;
   openaiRequestStartedAt?: string | null;
   openaiElapsedMs?: number | null;
@@ -104,6 +112,10 @@ function createDiagnostics(input: {
     approximate_total_text_chars: input.shape.approximate_total_text_chars,
     requested_candidate_count: input.shape.requested_candidate_count,
     effective_candidate_count: input.effectiveCandidateCount ?? null,
+    returned_candidate_count: input.returnedCandidateCount ?? null,
+    filtered_candidate_count: input.filteredCandidateCount ?? null,
+    live_filter_reasons: input.liveFilterReasons ?? null,
+    returned_duration_seconds_range: input.returnedDurationSecondsRange ?? null,
     discovery_mode: input.discoveryMode ?? null,
     duration_preferences: input.shape.duration_preferences,
     openai_request_started_at: input.openaiRequestStartedAt ?? null,
@@ -275,6 +287,10 @@ export async function POST(req: Request) {
       provider: result.diagnostics.provider,
       model: result.diagnostics.model || result.model,
       effectiveCandidateCount: result.effectiveCandidateCount,
+      returnedCandidateCount: result.returnedCandidateCount,
+      filteredCandidateCount: result.filteredCandidateCount,
+      liveFilterReasons: result.liveFilterReasons,
+      returnedDurationSecondsRange: result.returnedDurationSecondsRange,
       discoveryMode: result.discoveryMode,
       openaiRequestStartedAt: result.diagnostics.openaiRequestStartedAt,
       openaiElapsedMs: result.diagnostics.openaiElapsedMs,
@@ -292,6 +308,10 @@ export async function POST(req: Request) {
       providerResponseId: result.providerResponseId,
       requested_candidate_count: result.requestedCandidateCount,
       effective_candidate_count: result.effectiveCandidateCount,
+      returned_candidate_count: result.returnedCandidateCount,
+      filtered_candidate_count: result.filteredCandidateCount,
+      live_filter_reasons: result.liveFilterReasons,
+      returned_duration_seconds_range: result.returnedDurationSecondsRange,
       discovery_mode: result.discoveryMode,
       provider: result.diagnostics.provider,
       model: result.model,

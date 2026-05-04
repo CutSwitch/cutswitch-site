@@ -9,7 +9,9 @@ import {
   socialReelsResponseSchema,
 } from "../lib/socialReelsSchema";
 import {
+  durationFitsSocialReelsLiveBucket,
   getEffectiveLiveShortlistCandidateCount,
+  getSocialReelsLiveDurationCompliance,
   hydrateSocialReelsShortlistResponse,
   openAISocialReelsShortlistResponseFormat,
   socialReelsShortlistResponseSchema,
@@ -100,6 +102,9 @@ for (const exclusion of [
 ]) {
   assert(promptSource.includes(exclusion), `Prompt is missing anti-junk exclusion: ${exclusion}.`);
 }
+for (const durationConstraint of ["hard constraint", "10-22", "22-42", "45-78", "70-115", "240-660"]) {
+  assert(promptSource.includes(durationConstraint), `Prompt is missing duration compliance guidance: ${durationConstraint}.`);
+}
 
 assert(
   promptSource.indexOf("if (shouldUseMock(options))") >= 0 &&
@@ -129,12 +134,28 @@ socialReelsResponseSchema.parse({
   candidates: Array.from({ length: 30 }, (_, index) => candidate(index, true)),
   model_notes: "Schema smoke only; no provider call.",
 });
+socialReelsResponseSchema.parse({
+  candidates: Array.from({ length: 50 }, (_, index) => candidate(index, true)),
+  model_notes: "Mock 50-candidate pool schema smoke only; no provider call.",
+});
 
 assert(getEffectiveLiveShortlistCandidateCount(30, undefined) === 10, "Live shortlist should default to 10 candidates.");
 assert(getEffectiveLiveShortlistCandidateCount(30, "8") === 8, "Live shortlist env override should be honored.");
 assert(getEffectiveLiveShortlistCandidateCount(30, "80") === 10, "Live shortlist env override should be capped to 10.");
 assert(getEffectiveLiveShortlistCandidateCount(30, "1") === 3, "Live shortlist env override should be floored at 3.");
 assert(getEffectiveLiveShortlistCandidateCount(5, "10") === 5, "Live shortlist should never exceed a lower requested count.");
+assert(durationFitsSocialReelsLiveBucket("15s", 15), "15s live bucket should accept 15 seconds.");
+assert(!durationFitsSocialReelsLiveBucket("15s", 24), "15s live bucket should reject 24 seconds.");
+assert(durationFitsSocialReelsLiveBucket("30s", 30), "30s live bucket should accept 30 seconds.");
+assert(!durationFitsSocialReelsLiveBucket("30s", 45), "30s live bucket should reject 45 seconds.");
+assert(durationFitsSocialReelsLiveBucket("60s", 60), "60s live bucket should accept 60 seconds.");
+for (const bad60sDuration of [8, 12, 22, 32]) {
+  assert(!durationFitsSocialReelsLiveBucket("60s", bad60sDuration), `60s live bucket should reject ${bad60sDuration} seconds.`);
+}
+assert(durationFitsSocialReelsLiveBucket("90s", 90), "90s live bucket should accept 90 seconds.");
+assert(!durationFitsSocialReelsLiveBucket("90s", 60), "90s live bucket should reject 60 seconds.");
+assert(durationFitsSocialReelsLiveBucket("5-10m", 420), "5-10m live bucket should accept 420 seconds.");
+assert(!durationFitsSocialReelsLiveBucket("5-10m", 120), "5-10m live bucket should reject 120 seconds.");
 
 const shortlistFormat = openAISocialReelsShortlistResponseFormat(10);
 assert(shortlistFormat.schema.properties.candidates.minItems === 10, "Live shortlist response format should require 10 items.");
@@ -193,11 +214,61 @@ const reducedShortlist = socialReelsShortlistResponseSchema.parse({
   model_notes: "Reduced shortlist smoke only.",
 });
 const hydratedShortlist = hydrateSocialReelsShortlistResponse(reducedShortlist, shortlistRequest);
-assert(hydratedShortlist.candidates.length === 10, "Live shortlist hydration should preserve the effective 10-candidate count.");
-socialReelsResponseSchema.parse(hydratedShortlist);
-for (const hydratedCandidate of hydratedShortlist.candidates) {
+assert(hydratedShortlist.response.candidates.length === 10, "Live shortlist hydration should preserve the effective 10-candidate count.");
+assert(hydratedShortlist.returnedCandidateCount === 10, "Live shortlist metadata should report returned count.");
+assert(hydratedShortlist.filteredCandidateCount === 0, "Live shortlist metadata should report zero filtered candidates for valid input.");
+assert(hydratedShortlist.liveFilterReasons.duration_outside_bucket === 0, "Live shortlist filter reasons should report zero duration mismatches for valid input.");
+socialReelsResponseSchema.parse(hydratedShortlist.response);
+for (const hydratedCandidate of hydratedShortlist.response.candidates) {
   socialReelsCandidateSchema.parse(hydratedCandidate);
 }
+assert(
+  getSocialReelsLiveDurationCompliance(reducedShortlist.candidates[0]).ok,
+  "60s reduced shortlist candidate should pass duration compliance."
+);
+
+const durationFilteredShortlist = socialReelsShortlistResponseSchema.parse({
+  candidates: [
+    {
+      ...reducedShortlist.candidates[0],
+      candidate_id: "live-shortlist-valid-60s",
+      start_seconds: 0,
+      end_seconds: 60,
+      duration_seconds: 60,
+    },
+    {
+      ...reducedShortlist.candidates[1],
+      candidate_id: "live-shortlist-too-short-60s",
+      start_seconds: 0,
+      end_seconds: 22,
+      duration_seconds: 22,
+    },
+    {
+      ...reducedShortlist.candidates[2],
+      candidate_id: "live-shortlist-too-long-60s",
+      start_seconds: 0,
+      end_seconds: 90,
+      duration_seconds: 90,
+    },
+  ],
+  model_notes: "Duration filter smoke only.",
+});
+const filteredHydratedShortlist = hydrateSocialReelsShortlistResponse(durationFilteredShortlist, shortlistRequest);
+assert(
+  filteredHydratedShortlist.response.candidates.length === 1 &&
+    filteredHydratedShortlist.response.candidates[0].candidate_id === "live-shortlist-valid-60s",
+  "Live shortlist hydration should reject candidates outside the requested duration bucket."
+);
+assert(filteredHydratedShortlist.returnedCandidateCount === 1, "Filtered shortlist should report returned count.");
+assert(filteredHydratedShortlist.filteredCandidateCount === 2, "Filtered shortlist should report filtered count.");
+assert(
+  filteredHydratedShortlist.liveFilterReasons.duration_outside_bucket === 2,
+  "Filtered shortlist should report duration_outside_bucket reason count."
+);
+assert(
+  filteredHydratedShortlist.response.model_notes.includes("filtered for duration bucket mismatch"),
+  "Live shortlist model notes should record safe duration filtering metadata."
+);
 
 const responseFormatCandidate = openAISocialReelsResponseFormat.schema.properties.candidates.items;
 const responseFormatRequired = responseFormatCandidate.required as readonly string[];

@@ -16,6 +16,42 @@ export const SOCIAL_REELS_LIVE_SHORTLIST_MIN_CANDIDATES = 3;
 export const SOCIAL_REELS_LIVE_SHORTLIST_MAX_CANDIDATES = 10;
 
 const scoreSchema = z.number().min(0).max(1);
+const LIVE_DURATION_RANGES = {
+  "15s": { min: 10, max: 22 },
+  "30s": { min: 22, max: 42 },
+  "60s": { min: 45, max: 78 },
+  "90s": { min: 70, max: 115 },
+  "5-10m": { min: 240, max: 660 },
+} as const satisfies Record<(typeof SOCIAL_REELS_DURATION_BUCKETS)[number], { min: number; max: number }>;
+
+export function getSocialReelsLiveDurationRange(bucket: (typeof SOCIAL_REELS_DURATION_BUCKETS)[number]) {
+  return LIVE_DURATION_RANGES[bucket];
+}
+
+export function durationFitsSocialReelsLiveBucket(
+  bucket: (typeof SOCIAL_REELS_DURATION_BUCKETS)[number],
+  durationSeconds: number
+) {
+  const range = getSocialReelsLiveDurationRange(bucket);
+  return Number.isFinite(durationSeconds) && durationSeconds >= range.min && durationSeconds <= range.max;
+}
+
+export function getSocialReelsLiveDurationCompliance(candidate: Pick<SocialReelsShortlistCandidate, "duration_bucket" | "start_seconds" | "end_seconds" | "duration_seconds">) {
+  const roughDuration = Math.round(candidate.end_seconds - candidate.start_seconds);
+  const declaredDuration = Math.round(candidate.duration_seconds);
+  const durationSeconds = Number.isFinite(roughDuration) ? roughDuration : declaredDuration;
+  const range = getSocialReelsLiveDurationRange(candidate.duration_bucket);
+
+  return {
+    ok:
+      durationFitsSocialReelsLiveBucket(candidate.duration_bucket, durationSeconds) &&
+      Math.abs(durationSeconds - declaredDuration) <= 2,
+    durationSeconds,
+    declaredDuration,
+    minSeconds: range.min,
+    maxSeconds: range.max,
+  };
+}
 
 export const socialReelsShortlistCandidateSchema = z
   .object({
@@ -76,6 +112,13 @@ export const socialReelsShortlistResponseSchema = z.object({
 
 export type SocialReelsShortlistCandidate = z.infer<typeof socialReelsShortlistCandidateSchema>;
 export type SocialReelsShortlistResponse = z.infer<typeof socialReelsShortlistResponseSchema>;
+export type SocialReelsLiveFilterReasons = {
+  duration_outside_bucket: number;
+};
+export type SocialReelsDurationSecondsRange = {
+  min: number | null;
+  max: number | null;
+};
 
 export function getEffectiveLiveShortlistCandidateCount(requestedCandidateCount: number, rawEnvValue?: string | null) {
   const parsed = rawEnvValue?.trim() ? Number(rawEnvValue.trim()) : SOCIAL_REELS_LIVE_SHORTLIST_DEFAULT_CANDIDATES;
@@ -275,14 +318,43 @@ export function hydrateSocialReelsShortlistCandidate(
   return socialReelsCandidateSchema.parse(hydrated);
 }
 
+export function getSocialReelsDurationSecondsRange(candidates: Array<Pick<SocialReelsCandidate, "duration_seconds">>): SocialReelsDurationSecondsRange {
+  if (candidates.length === 0) return { min: null, max: null };
+
+  const durations = candidates.map((candidate) => candidate.duration_seconds).filter((duration) => Number.isFinite(duration));
+  if (durations.length === 0) return { min: null, max: null };
+
+  return {
+    min: Math.min(...durations),
+    max: Math.max(...durations),
+  };
+}
+
 export function hydrateSocialReelsShortlistResponse(
   shortlist: SocialReelsShortlistResponse,
   input: SocialReelsRequest
 ) {
+  const compliantCandidates = shortlist.candidates.filter((candidate) => getSocialReelsLiveDurationCompliance(candidate).ok);
+  const rejectedCount = shortlist.candidates.length - compliantCandidates.length;
+  const candidates = compliantCandidates.map((candidate) => hydrateSocialReelsShortlistCandidate(candidate, input));
+  const liveFilterReasons: SocialReelsLiveFilterReasons = {
+    duration_outside_bucket: rejectedCount,
+  };
+
   return {
-    candidates: shortlist.candidates.map((candidate) => hydrateSocialReelsShortlistCandidate(candidate, input)),
-    model_notes:
-      shortlist.model_notes ||
-      "Live shortlist response generated with reduced schema; full enrichment is reserved for a later refinement pass.",
+    response: {
+      candidates,
+      model_notes: [
+        shortlist.model_notes ||
+          "Live shortlist response generated with reduced schema; full enrichment is reserved for a later refinement pass.",
+        rejectedCount > 0 ? `${rejectedCount} live shortlist candidate(s) were filtered for duration bucket mismatch.` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    },
+    returnedCandidateCount: candidates.length,
+    filteredCandidateCount: rejectedCount,
+    liveFilterReasons,
+    returnedDurationSecondsRange: getSocialReelsDurationSecondsRange(candidates),
   };
 }

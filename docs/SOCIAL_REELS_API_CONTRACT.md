@@ -191,6 +191,15 @@ Limits:
   "providerResponseId": null,
   "requested_candidate_count": 30,
   "effective_candidate_count": 30,
+  "returned_candidate_count": 30,
+  "filtered_candidate_count": 0,
+  "live_filter_reasons": {
+    "duration_outside_bucket": 0
+  },
+  "returned_duration_seconds_range": {
+    "min": 30,
+    "max": 30
+  },
   "discovery_mode": "mock_full_pool",
   "provider": "mock",
   "model": "mock",
@@ -283,6 +292,7 @@ Rules:
 - `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` controls the effective live shortlist size. It defaults to `10`, is bounded to `3` through `10`, and never exceeds the client's validated `requested_candidate_count`.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
+- The backend also post-validates live shortlist candidate duration before responding. Current live acceptance ranges are `15s = 10-22`, `30s = 22-42`, `60s = 45-78`, `90s = 70-115`, and `5-10m = 240-660`. Candidates outside the selected bucket are filtered out rather than padded with weak/invalid replacements.
 - Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as title options and captions are reserved for a later refinement pass.
 
 ## Timeout Diagnostics
@@ -300,6 +310,10 @@ Captured fields:
 - `approximate_total_text_chars`
 - `requested_candidate_count`
 - `effective_candidate_count`
+- `returned_candidate_count`
+- `filtered_candidate_count`
+- `live_filter_reasons`
+- `returned_duration_seconds_range`
 - `discovery_mode`
 - `duration_preferences`
 - `openai_request_started_at`

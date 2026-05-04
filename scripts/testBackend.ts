@@ -148,12 +148,25 @@ function makeTinyLiveSocialReelsSegments() {
 
 function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
   if (typeof bucket !== "string" || typeof duration !== "number") return false;
-  if (bucket === "15s") return duration >= 12 && duration <= 18;
-  if (bucket === "30s") return duration >= 26 && duration <= 34;
-  if (bucket === "60s") return duration >= 54 && duration <= 66;
-  if (bucket === "90s") return duration >= 82 && duration <= 98;
-  if (bucket === "5-10m") return duration >= 300 && duration <= 600;
+  if (bucket === "15s") return duration >= 10 && duration <= 22;
+  if (bucket === "30s") return duration >= 22 && duration <= 42;
+  if (bucket === "60s") return duration >= 45 && duration <= 78;
+  if (bucket === "90s") return duration >= 70 && duration <= 115;
+  if (bucket === "5-10m") return duration >= 240 && duration <= 660;
   return false;
+}
+
+function durationRange(candidates: unknown[]) {
+  const durations = candidates
+    .map((candidate) =>
+      candidate && typeof candidate === "object" && typeof (candidate as Record<string, unknown>).duration_seconds === "number"
+        ? ((candidate as Record<string, unknown>).duration_seconds as number)
+        : null
+    )
+    .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration));
+
+  if (durations.length === 0) return { min: null, max: null };
+  return { min: Math.min(...durations), max: Math.max(...durations) };
 }
 
 if (testOpenAIProbe) {
@@ -313,10 +326,49 @@ if (!email || !password) {
       const mock = booleanField(body, "mock");
       const effectiveCandidateCount = numberField(body, "effective_candidate_count");
       const requestedCandidateCount = numberField(body, "requested_candidate_count");
+      const returnedCandidateCount = numberField(body, "returned_candidate_count");
+      const filteredCandidateCount = numberField(body, "filtered_candidate_count");
+      const liveFilterReasons =
+        body && typeof body === "object" && "live_filter_reasons" in body
+          ? (body as Record<string, unknown>).live_filter_reasons
+          : null;
+      const returnedDurationRange =
+        body && typeof body === "object" && "returned_duration_seconds_range" in body
+          ? (body as Record<string, unknown>).returned_duration_seconds_range
+          : durationRange(candidates);
       const discoveryMode =
         body && typeof body === "object" && "discovery_mode" in body ? (body as Record<string, unknown>).discovery_mode : null;
-      if (!tinyLiveSocialReels.ok || candidates.length !== 10 || effectiveCandidateCount !== 10 || requestedCandidateCount !== 30) {
-        markFailed("Tiny live social reels canary did not return the 10-candidate live shortlist.");
+      console.log(
+        "SOCIAL_REELS_TINY_LIVE_SUMMARY:",
+        JSON.stringify(
+          {
+            requested_candidate_count: requestedCandidateCount,
+            effective_candidate_count: effectiveCandidateCount,
+            returned_candidate_count: returnedCandidateCount,
+            filtered_candidate_count: filteredCandidateCount,
+            live_filter_reasons: liveFilterReasons,
+            returned_duration_seconds_range: returnedDurationRange,
+          },
+          null,
+          2
+        )
+      );
+      if (!tinyLiveSocialReels.ok || effectiveCandidateCount !== 10 || requestedCandidateCount !== 30) {
+        markFailed("Tiny live social reels canary did not use the 10-candidate live shortlist request.");
+      }
+      if (returnedCandidateCount !== candidates.length) {
+        markFailed("Tiny live social reels canary returned_candidate_count did not match candidates length.");
+      }
+      if (filteredCandidateCount === null || filteredCandidateCount < 0) {
+        markFailed("Tiny live social reels canary did not return safe filtered_candidate_count metadata.");
+      }
+      const invalidLiveDurations = candidates.some((candidate) => {
+        if (!candidate || typeof candidate !== "object") return true;
+        const record = candidate as Record<string, unknown>;
+        return !durationFitsSocialReelsBucket(record.duration_bucket, record.duration_seconds);
+      });
+      if (invalidLiveDurations) {
+        markFailed("Tiny live social reels canary returned candidates outside their live duration bucket range.");
       }
       if (discoveryMode !== "live_shortlist") {
         markFailed("Tiny live social reels canary did not use live_shortlist discovery mode.");

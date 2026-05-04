@@ -254,6 +254,7 @@ Environment variables:
 ```text
 OPENAI_API_KEY=
 SOCIAL_REELS_OPENAI_MODE=mock
+SOCIAL_REELS_OPENAI_TIMEOUT_MS=120000
 ```
 
 Rules:
@@ -262,8 +263,75 @@ Rules:
 - `SOCIAL_REELS_OPENAI_MODE=mock` never calls OpenAI, even when `OPENAI_API_KEY` exists.
 - `SOCIAL_REELS_OPENAI_MODE=live` requires `OPENAI_API_KEY`.
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
+- `SOCIAL_REELS_OPENAI_TIMEOUT_MS` controls the backend OpenAI fetch timeout. It defaults to `120000` milliseconds and is bounded so the route can fail before the platform function limit.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
+
+## Timeout Diagnostics
+
+The route returns and logs privacy-safe timing diagnostics. These diagnostics are safe to copy into debugging notes because they do not include transcript text, local paths, tokens, OpenAI keys, raw request bodies, or raw provider responses.
+
+Captured fields:
+
+- `request_id`
+- `mode`: `mock` or `live`
+- `request_received_at`
+- `payload_parse_ms`
+- `schema_validation_ms`
+- `segment_count`
+- `approximate_total_text_chars`
+- `requested_candidate_count`
+- `duration_preferences`
+- `openai_request_started_at`
+- `openai_elapsed_ms`
+- `response_parse_ms`
+- `total_elapsed_ms`
+- `timeout_stage`
+- `provider`
+- `model`
+
+Possible timeout/failure stages:
+
+- `app_unknown`: the app timed out before backend diagnostics were available.
+- `route_before_openai`: the route failed before a provider request was started.
+- `openai_fetch_timeout`: the backend aborted the OpenAI fetch after `SOCIAL_REELS_OPENAI_TIMEOUT_MS`.
+- `openai_non2xx`: OpenAI returned a non-2xx response.
+- `openai_invalid_response`: OpenAI returned a response that did not parse or validate against the schema.
+- `route_timeout`: the platform route timed out.
+- `unknown`: unexpected failure.
+
+Timeout response shape:
+
+```json
+{
+  "error": "Social reels discovery timed out",
+  "stage": "openai_fetch_timeout",
+  "request_id": "uuid",
+  "elapsed_ms": 120000
+}
+```
+
+Successful responses include a `diagnostics` object with the same safe timing fields.
+
+## Live Canary Smokes
+
+Normal backend tests do not make live OpenAI calls.
+
+Tiny live canary:
+
+```sh
+TEST_SOCIAL_REELS_LIVE=1 npm run test:backend
+```
+
+This sends a small synthetic three-segment request with `requested_candidate_count = 30` and `duration_preferences = ["60s"]`. It expects the target environment to have `SOCIAL_REELS_OPENAI_MODE=live` and `OPENAI_API_KEY` configured. The canary uses synthetic transcript text only.
+
+Large app-shaped mock/prod smoke:
+
+```sh
+TEST_SOCIAL_REELS=1 npm run test:backend
+```
+
+Use this for the larger synthetic app-shaped payload. It is gated separately so routine backend tests do not call Social Reels discovery.
 
 ## Live Editorial Rules
 

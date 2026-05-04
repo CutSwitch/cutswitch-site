@@ -15,6 +15,10 @@ import {
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-4o-mini";
 const SOCIAL_REELS_OPENAI_MODE_ENV = "SOCIAL_REELS_OPENAI_MODE";
+const SOCIAL_REELS_OPENAI_TIMEOUT_ENV = "SOCIAL_REELS_OPENAI_TIMEOUT_MS";
+const DEFAULT_OPENAI_TIMEOUT_MS = 120_000;
+const MIN_OPENAI_TIMEOUT_MS = 1_000;
+const MAX_OPENAI_TIMEOUT_MS = 170_000;
 export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
   "Return only schema-valid JSON. Return candidates ranked from strongest to weakest by viral/editorial potential; do not pad the list with weak clips.",
@@ -55,9 +59,28 @@ type OpenAIResponseBody = {
 
 type ConcreteDurationBucket = (typeof SOCIAL_REELS_DURATION_BUCKETS)[number];
 
+export type SocialReelsTimeoutStage =
+  | "app_unknown"
+  | "route_before_openai"
+  | "openai_fetch_timeout"
+  | "openai_non2xx"
+  | "openai_invalid_response"
+  | "route_timeout"
+  | "unknown";
+
 export type DiscoverSocialReelsOptions = {
   mock?: boolean;
   model?: string;
+};
+
+export type SocialReelsServiceDiagnostics = {
+  mode: "mock" | "live";
+  openaiRequestStartedAt: string | null;
+  openaiElapsedMs: number | null;
+  responseParseMs: number | null;
+  provider: "mock" | "openai";
+  model: string | null;
+  providerResponseId: string | null;
 };
 
 export type DiscoverSocialReelsResult = {
@@ -66,10 +89,35 @@ export type DiscoverSocialReelsResult = {
   providerResponseId: string | null;
   model: string;
   mock: boolean;
+  diagnostics: SocialReelsServiceDiagnostics;
 };
+
+export class SocialReelsDiscoveryError extends Error {
+  stage: SocialReelsTimeoutStage;
+  elapsedMs: number | null;
+  status: number | null;
+
+  constructor(message: string, details: { stage: SocialReelsTimeoutStage; elapsedMs?: number | null; status?: number | null }) {
+    super(message);
+    this.name = "SocialReelsDiscoveryError";
+    this.stage = details.stage;
+    this.elapsedMs = details.elapsedMs ?? null;
+    this.status = details.status ?? null;
+  }
+}
 
 export function getSocialReelsOpenAIMode() {
   return process.env[SOCIAL_REELS_OPENAI_MODE_ENV]?.trim().toLowerCase() === "live" ? "live" : "mock";
+}
+
+export function getSocialReelsOpenAITimeoutMs() {
+  const raw = process.env[SOCIAL_REELS_OPENAI_TIMEOUT_ENV]?.trim();
+  if (!raw) return DEFAULT_OPENAI_TIMEOUT_MS;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_OPENAI_TIMEOUT_MS;
+
+  return Math.min(MAX_OPENAI_TIMEOUT_MS, Math.max(MIN_OPENAI_TIMEOUT_MS, Math.round(parsed)));
 }
 
 function shouldUseMock(options: DiscoverSocialReelsOptions) {
@@ -420,47 +468,109 @@ export async function discoverSocialReelsCandidates(
       providerResponseId: null,
       model: "mock",
       mock: true,
+      diagnostics: {
+        mode: "mock",
+        openaiRequestStartedAt: null,
+        openaiElapsedMs: null,
+        responseParseMs: null,
+        provider: "mock",
+        model: "mock",
+        providerResponseId: null,
+      },
     };
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("Social reels live mode is not configured.");
+    throw new SocialReelsDiscoveryError("Social reels live mode is not configured.", {
+      stage: "route_before_openai",
+    });
   }
 
-  const res = await fetch(OPENAI_RESPONSES_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      input: buildPromptInput(input),
-      text: {
-        format: openAISocialReelsResponseFormat,
+  const timeoutMs = getSocialReelsOpenAITimeoutMs();
+  const controller = new AbortController();
+  const openaiStartedMs = Date.now();
+  const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(OPENAI_RESPONSES_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        model,
+        input: buildPromptInput(input),
+        text: {
+          format: openAISocialReelsResponseFormat,
+        },
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const elapsedMs = Date.now() - openaiStartedMs;
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new SocialReelsDiscoveryError("Social reels discovery timed out.", {
+        stage: "openai_fetch_timeout",
+        elapsedMs,
+      });
+    }
 
+    throw new SocialReelsDiscoveryError("OpenAI request failed.", {
+      stage: "unknown",
+      elapsedMs,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const openaiElapsedMs = Date.now() - openaiStartedMs;
+  const responseParseStartedMs = Date.now();
   const body = (await res.json().catch(() => ({}))) as OpenAIResponseBody;
+
   if (!res.ok) {
-    throw new Error(body.error?.type || "openai_request_failed");
+    throw new SocialReelsDiscoveryError(body.error?.type || "openai_request_failed", {
+      stage: "openai_non2xx",
+      elapsedMs: openaiElapsedMs,
+      status: res.status,
+    });
   }
 
-  const outputText = extractOutputText(body);
-  if (!outputText) {
-    throw new Error("OpenAI response did not include structured output text.");
+  try {
+    const outputText = extractOutputText(body);
+    if (!outputText) {
+      throw new Error("missing_output_text");
+    }
+
+    const parsedOutput = JSON.parse(outputText) as unknown;
+    const response = socialReelsResponseSchema.parse(parsedOutput);
+    const responseParseMs = Date.now() - responseParseStartedMs;
+
+    return {
+      response,
+      usage: body.usage || null,
+      providerResponseId: body.id || null,
+      model: body.model || model,
+      mock: false,
+      diagnostics: {
+        mode: "live",
+        openaiRequestStartedAt,
+        openaiElapsedMs,
+        responseParseMs,
+        provider: "openai",
+        model: body.model || model,
+        providerResponseId: body.id || null,
+      },
+    };
+  } catch (error) {
+    if (error instanceof SocialReelsDiscoveryError) throw error;
+    throw new SocialReelsDiscoveryError("OpenAI response was invalid.", {
+      stage: "openai_invalid_response",
+      elapsedMs: openaiElapsedMs,
+      status: res.status,
+    });
   }
-
-  const parsedOutput = JSON.parse(outputText) as unknown;
-  const response = socialReelsResponseSchema.parse(parsedOutput);
-
-  return {
-    response,
-    usage: body.usage || null,
-    providerResponseId: body.id || null,
-    model: body.model || model,
-    mock: false,
-  };
 }

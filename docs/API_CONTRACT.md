@@ -222,6 +222,7 @@ Key billing and safety rules:
 - Requires an active or trialing subscription.
 - Does not consume editing time.
 - Is rate-limited by IP and user.
+- Returns privacy-safe timing diagnostics, including `request_id`, elapsed timings, provider/model when available, and timeout stage on failures.
 - Does not store raw transcript text, local file paths, FCPXML, tokens, emails, or provider secrets.
 - Normal `Different Moments` regeneration should be local from the cached candidate pool and should not call the backend.
 

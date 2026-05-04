@@ -18,6 +18,7 @@ const checkoutPlanId = process.env.TEST_CHECKOUT_PLAN_ID || "starter";
 const transcriptDuration = Number(process.env.TEST_TRANSCRIPT_DURATION_SECONDS || 7);
 const testProductEvents = process.env.TEST_PRODUCT_EVENTS === "1";
 const testSocialReels = process.env.TEST_SOCIAL_REELS === "1";
+const testSocialReelsLive = process.env.TEST_SOCIAL_REELS_LIVE === "1";
 
 let failed = false;
 
@@ -114,6 +115,34 @@ function makeSocialReelsSmokeText() {
   return Array.from({ length: 3 }, () => sentences.join(" ")).join(" ");
 }
 
+function makeTinyLiveSocialReelsSegments() {
+  const safeSegments = [
+    [
+      "The strongest social clips do not begin with setup, they begin when someone states the problem in plain language.",
+      "A viewer keeps watching because there is tension, not because the transcript happens to contain a keyword.",
+      "The useful lesson is that a clean clip should answer one question and then stop after the payoff lands.",
+    ].join(" "),
+    [
+      "A producer can feel the difference between a random quote and a story beat that has a beginning, middle, and ending.",
+      "The clip earns attention when the speaker challenges a common assumption and then gives a practical reframe.",
+      "That is the kind of moment CutSwitch should surface before anyone starts trimming by hand.",
+    ].join(" "),
+    [
+      "The title should be truthful, but it should still create curiosity about the conflict inside the idea.",
+      "If the ending does not land, the candidate should be rejected instead of padded into the list.",
+      "A good reel has a hook, a turn, and a final thought that makes sense without the entire episode.",
+    ].join(" "),
+  ];
+
+  return safeSegments.map((text, index) => ({
+    segment_id: `tiny-live-seg-${index + 1}`,
+    start_seconds: index * 80,
+    end_seconds: index * 80 + 80,
+    speaker: "Speaker 1",
+    text,
+  }));
+}
+
 function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
   if (typeof bucket !== "string" || typeof duration !== "number") return false;
   if (bucket === "15s") return duration >= 12 && duration <= 18;
@@ -162,7 +191,7 @@ if (!email || !password) {
     if (unauthProductEvent.status !== 401) markFailed("Unauthenticated product event did not return 401.");
   }
 
-  if (testSocialReels) {
+  if (testSocialReels || testSocialReelsLive) {
     const unauthSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -250,6 +279,36 @@ if (!email || !password) {
       if (!productEvent.ok) markFailed("Valid product event did not insert successfully.");
     } else {
       console.log("PRODUCT_EVENTS: skipped. Set TEST_PRODUCT_EVENTS=1 after applying the product_events migration.");
+    }
+
+    if (testSocialReelsLive) {
+      const tinyLiveSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          project_hash: `codex-social-live-tiny-${Date.now()}`,
+          source_duration_seconds: 240,
+          duration_preferences: ["60s"],
+          requested_candidate_count: 30,
+          style: "balanced",
+          layout: "vertical",
+          caption_style: "bold",
+          episode_metadata: { title: "Tiny live social reels canary" },
+          context: { platform: "social", content_notes: "Synthetic tiny live canary only." },
+          segments: makeTinyLiveSocialReelsSegments(),
+        }),
+      });
+      logResult("SOCIAL_REELS_TINY_LIVE", tinyLiveSocialReels);
+
+      const body = tinyLiveSocialReels.body;
+      const candidates =
+        body && typeof body === "object" && "candidates" in body && Array.isArray(body.candidates) ? body.candidates : [];
+      const mock = booleanField(body, "mock");
+      if (!tinyLiveSocialReels.ok || candidates.length < 30) {
+        markFailed("Tiny live social reels canary did not return at least 30 candidates.");
+      }
+      if (mock !== false) {
+        markFailed("Tiny live social reels canary did not use the live provider. Confirm SOCIAL_REELS_OPENAI_MODE=live in the target environment.");
+      }
     }
 
     if (testSocialReels) {

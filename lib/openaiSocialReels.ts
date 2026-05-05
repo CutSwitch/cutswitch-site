@@ -1,5 +1,12 @@
 import "server-only";
 
+import { z } from "zod";
+
+import {
+  getSafeZodIssueSummary,
+  summarizeSocialReelsOutputShape,
+  type SafeSocialReelsOutputShape,
+} from "@/lib/socialReelsDiagnostics";
 import {
   SOCIAL_REELS_CLIP_TYPES,
   SOCIAL_REELS_DURATION_BUCKETS,
@@ -11,8 +18,11 @@ import {
   type SocialReelsResponse,
 } from "@/lib/socialReelsSchema";
 import {
+  buildSocialReelsLivePromptWindows,
   buildSocialReelsLiveDurationWindows,
-  type SocialReelsDurationWindow,
+  getSocialReelsLiveWindowCount,
+  selectSocialReelsLiveDurationWindows,
+  type SocialReelsPromptDurationWindow,
 } from "@/lib/socialReelsDurationWindows";
 import {
   getEffectiveLiveShortlistCandidateCount,
@@ -33,6 +43,7 @@ const SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS_ENV = "SOCIAL_REELS_OPENAI_MAX_OUTPU
 const SOCIAL_REELS_OPENAI_SERVICE_TIER_ENV = "SOCIAL_REELS_OPENAI_SERVICE_TIER";
 const SOCIAL_REELS_OPENAI_TIMEOUT_ENV = "SOCIAL_REELS_OPENAI_TIMEOUT_MS";
 const SOCIAL_REELS_LIVE_CANDIDATE_COUNT_ENV = "SOCIAL_REELS_LIVE_CANDIDATE_COUNT";
+const SOCIAL_REELS_LIVE_WINDOW_COUNT_ENV = "SOCIAL_REELS_LIVE_WINDOW_COUNT";
 const DEFAULT_OPENAI_TIMEOUT_MS = 120_000;
 const MIN_OPENAI_TIMEOUT_MS = 1_000;
 const MAX_OPENAI_TIMEOUT_MS = 170_000;
@@ -65,6 +76,10 @@ type OpenAIUsage = {
 type OpenAIResponseBody = {
   id?: string;
   model?: string;
+  status?: string;
+  incomplete_details?: {
+    reason?: string;
+  };
   output_text?: string;
   usage?: OpenAIUsage;
   output?: Array<{
@@ -76,6 +91,7 @@ type OpenAIResponseBody = {
   }>;
   error?: {
     type?: string;
+    code?: string;
     message?: string;
   };
 };
@@ -106,6 +122,30 @@ export type SocialReelsServiceDiagnostics = {
   provider: "mock" | "openai";
   model: string | null;
   providerResponseId: string | null;
+  durationWindowCountSentToModel: number | null;
+  promptContextCharCountSentToModel: number | null;
+};
+
+export type SocialReelsInvalidResponseDiagnostics = {
+  provider: "openai";
+  model: string;
+  provider_response_id: string | null;
+  openai_status: number | null;
+  elapsed_ms: number | null;
+  schema_mode: "live_shortlist_reduced";
+  effective_candidate_count: number;
+  duration_preferences: string[];
+  segment_count: number;
+  approximate_total_text_chars: number;
+  eligible_duration_window_count: number;
+  duration_window_count_sent_to_model: number;
+  prompt_context_char_count_sent_to_model: number;
+  max_output_tokens: number;
+  response_status: string | null;
+  incomplete_reason: string | null;
+  parse_error: string | null;
+  zod_issues: Array<{ path: string; code: string }> | null;
+  output_shape: SafeSocialReelsOutputShape;
 };
 
 export type DiscoverSocialReelsResult = {
@@ -119,6 +159,8 @@ export type DiscoverSocialReelsResult = {
   returnedCandidateCount: number;
   filteredCandidateCount: number;
   eligibleDurationWindowCount: number | null;
+  durationWindowCountSentToModel: number | null;
+  promptContextCharCountSentToModel: number | null;
   liveFilterReasons: SocialReelsLiveFilterReasons;
   returnedDurationSecondsRange: SocialReelsDurationSecondsRange;
   discoveryMode: SocialReelsDiscoveryMode;
@@ -129,13 +171,23 @@ export class SocialReelsDiscoveryError extends Error {
   stage: SocialReelsTimeoutStage;
   elapsedMs: number | null;
   status: number | null;
+  safeDiagnostics: SocialReelsInvalidResponseDiagnostics | null;
 
-  constructor(message: string, details: { stage: SocialReelsTimeoutStage; elapsedMs?: number | null; status?: number | null }) {
+  constructor(
+    message: string,
+    details: {
+      stage: SocialReelsTimeoutStage;
+      elapsedMs?: number | null;
+      status?: number | null;
+      safeDiagnostics?: SocialReelsInvalidResponseDiagnostics | null;
+    }
+  ) {
     super(message);
     this.name = "SocialReelsDiscoveryError";
     this.stage = details.stage;
     this.elapsedMs = details.elapsedMs ?? null;
     this.status = details.status ?? null;
+    this.safeDiagnostics = details.safeDiagnostics ?? null;
   }
 }
 
@@ -180,6 +232,10 @@ export function getSocialReelsOpenAITimeoutMs() {
 
 export function getSocialReelsLiveCandidateCount(requestedCandidateCount: number) {
   return getEffectiveLiveShortlistCandidateCount(requestedCandidateCount, process.env[SOCIAL_REELS_LIVE_CANDIDATE_COUNT_ENV]);
+}
+
+export function getSocialReelsLivePromptWindowCount() {
+  return getSocialReelsLiveWindowCount(process.env[SOCIAL_REELS_LIVE_WINDOW_COUNT_ENV]);
 }
 
 function shouldUseMock(options: DiscoverSocialReelsOptions) {
@@ -496,9 +552,11 @@ function buildPromptInput(
     discoveryMode?: SocialReelsDiscoveryMode;
     requestedCandidateCount?: number;
     effectiveCandidateCount?: number;
-    durationWindows?: SocialReelsDurationWindow[];
+    durationWindows?: SocialReelsPromptDurationWindow[];
   }
 ) {
+  const useLiveWindowInput = metadata?.discoveryMode === "live_shortlist";
+
   return [
     {
       role: "system",
@@ -515,24 +573,74 @@ function buildPromptInput(
         effective_candidate_count: metadata?.effectiveCandidateCount ?? input.requested_candidate_count,
         discovery_mode: metadata?.discoveryMode ?? "mock_full_pool",
         live_shortlist_note:
-          metadata?.discoveryMode === "live_shortlist"
+          useLiveWindowInput
             ? "Return up to effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices. Duration bucket compliance is mandatory: for a 60s request, each candidate must span roughly 45-78 seconds of spoken content; never return 8s, 12s, 16s, 22s, or 32s clips as 60s candidates. A 60s clip is not a 10-second highlight. Choose from duration_windows when present. Use each window's start/end/duration as the clip span, then copy distinctive transcript anchor quotes near that window's boundary hints. If there are fewer duration-valid candidates than requested, return fewer candidates rather than padding."
             : null,
         duration_window_instruction:
-          metadata?.discoveryMode === "live_shortlist"
-            ? "duration_windows are backend-generated candidate spans that already fit the requested duration bucket. They are hints, not transcript replacements. Pick windows that contain a complete Question -> Tension -> Answer -> Reframe arc. Set candidate_id to the chosen window_id or a stable derivative."
+          useLiveWindowInput
+            ? "Choose only from provided duration_windows. These are backend-generated duration windows, not a full transcript scan. Do not scan or invent from a full transcript blob. Each duration_window contains a bounded transcript excerpt plus start/end boundary hints. Use the selected window start/end as the intended clip span, choose start_anchor_quote near the beginning of text_excerpt, choose end_anchor_quote near the end of text_excerpt, and do not output candidates from outside the provided windows. Set candidate_id to the chosen window_id or a stable derivative."
             : null,
         duration_windows: metadata?.durationWindows ?? [],
+        source_segments_sent: useLiveWindowInput ? "duration_windows_only" : "full_segments",
+        source_segment_count: input.segments.length,
         custom_duration_seconds: input.custom_duration_seconds || null,
         style: input.style,
         layout: input.layout,
         caption_style: input.caption_style,
         episode_metadata: input.episode_metadata,
         context: input.context,
-        segments: input.segments,
+        segments: useLiveWindowInput ? [] : input.segments,
       }),
     },
   ];
+}
+
+function approximateInputTextChars(input: SocialReelsRequest) {
+  return input.segments.reduce((sum, segment) => sum + segment.text.length, 0);
+}
+
+function safeParseErrorCode(error: unknown) {
+  if (error instanceof SyntaxError) return "json_parse_error";
+  if (error instanceof Error) return error.message.slice(0, 120) || "parse_error";
+  return "unknown_parse_error";
+}
+
+function invalidOpenAIResponseDiagnostics(input: {
+  body: OpenAIResponseBody;
+  parsedOutput: unknown;
+  parseError: unknown;
+  zodError: z.ZodError | null;
+  model: string;
+  elapsedMs: number;
+  status: number;
+  effectiveCandidateCount: number;
+  inputPayload: SocialReelsRequest;
+  eligibleDurationWindowCount: number;
+  durationWindowCountSentToModel: number;
+  promptContextCharCountSentToModel: number;
+  maxOutputTokens: number;
+}): SocialReelsInvalidResponseDiagnostics {
+  return {
+    provider: "openai",
+    model: input.body.model || input.model,
+    provider_response_id: input.body.id || null,
+    openai_status: input.status,
+    elapsed_ms: input.elapsedMs,
+    schema_mode: "live_shortlist_reduced",
+    effective_candidate_count: input.effectiveCandidateCount,
+    duration_preferences: input.inputPayload.duration_preferences.slice(0, 12),
+    segment_count: input.inputPayload.segments.length,
+    approximate_total_text_chars: approximateInputTextChars(input.inputPayload),
+    eligible_duration_window_count: input.eligibleDurationWindowCount,
+    duration_window_count_sent_to_model: input.durationWindowCountSentToModel,
+    prompt_context_char_count_sent_to_model: input.promptContextCharCountSentToModel,
+    max_output_tokens: input.maxOutputTokens,
+    response_status: input.body.status || null,
+    incomplete_reason: input.body.incomplete_details?.reason || null,
+    parse_error: input.parseError ? safeParseErrorCode(input.parseError) : null,
+    zod_issues: input.zodError ? getSafeZodIssueSummary(input.zodError) : null,
+    output_shape: summarizeSocialReelsOutputShape(input.parsedOutput),
+  };
 }
 
 export async function discoverSocialReelsCandidates(
@@ -555,6 +663,8 @@ export async function discoverSocialReelsCandidates(
       returnedCandidateCount: response.candidates.length,
       filteredCandidateCount: 0,
       eligibleDurationWindowCount: null,
+      durationWindowCountSentToModel: null,
+      promptContextCharCountSentToModel: null,
       liveFilterReasons: { duration_outside_bucket: 0 },
       returnedDurationSecondsRange: getSocialReelsDurationSecondsRange(response.candidates),
       discoveryMode: "mock_full_pool",
@@ -566,6 +676,8 @@ export async function discoverSocialReelsCandidates(
         provider: "mock",
         model: "mock",
         providerResponseId: null,
+        durationWindowCountSentToModel: null,
+        promptContextCharCountSentToModel: null,
       },
     };
   }
@@ -588,18 +700,23 @@ export async function discoverSocialReelsCandidates(
     requested_candidate_count: effectiveCandidateCount,
   };
   const durationWindows = buildSocialReelsLiveDurationWindows(liveShortlistInput, effectiveCandidateCount);
+  const selectedDurationWindows = selectSocialReelsLiveDurationWindows(durationWindows, getSocialReelsLivePromptWindowCount());
+  const promptDurationWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedDurationWindows);
   const controller = new AbortController();
   const openaiStartedMs = Date.now();
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const promptInput = buildPromptInput(liveShortlistInput, {
+    discoveryMode: "live_shortlist",
+    requestedCandidateCount,
+    effectiveCandidateCount,
+    durationWindows: promptDurationWindows,
+  });
+  const promptContextCharCountSentToModel = JSON.stringify(promptInput).length;
+  const durationWindowCountSentToModel = promptDurationWindows.length;
   const requestBody: Record<string, unknown> = {
     model,
-    input: buildPromptInput(liveShortlistInput, {
-      discoveryMode: "live_shortlist",
-      requestedCandidateCount,
-      effectiveCandidateCount,
-      durationWindows,
-    }),
+    input: promptInput,
     max_output_tokens: maxOutputTokens,
     text: {
       format: openAISocialReelsShortlistResponseFormat(effectiveCandidateCount),
@@ -674,6 +791,8 @@ export async function discoverSocialReelsCandidates(
       returnedCandidateCount: hydratedShortlist.returnedCandidateCount,
       filteredCandidateCount: hydratedShortlist.filteredCandidateCount,
       eligibleDurationWindowCount: durationWindows.length,
+      durationWindowCountSentToModel,
+      promptContextCharCountSentToModel,
       liveFilterReasons: hydratedShortlist.liveFilterReasons,
       returnedDurationSecondsRange: hydratedShortlist.returnedDurationSecondsRange,
       discoveryMode: "live_shortlist",
@@ -685,14 +804,48 @@ export async function discoverSocialReelsCandidates(
         provider: "openai",
         model: body.model || model,
         providerResponseId: body.id || null,
+        durationWindowCountSentToModel,
+        promptContextCharCountSentToModel,
       },
     };
   } catch (error) {
     if (error instanceof SocialReelsDiscoveryError) throw error;
+    let parsedOutput: unknown = null;
+    let parseError: unknown = null;
+    let zodError: z.ZodError | null = null;
+
+    try {
+      const outputText = extractOutputText(body);
+      if (outputText) {
+        parsedOutput = JSON.parse(outputText) as unknown;
+        const shortlistResult = socialReelsShortlistResponseSchema.safeParse(parsedOutput);
+        if (!shortlistResult.success) zodError = shortlistResult.error;
+      } else {
+        parseError = new Error("missing_output_text");
+      }
+    } catch (diagnosticError) {
+      parseError = diagnosticError;
+    }
+
     throw new SocialReelsDiscoveryError("OpenAI response was invalid.", {
       stage: "openai_invalid_response",
       elapsedMs: openaiElapsedMs,
       status: res.status,
+      safeDiagnostics: invalidOpenAIResponseDiagnostics({
+        body,
+        parsedOutput,
+        parseError,
+        zodError,
+        model,
+        elapsedMs: openaiElapsedMs,
+        status: res.status,
+        effectiveCandidateCount,
+        inputPayload: input,
+        eligibleDurationWindowCount: durationWindows.length,
+        durationWindowCountSentToModel,
+        promptContextCharCountSentToModel,
+        maxOutputTokens,
+      }),
     });
   }
 }

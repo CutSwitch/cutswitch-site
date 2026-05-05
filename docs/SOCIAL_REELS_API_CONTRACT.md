@@ -21,6 +21,7 @@ Backend candidate pool policy:
 - Maximum: `80`
 - Mock mode should not return fewer than `30` candidates when enough transcript text exists.
 - Live mode currently uses a fast shortlist path: requests may still ask for `30` to `80`, but the backend internally caps the effective live candidate count to `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` (default `10`) to avoid synchronous OpenAI timeouts.
+- Live mode also bounds the prompt search space with `SOCIAL_REELS_LIVE_WINDOW_COUNT` (default `18`, bounded `6` to `24`). The backend selects duration-valid windows across the episode and sends those window excerpts instead of the full transcript segment blob.
 - Live shortlist responses with fewer than `30` candidates are valid when `discovery_mode` is `live_shortlist`; the app should use the returned pool as-is for cache-only `Different Moments`.
 - Live shortlist responses may contain fewer than `effective_candidate_count` candidates when the backend or model cannot produce enough duration-valid spans. Fewer valid candidates are preferred over padded, wrong-duration candidates.
 
@@ -276,6 +277,7 @@ SOCIAL_REELS_OPENAI_MAX_OUTPUT_TOKENS=6000
 SOCIAL_REELS_OPENAI_SERVICE_TIER=standard
 SOCIAL_REELS_OPENAI_TIMEOUT_MS=120000
 SOCIAL_REELS_LIVE_CANDIDATE_COUNT=10
+SOCIAL_REELS_LIVE_WINDOW_COUNT=18
 SOCIAL_REELS_OPENAI_PROBE_TIMEOUT_MS=30000
 ```
 
@@ -291,10 +293,12 @@ Rules:
 - If live mode is requested but the API key is missing, the endpoint returns a safe server error.
 - `SOCIAL_REELS_OPENAI_TIMEOUT_MS` controls the backend OpenAI fetch timeout. It defaults to `120000` milliseconds and is bounded so the route can fail before the platform function limit.
 - `SOCIAL_REELS_LIVE_CANDIDATE_COUNT` controls the effective live shortlist size. It defaults to `10`, is bounded to `3` through `10`, and never exceeds the client's validated `requested_candidate_count`.
+- `SOCIAL_REELS_LIVE_WINDOW_COUNT` controls how many backend-generated duration windows are sent to the live model. It defaults to `18`, is bounded to `6` through `24`, and is selected deterministically across the episode to keep app-scale prompts small.
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
 - The backend also post-validates live shortlist candidate duration before responding. Current live acceptance ranges are `15s = 10-22`, `30s = 22-42`, `60s = 45-78`, `90s = 70-115`, and `5-10m = 240-660`. Candidates outside the selected bucket are filtered out rather than padded with weak/invalid replacements.
 - For live shortlist requests, the backend provides OpenAI with a small set of backend-generated `duration_windows` that already fit the requested bucket. The model should select from those spans, keep `start_seconds`, `end_seconds`, and `duration_seconds` aligned to the chosen window, and place anchor quotes near the window boundary hints. This helps prevent compact moments from being mislabeled as `60s` candidates.
+- App-scale live requests use `duration_windows` as the primary search space. The backend sends only bounded window excerpts plus safe timing/window metadata, not all transcript segments as a large JSON blob.
 - A `60s` candidate is expected to be an actual `45-78` second span, not a 10-second highlight. The prompt explicitly tells the model to return fewer candidates rather than padding with compact quotes when too few duration-valid spans are available.
 - Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as title options and captions are reserved for a later refinement pass.
 
@@ -314,6 +318,8 @@ Captured fields:
 - `requested_candidate_count`
 - `effective_candidate_count`
 - `eligible_duration_window_count`
+- `duration_window_count_sent_to_model`
+- `prompt_context_char_count_sent_to_model`
 - `returned_candidate_count`
 - `filtered_candidate_count`
 - `live_filter_reasons`
@@ -351,6 +357,8 @@ Timeout response shape:
 
 Successful responses include a `diagnostics` object with the same safe timing fields.
 
+For `openai_invalid_response`, the route may also return and log `invalid_response_diagnostics` with safe shape-only details: provider/model, provider response id, OpenAI status, schema mode, effective count, duration preferences, segment count, approximate text chars, eligible/sent window counts, prompt context char count, max output tokens, incomplete reason, parse issue code, Zod issue paths/codes, and the top-level output shape summary. It never includes transcript text, anchor quote values, candidate titles/summaries, raw OpenAI output, tokens, or secrets.
+
 ## Live Canary Smokes
 
 Normal backend tests do not make live OpenAI calls.
@@ -368,6 +376,14 @@ The tiny canary fixture intentionally uses denser synthetic transcript segments,
 In live mode, the effective shortlist count is currently an upper bound, default `10`, not the requested backend pool floor. Mock mode still returns the requested `30` to `80` candidates.
 
 Future expansion can split discovery into a fast shortlist pass plus a later enrichment/refinement pass if the app needs a larger live-generated pool.
+
+App-scale live canary:
+
+```sh
+TEST_SOCIAL_REELS_LIVE_APP_SCALE=1 npm run test:backend
+```
+
+This sends a synthetic `60-70` segment payload with safe non-private text and `duration_preferences = ["60s"]`. It is gated separately from normal tests and should be used only after deploying live-window changes. The report prints a summary only, including `duration_window_count_sent_to_model`, `prompt_context_char_count_sent_to_model`, returned/filter counts, provider/model, and timing diagnostics.
 
 Large app-shaped mock/prod smoke:
 

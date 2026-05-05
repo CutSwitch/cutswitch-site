@@ -23,6 +23,7 @@ const transcriptDuration = Number(process.env.TEST_TRANSCRIPT_DURATION_SECONDS |
 const testProductEvents = process.env.TEST_PRODUCT_EVENTS === "1";
 const testSocialReels = process.env.TEST_SOCIAL_REELS === "1";
 const testSocialReelsLive = process.env.TEST_SOCIAL_REELS_LIVE === "1";
+const testSocialReelsLiveAppScale = process.env.TEST_SOCIAL_REELS_LIVE_APP_SCALE === "1";
 const testOpenAIProbe = process.env.TEST_OPENAI_PROBE === "1";
 
 let failed = false;
@@ -186,6 +187,36 @@ function makeTinyLiveSocialReelsPayload(projectHash: string) {
   };
 }
 
+function makeAppScaleLiveSocialReelsPayload(projectHash: string) {
+  const sentence = [
+    "The question is why a strong idea can still fail as a reel when the viewer does not know what is at stake.",
+    "The tension grows because a compact quote feels efficient to an editor, but the audience needs context before the payoff matters.",
+    "The answer begins when the speaker explains that a one minute clip needs a claim, a complication, and a clean landing.",
+    "The reframe is that duration is not padding; it is the shape that lets the ending feel earned instead of abrupt.",
+    "The payoff is a practical editorial rule: keep enough story pressure for the final line to make sense on its own.",
+  ].join(" ");
+  const segments = Array.from({ length: 68 }, (_, index) => ({
+    segment_id: `app-scale-live-seg-${String(index + 1).padStart(2, "0")}`,
+    start_seconds: index * 90,
+    end_seconds: index * 90 + 90,
+    speaker: "Speaker 1",
+    text: Array.from({ length: 2 }, () => sentence).join(" "),
+  }));
+
+  return {
+    project_hash: projectHash,
+    source_duration_seconds: Math.ceil(Math.max(...segments.map((segment) => segment.end_seconds))),
+    duration_preferences: ["60s"],
+    requested_candidate_count: 30,
+    style: "balanced",
+    layout: "vertical",
+    caption_style: "bold",
+    episode_metadata: { title: "App-scale live social reels canary" },
+    context: { platform: "social", content_notes: "Synthetic app-scale live canary only." },
+    segments,
+  };
+}
+
 function validateTinyLiveCanaryFixture() {
   const parsed = socialReelsRequestSchema.parse(makeTinyLiveSocialReelsPayload("codex-social-live-fixture"));
   const segmentDurations = parsed.segments.map((segment) => segment.end_seconds - segment.start_seconds);
@@ -205,6 +236,67 @@ function validateTinyLiveCanaryFixture() {
   if (eligibleWindows.length < 10) {
     markFailed("Tiny live social reels fixture must provide at least 10 eligible 60s duration windows.");
   }
+}
+
+function validateAppScaleLiveCanaryFixture() {
+  const parsed = socialReelsRequestSchema.parse(makeAppScaleLiveSocialReelsPayload("codex-social-live-app-scale-fixture"));
+  if (parsed.segments.length < 60 || parsed.segments.length > 70) {
+    markFailed("App-scale live social reels fixture must include 60-70 synthetic segments.");
+  }
+
+  const textLengths = parsed.segments.map((segment) => segment.text.length);
+  if (textLengths.some((length) => length < 800 || length > 1200)) {
+    markFailed("App-scale live social reels fixture segments must be around 800-1200 chars.");
+  }
+
+  const eligibleWindows = buildSocialReelsLiveDurationWindows(
+    {
+      ...parsed,
+      requested_candidate_count: 10,
+    },
+    10
+  ).filter((window) => window.duration_bucket === "60s");
+
+  if (eligibleWindows.length < 68) {
+    markFailed("App-scale live social reels fixture must provide many eligible 60s duration windows.");
+  }
+}
+
+function safeSocialReelsResponseSummary(body: unknown) {
+  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const candidates = Array.isArray(record.candidates) ? record.candidates : [];
+  return {
+    ok: record.ok,
+    request_id: record.request_id,
+    discovery_mode: record.discovery_mode,
+    requested_candidate_count: record.requested_candidate_count,
+    effective_candidate_count: record.effective_candidate_count,
+    eligible_duration_window_count: record.eligible_duration_window_count,
+    duration_window_count_sent_to_model: record.duration_window_count_sent_to_model,
+    prompt_context_char_count_sent_to_model: record.prompt_context_char_count_sent_to_model,
+    returned_candidate_count: record.returned_candidate_count,
+    filtered_candidate_count: record.filtered_candidate_count,
+    live_filter_reasons: record.live_filter_reasons,
+    returned_duration_seconds_range: record.returned_duration_seconds_range ?? durationRange(candidates),
+    provider: record.provider,
+    model: record.model,
+    mock: record.mock,
+    candidate_count: candidates.length,
+    diagnostics:
+      record.diagnostics && typeof record.diagnostics === "object"
+        ? {
+            openai_elapsed_ms: (record.diagnostics as Record<string, unknown>).openai_elapsed_ms,
+            response_parse_ms: (record.diagnostics as Record<string, unknown>).response_parse_ms,
+            timeout_stage: (record.diagnostics as Record<string, unknown>).timeout_stage,
+          }
+        : null,
+    invalid_response_diagnostics: record.invalid_response_diagnostics,
+  };
+}
+
+function logSafeSocialReelsSummary(label: string, result: ApiResult) {
+  console.log(`${label} STATUS:`, result.status);
+  console.log(`${label}_SUMMARY:`, JSON.stringify(redactSecrets(safeSocialReelsResponseSummary(result.body)), null, 2));
 }
 
 function durationFitsSocialReelsBucket(bucket: unknown, duration: unknown) {
@@ -236,6 +328,7 @@ if (testOpenAIProbe) {
 }
 
 validateTinyLiveCanaryFixture();
+validateAppScaleLiveCanaryFixture();
 
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");
@@ -275,7 +368,7 @@ if (!email || !password) {
     if (unauthProductEvent.status !== 401) markFailed("Unauthenticated product event did not return 401.");
   }
 
-  if (testSocialReels || testSocialReelsLive) {
+  if (testSocialReels || testSocialReelsLive || testSocialReelsLiveAppScale) {
     const unauthSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -432,6 +525,49 @@ if (!email || !password) {
       }
       if (mock !== false) {
         markFailed("Tiny live social reels canary did not use the live provider. Confirm SOCIAL_REELS_OPENAI_MODE=live in the target environment.");
+      }
+    }
+
+    if (testSocialReelsLiveAppScale) {
+      const appScaleLiveSocialReels = await post(`${baseUrl}/api/social-reels/discover`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(makeAppScaleLiveSocialReelsPayload(`codex-social-live-app-scale-${Date.now()}`)),
+      });
+      logSafeSocialReelsSummary("SOCIAL_REELS_APP_SCALE_LIVE", appScaleLiveSocialReels);
+
+      const body = appScaleLiveSocialReels.body;
+      const candidates =
+        body && typeof body === "object" && "candidates" in body && Array.isArray(body.candidates) ? body.candidates : [];
+      const mock = booleanField(body, "mock");
+      const effectiveCandidateCount = numberField(body, "effective_candidate_count");
+      const requestedCandidateCount = numberField(body, "requested_candidate_count");
+      const durationWindowCountSentToModel = numberField(body, "duration_window_count_sent_to_model");
+      const promptContextCharCountSentToModel = numberField(body, "prompt_context_char_count_sent_to_model");
+      const discoveryMode =
+        body && typeof body === "object" && "discovery_mode" in body ? (body as Record<string, unknown>).discovery_mode : null;
+
+      if (!appScaleLiveSocialReels.ok || effectiveCandidateCount !== 10 || requestedCandidateCount !== 30) {
+        markFailed("App-scale live social reels canary did not use the 10-candidate live shortlist request.");
+      }
+      if (durationWindowCountSentToModel === null || durationWindowCountSentToModel > 24) {
+        markFailed("App-scale live social reels canary sent too many duration windows to the model.");
+      }
+      if (promptContextCharCountSentToModel === null || promptContextCharCountSentToModel > 35_000) {
+        markFailed("App-scale live social reels prompt context was not bounded.");
+      }
+      if (discoveryMode !== "live_shortlist") {
+        markFailed("App-scale live social reels canary did not use live_shortlist discovery mode.");
+      }
+      if (mock !== false) {
+        markFailed("App-scale live social reels canary did not use the live provider. Confirm SOCIAL_REELS_OPENAI_MODE=live.");
+      }
+      const invalidLiveDurations = candidates.some((candidate) => {
+        if (!candidate || typeof candidate !== "object") return true;
+        const record = candidate as Record<string, unknown>;
+        return !durationFitsSocialReelsBucket(record.duration_bucket, record.duration_seconds);
+      });
+      if (invalidLiveDurations) {
+        markFailed("App-scale live social reels canary returned candidates outside their live duration bucket range.");
       }
     }
 

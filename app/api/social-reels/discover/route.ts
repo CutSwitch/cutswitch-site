@@ -35,6 +35,8 @@ type RouteDiagnostics = {
   requested_candidate_count: number | null;
   effective_candidate_count: number | null;
   eligible_duration_window_count: number | null;
+  duration_window_count_sent_to_model: number | null;
+  prompt_context_char_count_sent_to_model: number | null;
   returned_candidate_count: number | null;
   filtered_candidate_count: number | null;
   live_filter_reasons: Record<string, number> | null;
@@ -95,6 +97,8 @@ function createDiagnostics(input: {
   model?: string | null;
   effectiveCandidateCount?: number | null;
   eligibleDurationWindowCount?: number | null;
+  durationWindowCountSentToModel?: number | null;
+  promptContextCharCountSentToModel?: number | null;
   returnedCandidateCount?: number | null;
   filteredCandidateCount?: number | null;
   liveFilterReasons?: Record<string, number> | null;
@@ -115,6 +119,8 @@ function createDiagnostics(input: {
     requested_candidate_count: input.shape.requested_candidate_count,
     effective_candidate_count: input.effectiveCandidateCount ?? null,
     eligible_duration_window_count: input.eligibleDurationWindowCount ?? null,
+    duration_window_count_sent_to_model: input.durationWindowCountSentToModel ?? null,
+    prompt_context_char_count_sent_to_model: input.promptContextCharCountSentToModel ?? null,
     returned_candidate_count: input.returnedCandidateCount ?? null,
     filtered_candidate_count: input.filteredCandidateCount ?? null,
     live_filter_reasons: input.liveFilterReasons ?? null,
@@ -291,6 +297,8 @@ export async function POST(req: Request) {
       model: result.diagnostics.model || result.model,
       effectiveCandidateCount: result.effectiveCandidateCount,
       eligibleDurationWindowCount: result.eligibleDurationWindowCount,
+      durationWindowCountSentToModel: result.durationWindowCountSentToModel,
+      promptContextCharCountSentToModel: result.promptContextCharCountSentToModel,
       returnedCandidateCount: result.returnedCandidateCount,
       filteredCandidateCount: result.filteredCandidateCount,
       liveFilterReasons: result.liveFilterReasons,
@@ -313,6 +321,8 @@ export async function POST(req: Request) {
       requested_candidate_count: result.requestedCandidateCount,
       effective_candidate_count: result.effectiveCandidateCount,
       eligible_duration_window_count: result.eligibleDurationWindowCount,
+      duration_window_count_sent_to_model: result.durationWindowCountSentToModel,
+      prompt_context_char_count_sent_to_model: result.promptContextCharCountSentToModel,
       returned_candidate_count: result.returnedCandidateCount,
       filtered_candidate_count: result.filteredCandidateCount,
       live_filter_reasons: result.liveFilterReasons,
@@ -331,6 +341,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const stage = error instanceof SocialReelsDiscoveryError ? error.stage : "unknown";
     const elapsedMs = error instanceof SocialReelsDiscoveryError ? error.elapsedMs : null;
+    const invalidResponseDiagnostics = error instanceof SocialReelsDiscoveryError ? error.safeDiagnostics : null;
     const diagnostics = createDiagnostics({
       requestId,
       mode,
@@ -342,11 +353,17 @@ export async function POST(req: Request) {
       timeoutStage: stage,
       openaiElapsedMs: elapsedMs,
       provider: mode === "live" ? "openai" : "mock",
+      model: invalidResponseDiagnostics?.model ?? null,
+      effectiveCandidateCount: invalidResponseDiagnostics?.effective_candidate_count ?? null,
+      eligibleDurationWindowCount: invalidResponseDiagnostics?.eligible_duration_window_count ?? null,
+      durationWindowCountSentToModel: invalidResponseDiagnostics?.duration_window_count_sent_to_model ?? null,
+      promptContextCharCountSentToModel: invalidResponseDiagnostics?.prompt_context_char_count_sent_to_model ?? null,
     });
 
     console.error("[social-reels] discovery failed", {
       message: error instanceof SocialReelsDiscoveryError ? error.message : "unknown",
       diagnostics,
+      invalid_response_diagnostics: invalidResponseDiagnostics,
     });
 
     if (stage === "openai_fetch_timeout" || stage === "route_timeout") {
@@ -366,6 +383,7 @@ export async function POST(req: Request) {
         error: "Unable to discover social reel candidates.",
         stage,
         request_id: requestId,
+        invalid_response_diagnostics: stage === "openai_invalid_response" ? invalidResponseDiagnostics : undefined,
       },
       500
     );

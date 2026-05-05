@@ -20,6 +20,15 @@ export type SocialReelsDurationWindow = {
   end_anchor_hint: string;
 };
 
+export type SocialReelsPromptDurationWindow = SocialReelsDurationWindow & {
+  text_excerpt: string;
+};
+
+export const SOCIAL_REELS_LIVE_WINDOW_DEFAULT_COUNT = 18;
+export const SOCIAL_REELS_LIVE_WINDOW_MIN_COUNT = 6;
+export const SOCIAL_REELS_LIVE_WINDOW_MAX_COUNT = 24;
+const SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS = 900;
+
 const GENERIC_ANCHOR_WORDS = new Set([
   "yeah",
   "okay",
@@ -103,6 +112,16 @@ function roundWindowSeconds(value: number) {
   return Number(value.toFixed(1));
 }
 
+function clampWindowCount(value: number) {
+  return Math.min(SOCIAL_REELS_LIVE_WINDOW_MAX_COUNT, Math.max(SOCIAL_REELS_LIVE_WINDOW_MIN_COUNT, Math.round(value)));
+}
+
+export function getSocialReelsLiveWindowCount(rawEnvValue?: string | null) {
+  const parsed = rawEnvValue?.trim() ? Number(rawEnvValue.trim()) : SOCIAL_REELS_LIVE_WINDOW_DEFAULT_COUNT;
+  if (!Number.isFinite(parsed) || parsed <= 0) return SOCIAL_REELS_LIVE_WINDOW_DEFAULT_COUNT;
+  return clampWindowCount(parsed);
+}
+
 function uniqueWindowOffsets(segmentDuration: number, targetDuration: number) {
   const maxOffset = Math.max(0, segmentDuration - targetDuration);
   if (maxOffset <= 0) return [0];
@@ -148,16 +167,14 @@ export function getConcreteSocialReelsDurationBuckets(input: SocialReelsRequest)
 
 export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, effectiveCandidateCount: number) {
   const buckets = getConcreteSocialReelsDurationBuckets(input);
-  const maxWindows = Math.max(effectiveCandidateCount * 3, 12);
   const windows: SocialReelsDurationWindow[] = [];
+  void effectiveCandidateCount;
 
   for (const bucket of buckets) {
     const targetDuration = liveWindowTargetDurationSeconds(bucket);
     const range = getSocialReelsLiveDurationRange(bucket);
 
     for (const segment of input.segments) {
-      if (windows.length >= maxWindows) break;
-
       const segmentDuration = Math.max(0, segment.end_seconds - segment.start_seconds);
       if (segmentDuration < range.min) continue;
 
@@ -169,8 +186,6 @@ export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, e
 
       const secondsPerToken = segmentDuration / Math.max(1, words.length - 1);
       for (const offset of uniqueWindowOffsets(segmentDuration, durationSeconds)) {
-        if (windows.length >= maxWindows) break;
-
         const startSeconds = segment.start_seconds + offset;
         const endSeconds = Math.min(segment.end_seconds, startSeconds + durationSeconds);
         const actualDuration = Math.round(endSeconds - startSeconds);
@@ -194,4 +209,85 @@ export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, e
   }
 
   return windows;
+}
+
+function chooseNearestUnusedIndex(length: number, desiredIndex: number, usedIndexes: Set<number>) {
+  if (!usedIndexes.has(desiredIndex)) return desiredIndex;
+
+  for (let distance = 1; distance < length; distance += 1) {
+    const left = desiredIndex - distance;
+    const right = desiredIndex + distance;
+    if (left >= 0 && !usedIndexes.has(left)) return left;
+    if (right < length && !usedIndexes.has(right)) return right;
+  }
+
+  return null;
+}
+
+export function selectSocialReelsLiveDurationWindows(
+  windows: SocialReelsDurationWindow[],
+  desiredWindowCount: number
+): SocialReelsDurationWindow[] {
+  const targetCount = clampWindowCount(desiredWindowCount);
+  if (windows.length <= targetCount) {
+    return [...windows].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+  }
+
+  const sorted = [...windows].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+  const usedIndexes = new Set<number>();
+  const selected: SocialReelsDurationWindow[] = [];
+
+  for (let index = 0; index < targetCount; index += 1) {
+    const desiredIndex = targetCount === 1 ? 0 : Math.round((index * (sorted.length - 1)) / (targetCount - 1));
+    const chosenIndex = chooseNearestUnusedIndex(sorted.length, desiredIndex, usedIndexes);
+    if (chosenIndex === null) break;
+    usedIndexes.add(chosenIndex);
+    selected.push(sorted[chosenIndex]);
+  }
+
+  return selected.sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+}
+
+function findSegment(input: SocialReelsRequest, segmentId: string) {
+  return input.segments.find((segment) => segment.id === segmentId || segment.segment_id === segmentId) || null;
+}
+
+function trimExcerpt(text: string, maxChars: number) {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (compact.length <= maxChars) return compact;
+  return compact.slice(0, maxChars).replace(/\s+\S*$/, "").trim();
+}
+
+function windowTextExcerpt(input: SocialReelsRequest, window: SocialReelsDurationWindow, maxChars = SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS) {
+  const segment = findSegment(input, window.segment_id);
+  if (!segment) return "";
+
+  const words = cleanWords(segment.text);
+  if (words.length === 0) return "";
+
+  const segmentDuration = Math.max(1, segment.end_seconds - segment.start_seconds);
+  const secondsPerToken = segmentDuration / Math.max(1, words.length - 1);
+  const startOffsetSeconds = Math.max(0, window.start_seconds - segment.start_seconds);
+  const endOffsetSeconds = Math.max(startOffsetSeconds, window.end_seconds - segment.start_seconds);
+  const startTokenIndex = Math.max(0, Math.floor(startOffsetSeconds / secondsPerToken) - 18);
+  const endTokenIndex = Math.min(words.length, Math.ceil(endOffsetSeconds / secondsPerToken) + 18);
+
+  const excerpt = words.slice(startTokenIndex, Math.max(startTokenIndex + 24, endTokenIndex)).join(" ");
+  return trimExcerpt(excerpt || segment.text, maxChars);
+}
+
+export function buildSocialReelsLivePromptWindows(
+  input: SocialReelsRequest,
+  windows: SocialReelsDurationWindow[]
+): SocialReelsPromptDurationWindow[] {
+  return windows
+    .map((window) => ({
+      ...window,
+      text_excerpt: windowTextExcerpt(input, window),
+    }))
+    .filter((window) => window.text_excerpt.length > 0);
+}
+
+export function estimateSocialReelsPromptWindowCharCount(windows: SocialReelsPromptDurationWindow[]) {
+  return JSON.stringify(windows).length;
 }

@@ -8,7 +8,14 @@ import {
   socialReelsRequestSchema,
   socialReelsResponseSchema,
 } from "../lib/socialReelsSchema";
-import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
+import { summarizeSocialReelsOutputShape } from "../lib/socialReelsDiagnostics";
+import {
+  buildSocialReelsLiveDurationWindows,
+  buildSocialReelsLivePromptWindows,
+  estimateSocialReelsPromptWindowCharCount,
+  getSocialReelsLiveWindowCount,
+  selectSocialReelsLiveDurationWindows,
+} from "../lib/socialReelsDurationWindows";
 import {
   durationFitsSocialReelsLiveBucket,
   getEffectiveLiveShortlistCandidateCount,
@@ -110,7 +117,7 @@ for (const durationWindowGuidance of [
   "duration_windows",
   "duration_window_instruction",
   "Choose from duration_windows",
-  "backend-generated candidate spans",
+  "backend-generated duration windows",
   "chosen window_id",
   "return fewer candidates rather than padding",
 ]) {
@@ -140,9 +147,12 @@ assert(
 );
 assert(
   promptSource.includes("buildSocialReelsLiveDurationWindows(liveShortlistInput, effectiveCandidateCount)") &&
-    promptSource.includes("durationWindows"),
-  "Live shortlist should provide backend-generated duration windows to the OpenAI prompt."
+    promptSource.includes("selectSocialReelsLiveDurationWindows") &&
+    promptSource.includes("buildSocialReelsLivePromptWindows"),
+  "Live shortlist should select bounded backend-generated duration windows for the OpenAI prompt."
 );
+assert(promptSource.includes("segments: useLiveWindowInput ? [] : input.segments"), "Live shortlist should not send the full transcript segment blob.");
+assert(promptSource.includes("duration_windows_only"), "Live shortlist prompt should identify duration-window-only source input.");
 
 socialReelsCandidateSchema.parse(candidate(0, false));
 socialReelsCandidateSchema.parse(candidate(0, true));
@@ -236,6 +246,76 @@ for (const window of durationWindows) {
   assert(window.start_anchor_hint.length >= 20, "Duration window helper should include a useful start anchor hint.");
   assert(window.end_anchor_hint.length >= 20, "Duration window helper should include a useful end anchor hint.");
 }
+const selectedDurationWindows = selectSocialReelsLiveDurationWindows(durationWindows, getSocialReelsLiveWindowCount("18"));
+const selectedAgain = selectSocialReelsLiveDurationWindows(durationWindows, getSocialReelsLiveWindowCount("18"));
+assert(selectedDurationWindows.length <= 18, "Window selection should cap the live prompt window count.");
+assert(JSON.stringify(selectedDurationWindows) === JSON.stringify(selectedAgain), "Window selection should be deterministic.");
+assert(
+  selectedDurationWindows[0].start_seconds < selectedDurationWindows[selectedDurationWindows.length - 1].start_seconds,
+  "Window selection should spread across the episode instead of clustering."
+);
+const promptWindows = buildSocialReelsLivePromptWindows(durationWindowRequest, selectedDurationWindows);
+assert(promptWindows.length === selectedDurationWindows.length, "Prompt windows should keep selected windows with safe excerpts.");
+assert(
+  estimateSocialReelsPromptWindowCharCount(promptWindows) < 18_000,
+  "Prompt window context should stay bounded for live shortlist requests."
+);
+
+const appScaleSentence = [
+  "The question is why a creator can have a strong idea and still lose the viewer before the point lands.",
+  "The tension is that editors want the shortest possible quote, but social viewers need enough pressure to care.",
+  "The answer starts when the speaker explains how context creates trust and makes the payoff feel earned.",
+  "The reframe is that a reel is not a tiny quote; it is a complete story compressed into a clean minute.",
+  "The payoff lands when the speaker gives a practical rule that another editor could apply immediately.",
+].join(" ");
+const appScaleWindowRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-app-scale-windows",
+  source_duration_seconds: 68 * 90,
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "App-scale duration window smoke" },
+  context: { platform: "social" },
+  segments: Array.from({ length: 68 }, (_, index) => ({
+    segment_id: `app-scale-seg-${String(index + 1).padStart(2, "0")}`,
+    start_seconds: index * 90,
+    end_seconds: index * 90 + 90,
+    speaker: "Speaker 1",
+    text: Array.from({ length: 2 }, () => appScaleSentence).join(" "),
+  })),
+});
+const appScaleWindows = buildSocialReelsLiveDurationWindows({ ...appScaleWindowRequest, requested_candidate_count: 10 }, 10);
+const appScaleSelectedWindows = selectSocialReelsLiveDurationWindows(appScaleWindows, getSocialReelsLiveWindowCount("18"));
+const appScalePromptWindows = buildSocialReelsLivePromptWindows(appScaleWindowRequest, appScaleSelectedWindows);
+const appScaleSelectedSegmentIndexes = new Set(
+  appScaleSelectedWindows.map((window) => Number(window.segment_id.replace("app-scale-seg-", ""))).filter(Number.isFinite)
+);
+assert(appScaleWindows.length > appScaleSelectedWindows.length, "App-scale live requests should have more eligible windows than the prompt sends.");
+assert(appScaleSelectedWindows.length === 18, "App-scale live prompt should use the configured 18 selected windows.");
+assert(appScaleSelectedSegmentIndexes.size >= 12, "App-scale live window selection should spread across many segments.");
+assert(
+  Math.min(...appScaleSelectedSegmentIndexes) <= 2 && Math.max(...appScaleSelectedSegmentIndexes) >= 67,
+  "App-scale live window selection should preserve beginning-to-end episode coverage."
+);
+assert(
+  estimateSocialReelsPromptWindowCharCount(appScalePromptWindows) < 25_000,
+  "App-scale live prompt window context should stay under a bounded char cap."
+);
+const unsafeOutputShape = summarizeSocialReelsOutputShape({
+  candidates: [
+    {
+      title: "Do not log this title",
+      start_anchor_quote: "Do not log this quote",
+      duration_bucket: "60s",
+    },
+  ],
+});
+const unsafeOutputSummary = JSON.stringify(unsafeOutputShape);
+assert(unsafeOutputShape.has_candidates_array, "Invalid-response diagnostics should report candidate array presence.");
+assert(unsafeOutputShape.first_candidate_keys.includes("start_anchor_quote"), "Invalid-response diagnostics may report keys.");
+assert(!unsafeOutputSummary.includes("Do not log this"), "Invalid-response diagnostics must not include candidate text values.");
 const reducedShortlist = socialReelsShortlistResponseSchema.parse({
   candidates: Array.from({ length: 10 }, (_, index) => ({
     candidate_id: `live-shortlist-${String(index + 1).padStart(2, "0")}`,

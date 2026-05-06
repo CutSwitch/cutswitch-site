@@ -163,6 +163,8 @@ Limits:
       "title_score": 0.84,
       "edit_feasibility_score": 0.88,
       "risk_penalty": 0,
+      "context_dependency": "low",
+      "sensitivity_level": "none",
       "rejection_risk_flags": [],
       "risk_flags": [],
       "duration_bucket": "30s",
@@ -232,6 +234,8 @@ Each candidate includes:
 - `title_score`: optional normalized score for the strongest truthful title potential.
 - `edit_feasibility_score`: optional normalized score for clean editability.
 - `risk_penalty`: optional normalized penalty applied for weak hook, missing payoff, context dependence, low editability, misleading title risk, or anti-junk flags.
+- `context_dependency`: optional compact context label. Allowed values: `low`, `medium`, `high`.
+- `sensitivity_level`: optional compact safety/editorial label. Allowed values: `none`, `sensitive_topic`, `unsafe_or_policy_risk`.
 - `rejection_risk_flags` / `risk_flags`: anti-junk flags that identify possible editorial weaknesses.
 - `scores`: normalized `0.0` to `1.0` score breakdown for hook strength, standalone clarity, payoff strength, emotional charge, novelty, editability, shareability, context independence, and overall.
 
@@ -261,8 +265,16 @@ Allowed rejection risk flags:
 - `too_context_dependent`
 - `generic_advice`
 - `unclear_speaker`
+- `sensitive_topic`
+- `unsafe_or_policy_risk`
 - `unsafe_or_sensitive`
 - `low_editability`
+
+Risk taxonomy note:
+
+- `sensitive_topic` means adult, emotional, vulnerable, health-adjacent, or otherwise sensitive discussion that may still be appropriate for a social clip.
+- `unsafe_or_policy_risk` means stronger platform-safety or policy risk.
+- `unsafe_or_sensitive` remains accepted for backward compatibility, but new live shortlist output should prefer the split labels above.
 
 ## Mock And Live Mode
 
@@ -297,10 +309,11 @@ Rules:
 - Mock mode derives anchor quotes from submitted segment text and does not invent anchor quotes.
 - In live mode, duration buckets are treated as duration constraints, not labels. Candidates whose anchors do not span their requested bucket may be rejected by the macOS app.
 - The backend also post-validates live shortlist candidate duration before responding. Current live acceptance ranges are `15s = 10-22`, `30s = 22-42`, `60s = 45-78`, `90s = 70-115`, and `5-10m = 240-660`. Candidates outside the selected bucket are filtered out rather than padded with weak/invalid replacements.
+- Before live prompt construction, duration windows are scored with lightweight transcript-excerpt heuristics. Obvious setup/outro/promo windows are excluded or heavily demoted when enough better windows exist. Positive signals include question, tension, confession, contrarian take, practical lesson, emotional turn, reframe, payoff, story beat, and identity trigger.
 - For live shortlist requests, the backend provides OpenAI with a small set of backend-generated `duration_windows` that already fit the requested bucket. The model should select from those spans, keep `start_seconds`, `end_seconds`, and `duration_seconds` aligned to the chosen window, and place anchor quotes near the window boundary hints. This helps prevent compact moments from being mislabeled as `60s` candidates.
 - App-scale live requests use `duration_windows` as the primary search space. The backend sends only bounded window excerpts plus safe timing/window metadata, not all transcript segments as a large JSON blob.
 - A `60s` candidate is expected to be an actual `45-78` second span, not a 10-second highlight. The prompt explicitly tells the model to return fewer candidates rather than padding with compact quotes when too few duration-valid spans are available.
-- Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as title options and captions are reserved for a later refinement pass.
+- Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, compact viral metadata (`viral_atoms`, `core_question`, `payoff`), `context_dependency`, `sensitivity_level`, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as title options and captions are reserved for a later refinement pass.
 
 ## Timeout Diagnostics
 
@@ -318,6 +331,9 @@ Captured fields:
 - `requested_candidate_count`
 - `effective_candidate_count`
 - `eligible_duration_window_count`
+- `windows_after_quality_filter`
+- `excluded_window_reason_counts`
+- `average_window_quality_score`
 - `duration_window_count_sent_to_model`
 - `prompt_context_char_count_sent_to_model`
 - `returned_candidate_count`
@@ -487,7 +503,9 @@ Scoring should be harsh:
 
 - Most clips should not score above `0.80`.
 - A score above `0.90` requires a strong hook, clear tension/conflict, satisfying payoff, standalone clarity, title potential, and clean editability.
-- Use `risk_penalty` for weak hooks, missing payoff, context dependence, unsafe or sensitive material, low editability, junk setup, or misleading title risk.
+- Use `risk_penalty` for weak hooks, missing payoff, context dependence, true unsafe/policy risk, low editability, junk setup, or misleading title risk.
+- Mark adult-but-appropriate, sexual wellness, emotional vulnerability, grief, or intimacy as `sensitive_topic` instead of automatically treating it as unsafe.
+- Use `unsafe_or_policy_risk` only for genuinely risky, explicit, exploitative, hateful/harassing, medical/legal, or platform-safety-risk content.
 
 Candidates should avoid:
 

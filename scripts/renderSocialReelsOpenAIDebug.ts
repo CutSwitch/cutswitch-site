@@ -5,7 +5,9 @@ import {
   buildSocialReelsLiveDurationWindows,
   buildSocialReelsLivePromptWindows,
   getSocialReelsLiveWindowCount,
+  scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
+  summarizeSocialReelsWindowQuality,
 } from "../lib/socialReelsDurationWindows";
 import { buildSocialReelsOpenAIPromptInput } from "../lib/socialReelsOpenAIPrompt";
 import { socialReelsRequestSchema } from "../lib/socialReelsSchema";
@@ -145,6 +147,9 @@ function safeWindowForJson(window: {
   duration_seconds: number;
   start_anchor_hint: string;
   end_anchor_hint: string;
+  window_quality_score?: number;
+  window_quality_reasons?: string[];
+  window_exclusion_reason?: string | null;
 }, speakersBySegmentId: Map<string, string | null>) {
   return {
     window_id: window.window_id,
@@ -154,6 +159,9 @@ function safeWindowForJson(window: {
     start_seconds: window.start_seconds,
     end_seconds: window.end_seconds,
     duration_seconds: window.duration_seconds,
+    window_quality_score: window.window_quality_score ?? null,
+    window_quality_reasons: window.window_quality_reasons ?? [],
+    window_exclusion_reason: window.window_exclusion_reason ?? null,
     start_anchor_hint: window.start_anchor_hint,
     end_anchor_hint: window.end_anchor_hint,
   };
@@ -203,7 +211,9 @@ const liveShortlistInput = {
   requested_candidate_count: effectiveCandidateCount,
 };
 const eligibleDurationWindows = buildSocialReelsLiveDurationWindows(liveShortlistInput, effectiveCandidateCount);
-const selectedDurationWindows = selectSocialReelsLiveDurationWindows(eligibleDurationWindows, liveWindowCount);
+const scoredDurationWindows = scoreSocialReelsDurationWindows(liveShortlistInput, eligibleDurationWindows);
+const windowQualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
+const selectedDurationWindows = selectSocialReelsLiveDurationWindows(scoredDurationWindows, liveWindowCount);
 const promptDurationWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedDurationWindows);
 const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
   discoveryMode: "live_shortlist",
@@ -228,6 +238,7 @@ const speakers = uniqueSpeakerLabels(request.segments);
 const rawSpeakerLabelsRemain = hasRawSpeakerLabels(speakers, userPromptContent);
 const pollutedSuffixRemain = hasPollutedProjectEpisodeSuffix(speakers);
 const summaryRows: Array<[string, string | number | null]> = [
+  ["input_app_request_path", inputPath],
   ["mode_that_would_be_used_from_env", mode],
   ["rendered_discovery_mode", "live_shortlist"],
   ["model", model],
@@ -240,12 +251,17 @@ const summaryRows: Array<[string, string | number | null]> = [
   ["segment_count", segmentCount],
   ["approximate_total_text_chars", approximateChars],
   ["eligible_duration_window_count", eligibleDurationWindows.length],
+  ["windows_after_quality_filter", windowQualitySummary.windows_after_quality_filter],
+  ["excluded_window_reason_counts", JSON.stringify(windowQualitySummary.excluded_window_reason_counts)],
+  ["average_window_quality_score", windowQualitySummary.average_window_quality_score],
   ["duration_window_count_sent_to_model", promptDurationWindows.length],
   ["prompt_context_char_count_sent_to_model", promptContextCharCount],
   ["selected_live_window_count", liveWindowCount],
   ["unique_speaker_labels_detected", speakers.length > 0 ? speakers.join(", ") : "none"],
   ["raw_SPEAKER_labels_remain", rawSpeakerLabelsRemain ? "yes" : "no"],
   ["polluted_project_episode_suffix_remains", pollutedSuffixRemain ? "yes" : "no"],
+  ["returned_response_schema_mode", "reduced live shortlist"],
+  ["openai_call_made", "no"],
 ];
 
 writeText(
@@ -345,6 +361,9 @@ console.log(
       segment_count: segmentCount,
       approximate_total_text_chars: approximateChars,
       eligible_duration_window_count: eligibleDurationWindows.length,
+      windows_after_quality_filter: windowQualitySummary.windows_after_quality_filter,
+      excluded_window_reason_counts: windowQualitySummary.excluded_window_reason_counts,
+      average_window_quality_score: windowQualitySummary.average_window_quality_score,
       duration_window_count_sent_to_model: promptDurationWindows.length,
       prompt_context_char_count_sent_to_model: promptContextCharCount,
       selected_live_window_count: liveWindowCount,

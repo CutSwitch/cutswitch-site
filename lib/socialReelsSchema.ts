@@ -43,9 +43,13 @@ export const SOCIAL_REELS_REJECTION_RISK_FLAGS = [
   "too_context_dependent",
   "generic_advice",
   "unclear_speaker",
+  "sensitive_topic",
+  "unsafe_or_policy_risk",
   "unsafe_or_sensitive",
   "low_editability",
 ] as const;
+export const SOCIAL_REELS_CONTEXT_DEPENDENCIES = ["low", "medium", "high"] as const;
+export const SOCIAL_REELS_SENSITIVITY_LEVELS = ["none", "sensitive_topic", "unsafe_or_policy_risk"] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
 export const SOCIAL_REELS_MIN_RESPONSE_CANDIDATES = 3;
@@ -218,6 +222,8 @@ export const socialReelsCandidateSchema = z
     title_score: scoreSchema.optional().nullable(),
     edit_feasibility_score: scoreSchema.optional().nullable(),
     risk_penalty: scoreSchema.optional().nullable(),
+    context_dependency: z.enum(SOCIAL_REELS_CONTEXT_DEPENDENCIES).optional().nullable(),
+    sensitivity_level: z.enum(SOCIAL_REELS_SENSITIVITY_LEVELS).optional().nullable(),
     rejection_risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     duration_bucket: z.enum(SOCIAL_REELS_DURATION_BUCKETS),

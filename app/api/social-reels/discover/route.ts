@@ -35,6 +35,9 @@ type RouteDiagnostics = {
   requested_candidate_count: number | null;
   effective_candidate_count: number | null;
   eligible_duration_window_count: number | null;
+  windows_after_quality_filter: number | null;
+  excluded_window_reason_counts: Record<string, number> | null;
+  average_window_quality_score: number | null;
   duration_window_count_sent_to_model: number | null;
   prompt_context_char_count_sent_to_model: number | null;
   returned_candidate_count: number | null;
@@ -97,6 +100,9 @@ function createDiagnostics(input: {
   model?: string | null;
   effectiveCandidateCount?: number | null;
   eligibleDurationWindowCount?: number | null;
+  windowsAfterQualityFilter?: number | null;
+  excludedWindowReasonCounts?: Record<string, number> | null;
+  averageWindowQualityScore?: number | null;
   durationWindowCountSentToModel?: number | null;
   promptContextCharCountSentToModel?: number | null;
   returnedCandidateCount?: number | null;
@@ -119,6 +125,9 @@ function createDiagnostics(input: {
     requested_candidate_count: input.shape.requested_candidate_count,
     effective_candidate_count: input.effectiveCandidateCount ?? null,
     eligible_duration_window_count: input.eligibleDurationWindowCount ?? null,
+    windows_after_quality_filter: input.windowsAfterQualityFilter ?? null,
+    excluded_window_reason_counts: input.excludedWindowReasonCounts ?? null,
+    average_window_quality_score: input.averageWindowQualityScore ?? null,
     duration_window_count_sent_to_model: input.durationWindowCountSentToModel ?? null,
     prompt_context_char_count_sent_to_model: input.promptContextCharCountSentToModel ?? null,
     returned_candidate_count: input.returnedCandidateCount ?? null,
@@ -297,6 +306,9 @@ export async function POST(req: Request) {
       model: result.diagnostics.model || result.model,
       effectiveCandidateCount: result.effectiveCandidateCount,
       eligibleDurationWindowCount: result.eligibleDurationWindowCount,
+      windowsAfterQualityFilter: result.windowsAfterQualityFilter,
+      excludedWindowReasonCounts: result.excludedWindowReasonCounts,
+      averageWindowQualityScore: result.averageWindowQualityScore,
       durationWindowCountSentToModel: result.durationWindowCountSentToModel,
       promptContextCharCountSentToModel: result.promptContextCharCountSentToModel,
       returnedCandidateCount: result.returnedCandidateCount,
@@ -321,6 +333,9 @@ export async function POST(req: Request) {
       requested_candidate_count: result.requestedCandidateCount,
       effective_candidate_count: result.effectiveCandidateCount,
       eligible_duration_window_count: result.eligibleDurationWindowCount,
+      windows_after_quality_filter: result.windowsAfterQualityFilter,
+      excluded_window_reason_counts: result.excludedWindowReasonCounts,
+      average_window_quality_score: result.averageWindowQualityScore,
       duration_window_count_sent_to_model: result.durationWindowCountSentToModel,
       prompt_context_char_count_sent_to_model: result.promptContextCharCountSentToModel,
       returned_candidate_count: result.returnedCandidateCount,
@@ -356,6 +371,9 @@ export async function POST(req: Request) {
       model: invalidResponseDiagnostics?.model ?? null,
       effectiveCandidateCount: invalidResponseDiagnostics?.effective_candidate_count ?? null,
       eligibleDurationWindowCount: invalidResponseDiagnostics?.eligible_duration_window_count ?? null,
+      windowsAfterQualityFilter: invalidResponseDiagnostics?.windows_after_quality_filter ?? null,
+      excludedWindowReasonCounts: invalidResponseDiagnostics?.excluded_window_reason_counts ?? null,
+      averageWindowQualityScore: invalidResponseDiagnostics?.average_window_quality_score ?? null,
       durationWindowCountSentToModel: invalidResponseDiagnostics?.duration_window_count_sent_to_model ?? null,
       promptContextCharCountSentToModel: invalidResponseDiagnostics?.prompt_context_char_count_sent_to_model ?? null,
     });

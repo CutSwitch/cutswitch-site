@@ -272,6 +272,9 @@ function safeSocialReelsResponseSummary(body: unknown) {
     requested_candidate_count: record.requested_candidate_count,
     effective_candidate_count: record.effective_candidate_count,
     eligible_duration_window_count: record.eligible_duration_window_count,
+    windows_after_quality_filter: record.windows_after_quality_filter,
+    excluded_window_reason_counts: record.excluded_window_reason_counts,
+    average_window_quality_score: record.average_window_quality_score,
     duration_window_count_sent_to_model: record.duration_window_count_sent_to_model,
     prompt_context_char_count_sent_to_model: record.prompt_context_char_count_sent_to_model,
     returned_candidate_count: record.returned_candidate_count,
@@ -474,6 +477,7 @@ if (!email || !password) {
       const returnedCandidateCount = numberField(body, "returned_candidate_count");
       const filteredCandidateCount = numberField(body, "filtered_candidate_count");
       const eligibleDurationWindowCount = numberField(body, "eligible_duration_window_count");
+      const windowsAfterQualityFilter = numberField(body, "windows_after_quality_filter");
       const liveFilterReasons =
         body && typeof body === "object" && "live_filter_reasons" in body
           ? (body as Record<string, unknown>).live_filter_reasons
@@ -491,6 +495,7 @@ if (!email || !password) {
             requested_candidate_count: requestedCandidateCount,
             effective_candidate_count: effectiveCandidateCount,
             eligible_duration_window_count: eligibleDurationWindowCount,
+            windows_after_quality_filter: windowsAfterQualityFilter,
             returned_candidate_count: returnedCandidateCount,
             filtered_candidate_count: filteredCandidateCount,
             live_filter_reasons: liveFilterReasons,
@@ -505,6 +510,9 @@ if (!email || !password) {
       }
       if (eligibleDurationWindowCount === null || eligibleDurationWindowCount < 10) {
         markFailed("Tiny live social reels canary did not report enough eligible duration windows.");
+      }
+      if (windowsAfterQualityFilter === null || windowsAfterQualityFilter <= 0) {
+        markFailed("Tiny live social reels canary did not report window quality filtering metadata.");
       }
       if (returnedCandidateCount !== candidates.length) {
         markFailed("Tiny live social reels canary returned_candidate_count did not match candidates length.");

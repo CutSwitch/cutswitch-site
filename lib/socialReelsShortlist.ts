@@ -2,9 +2,11 @@ import { z } from "zod";
 
 import {
   SOCIAL_REELS_CLIP_TYPES,
+  SOCIAL_REELS_CONTEXT_DEPENDENCIES,
   SOCIAL_REELS_DURATION_BUCKETS,
   SOCIAL_REELS_PLATFORMS,
   SOCIAL_REELS_REJECTION_RISK_FLAGS,
+  SOCIAL_REELS_SENSITIVITY_LEVELS,
   SOCIAL_REELS_VIRAL_ATOMS,
   socialReelsCandidateSchema,
   type SocialReelsCandidate,
@@ -69,6 +71,11 @@ export const socialReelsShortlistCandidateSchema = z
     clip_type: z.enum(SOCIAL_REELS_CLIP_TYPES),
     topic_tag: z.string().trim().min(1).max(80),
     why_it_works: z.string().trim().min(1).max(360),
+    viral_atoms: z.array(z.enum(SOCIAL_REELS_VIRAL_ATOMS)).max(SOCIAL_REELS_VIRAL_ATOMS.length),
+    core_question: z.string().trim().max(240).nullable(),
+    payoff: z.string().trim().max(240).nullable(),
+    context_dependency: z.enum(SOCIAL_REELS_CONTEXT_DEPENDENCIES),
+    sensitivity_level: z.enum(SOCIAL_REELS_SENSITIVITY_LEVELS),
     rejection_risk_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length),
     score: scoreSchema,
     scores: z.object({
@@ -168,6 +175,11 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               "clip_type",
               "topic_tag",
               "why_it_works",
+              "viral_atoms",
+              "core_question",
+              "payoff",
+              "context_dependency",
+              "sensitivity_level",
               "rejection_risk_flags",
               "score",
               "scores",
@@ -187,6 +199,19 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               clip_type: { type: "string", enum: SOCIAL_REELS_CLIP_TYPES },
               topic_tag: { type: "string", minLength: 1, maxLength: 80 },
               why_it_works: { type: "string", minLength: 1, maxLength: 360 },
+              viral_atoms: {
+                type: "array",
+                maxItems: SOCIAL_REELS_VIRAL_ATOMS.length,
+                items: { type: "string", enum: SOCIAL_REELS_VIRAL_ATOMS },
+              },
+              core_question: {
+                anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }],
+              },
+              payoff: {
+                anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }],
+              },
+              context_dependency: { type: "string", enum: SOCIAL_REELS_CONTEXT_DEPENDENCIES },
+              sensitivity_level: { type: "string", enum: SOCIAL_REELS_SENSITIVITY_LEVELS },
               rejection_risk_flags: {
                 type: "array",
                 maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
@@ -278,6 +303,11 @@ export function hydrateSocialReelsShortlistCandidate(
   const titleScore = clampScore(Math.max(0.5, score - 0.02));
   const editFeasibilityScore = clampScore(Math.max(0.5, score - 0.01));
   const rejectionRiskFlags = candidate.rejection_risk_flags || [];
+  const riskPenalty = clampScore(
+    (candidate.context_dependency === "high" ? 0.12 : 0) +
+      (candidate.sensitivity_level === "sensitive_topic" ? 0.04 : 0) +
+      (candidate.sensitivity_level === "unsafe_or_policy_risk" ? 0.25 : 0)
+  );
 
   const hydrated = {
     candidate_id: candidate.candidate_id,
@@ -292,14 +322,19 @@ export function hydrateSocialReelsShortlistCandidate(
     subtitle_intro: truncate(startAnchor, 160, title),
     social_caption: caption,
     why_it_works: truncate(candidate.why_it_works, 500, "The moment has a clear opening anchor and a later payoff anchor."),
-    viral_atoms: ["question", "clear_answer"] as Array<(typeof SOCIAL_REELS_VIRAL_ATOMS)[number]>,
-    core_question: truncate(title, 240, "What makes this moment worth watching?"),
+    viral_atoms:
+      candidate.viral_atoms.length > 0
+        ? candidate.viral_atoms
+        : (["question", "clear_answer"] as Array<(typeof SOCIAL_REELS_VIRAL_ATOMS)[number]>),
+    core_question: candidate.core_question ? truncate(candidate.core_question, 240, title) : null,
     conflict: "The clip needs to create tension quickly and avoid dead setup.",
-    payoff: truncate(endAnchor, 240, "The ending lands the point."),
+    payoff: candidate.payoff ? truncate(candidate.payoff, 240, endAnchor) : null,
     title_options: [{ title, score: titleScore }],
     title_score: titleScore,
     edit_feasibility_score: editFeasibilityScore,
-    risk_penalty: 0,
+    risk_penalty: riskPenalty,
+    context_dependency: candidate.context_dependency,
+    sensitivity_level: candidate.sensitivity_level,
     rejection_risk_flags: rejectionRiskFlags,
     risk_flags: rejectionRiskFlags,
     duration_bucket: candidate.duration_bucket,

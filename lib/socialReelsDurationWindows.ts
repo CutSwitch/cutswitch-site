@@ -20,7 +20,32 @@ export type SocialReelsDurationWindow = {
   end_anchor_hint: string;
 };
 
-export type SocialReelsPromptDurationWindow = SocialReelsDurationWindow & {
+export type SocialReelsWindowExclusionReason =
+  | "countdown_or_timer"
+  | "pre_show_chatter"
+  | "mic_check"
+  | "technical_setup"
+  | "housekeeping"
+  | "intro_outro_logistics"
+  | "sponsor_or_ad"
+  | "book_link_promo_outro"
+  | "dead_air_or_filler"
+  | "weak_opening_chatter";
+
+export type SocialReelsScoredDurationWindow = SocialReelsDurationWindow & {
+  window_quality_score: number;
+  window_quality_reasons: string[];
+  window_exclusion_reason: SocialReelsWindowExclusionReason | null;
+};
+
+export type SocialReelsWindowQualitySummary = {
+  windows_after_quality_filter: number;
+  excluded_window_reason_counts: Record<string, number>;
+  average_window_quality_score: number | null;
+};
+
+export type SocialReelsPromptDurationWindow = SocialReelsScoredDurationWindow & {
+  speaker: string | null;
   text_excerpt: string;
 };
 
@@ -47,6 +72,35 @@ const GENERIC_ANCHOR_WORDS = new Set([
   "actually",
   "think",
 ]);
+
+const EXCLUSION_PATTERNS: Array<{ reason: SocialReelsWindowExclusionReason; pattern: RegExp }> = [
+  { reason: "countdown_or_timer", pattern: /\b(countdown|counting down|three two one|3\s*2\s*1|timer)\b/i },
+  { reason: "pre_show_chatter", pattern: /\b(pre[-\s]?show|haven't started|have not started|before we start|before recording)\b/i },
+  { reason: "mic_check", pattern: /\b(mic check|microphone check|check one two|testing testing|can you hear me)\b/i },
+  { reason: "technical_setup", pattern: /\b(camera|audio|levels|recording|zoom|riverside|setup|plugged in|headphones)\b/i },
+  { reason: "housekeeping", pattern: /\b(housekeeping|quick note|admin note|quick announcement|before we get into it)\b/i },
+  { reason: "intro_outro_logistics", pattern: /\b(welcome back|welcome to|thanks for listening|see you next time|like and subscribe)\b/i },
+  { reason: "sponsor_or_ad", pattern: /\b(sponsor|sponsored by|promo code|use code|ad read|advertisement)\b/i },
+  {
+    reason: "book_link_promo_outro",
+    pattern:
+      /\b(linked down below|show notes|link in (the )?(description|bio)|where can people find you|buy my book|order my book|my book is available|promo link|affiliate link)\b/i,
+  },
+  { reason: "dead_air_or_filler", pattern: /\b(um+|uh+|you know|sort of|kind of|whatever|anyway)\b/i },
+];
+
+const QUALITY_SIGNALS: Array<{ reason: string; pattern: RegExp; weight: number }> = [
+  { reason: "question", pattern: /\b(why|how|what|when|where|question|ask|wonder)\b/i, weight: 0.11 },
+  { reason: "tension", pattern: /\b(tension|problem|hard|difficult|struggle|pressure|risk|stakes|conflict|but)\b/i, weight: 0.12 },
+  { reason: "confession", pattern: /\b(confess|confession|truth|honestly|i realized|i learned|i felt|i was afraid|i used to)\b/i, weight: 0.1 },
+  { reason: "contrarian_take", pattern: /\b(wrong|myth|counterintuitive|actually|not true|opposite|instead|people think)\b/i, weight: 0.1 },
+  { reason: "practical_lesson", pattern: /\b(lesson|rule|practice|tool|framework|step|how to|what works|the answer)\b/i, weight: 0.11 },
+  { reason: "emotional_turn", pattern: /\b(fear|shame|grief|love|desire|intimacy|vulnerable|emotional|heart|body)\b/i, weight: 0.1 },
+  { reason: "clear_reframe", pattern: /\b(reframe|not .* it's|not .* but|the point is|what this means|really about)\b/i, weight: 0.12 },
+  { reason: "payoff", pattern: /\b(payoff|lands|finally|so that|because|therefore|the result|what changed)\b/i, weight: 0.1 },
+  { reason: "story_beat", pattern: /\b(then|suddenly|moment|story|turn|change|became|before|after)\b/i, weight: 0.08 },
+  { reason: "identity_trigger", pattern: /\b(women|men|mother|creator|editor|artist|entrepreneur|people like us|identity)\b/i, weight: 0.06 },
+];
 
 function cleanWords(text: string) {
   return text
@@ -110,6 +164,84 @@ function liveWindowTargetDurationSeconds(bucket: ConcreteDurationBucket) {
 
 function roundWindowSeconds(value: number) {
   return Number(value.toFixed(1));
+}
+
+function clampQualityScore(value: number) {
+  return Number(Math.max(0, Math.min(1, value)).toFixed(2));
+}
+
+function firstExclusionReason(text: string, positiveReasonCount: number): SocialReelsWindowExclusionReason | null {
+  for (const { reason, pattern } of EXCLUSION_PATTERNS) {
+    if (pattern.test(text)) {
+      if (reason === "dead_air_or_filler" && positiveReasonCount >= 3) continue;
+      if (reason === "book_link_promo_outro" && positiveReasonCount >= 4) continue;
+      return reason;
+    }
+  }
+
+  if (/\bwelcome\b/i.test(text) && positiveReasonCount < 2) return "weak_opening_chatter";
+  return null;
+}
+
+export function scoreSocialReelsDurationWindow(input: SocialReelsRequest, window: SocialReelsDurationWindow): SocialReelsScoredDurationWindow {
+  const excerpt = windowTextExcerpt(input, window, SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS);
+  const reasons: string[] = [];
+  let score = 0.42;
+
+  for (const signal of QUALITY_SIGNALS) {
+    if (signal.pattern.test(excerpt)) {
+      reasons.push(signal.reason);
+      score += signal.weight;
+    }
+  }
+
+  const exclusionReason = firstExclusionReason(excerpt, reasons.length);
+  if (exclusionReason) score -= 0.3;
+  if (reasons.length === 0) score -= 0.12;
+
+  return {
+    ...window,
+    window_quality_score: clampQualityScore(score),
+    window_quality_reasons: reasons.slice(0, 8),
+    window_exclusion_reason: exclusionReason,
+  };
+}
+
+export function scoreSocialReelsDurationWindows(input: SocialReelsRequest, windows: SocialReelsDurationWindow[]) {
+  return windows.map((window) => scoreSocialReelsDurationWindow(input, window));
+}
+
+function toScoredWindow(window: SocialReelsDurationWindow | SocialReelsScoredDurationWindow): SocialReelsScoredDurationWindow {
+  if ("window_quality_score" in window && "window_quality_reasons" in window && "window_exclusion_reason" in window) {
+    return window;
+  }
+
+  return {
+    ...window,
+    window_quality_score: 0.5,
+    window_quality_reasons: [],
+    window_exclusion_reason: null,
+  };
+}
+
+export function summarizeSocialReelsWindowQuality(windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>): SocialReelsWindowQualitySummary {
+  const scored = windows.map(toScoredWindow);
+  const included = scored.filter((window) => !window.window_exclusion_reason);
+  const excludedCounts: Record<string, number> = {};
+
+  for (const window of scored) {
+    if (!window.window_exclusion_reason) continue;
+    excludedCounts[window.window_exclusion_reason] = (excludedCounts[window.window_exclusion_reason] || 0) + 1;
+  }
+
+  return {
+    windows_after_quality_filter: included.length,
+    excluded_window_reason_counts: excludedCounts,
+    average_window_quality_score:
+      scored.length > 0
+        ? Number((scored.reduce((sum, window) => sum + window.window_quality_score, 0) / scored.length).toFixed(2))
+        : null,
+  };
 }
 
 function clampWindowCount(value: number) {
@@ -211,41 +343,51 @@ export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, e
   return windows;
 }
 
-function chooseNearestUnusedIndex(length: number, desiredIndex: number, usedIndexes: Set<number>) {
-  if (!usedIndexes.has(desiredIndex)) return desiredIndex;
-
-  for (let distance = 1; distance < length; distance += 1) {
-    const left = desiredIndex - distance;
-    const right = desiredIndex + distance;
-    if (left >= 0 && !usedIndexes.has(left)) return left;
-    if (right < length && !usedIndexes.has(right)) return right;
-  }
-
-  return null;
-}
-
-export function selectSocialReelsLiveDurationWindows(
-  windows: SocialReelsDurationWindow[],
+function selectBestSpreadWindows(
+  windows: SocialReelsScoredDurationWindow[],
   desiredWindowCount: number
-): SocialReelsDurationWindow[] {
+): SocialReelsScoredDurationWindow[] {
   const targetCount = clampWindowCount(desiredWindowCount);
   if (windows.length <= targetCount) {
     return [...windows].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
   }
 
   const sorted = [...windows].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
-  const usedIndexes = new Set<number>();
-  const selected: SocialReelsDurationWindow[] = [];
+  const selected = new Map<string, SocialReelsScoredDurationWindow>();
+  const minStart = sorted[0].start_seconds;
+  const maxStart = sorted[sorted.length - 1].start_seconds;
+  const span = Math.max(1, maxStart - minStart);
 
   for (let index = 0; index < targetCount; index += 1) {
-    const desiredIndex = targetCount === 1 ? 0 : Math.round((index * (sorted.length - 1)) / (targetCount - 1));
-    const chosenIndex = chooseNearestUnusedIndex(sorted.length, desiredIndex, usedIndexes);
-    if (chosenIndex === null) break;
-    usedIndexes.add(chosenIndex);
-    selected.push(sorted[chosenIndex]);
+    const binStart = minStart + (span * index) / targetCount;
+    const binEnd = index === targetCount - 1 ? maxStart + 1 : minStart + (span * (index + 1)) / targetCount;
+    const bestInBin = sorted
+      .filter((window) => window.start_seconds >= binStart && window.start_seconds < binEnd && !selected.has(window.window_id))
+      .sort((a, b) => b.window_quality_score - a.window_quality_score || a.start_seconds - b.start_seconds)[0];
+    if (bestInBin) selected.set(bestInBin.window_id, bestInBin);
   }
 
-  return selected.sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+  if (selected.size < targetCount) {
+    for (const window of sorted.sort((a, b) => b.window_quality_score - a.window_quality_score || a.start_seconds - b.start_seconds)) {
+      if (selected.size >= targetCount) break;
+      selected.set(window.window_id, window);
+    }
+  }
+
+  return [...selected.values()].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+}
+
+export function selectSocialReelsLiveDurationWindows(
+  windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>,
+  desiredWindowCount: number,
+  input?: SocialReelsRequest
+): SocialReelsScoredDurationWindow[] {
+  const targetCount = clampWindowCount(desiredWindowCount);
+  const scored = input ? scoreSocialReelsDurationWindows(input, windows) : windows.map(toScoredWindow);
+  const qualityPool = scored.filter((window) => !window.window_exclusion_reason);
+  const pool = qualityPool.length >= targetCount ? qualityPool : scored;
+
+  return selectBestSpreadWindows(pool, targetCount);
 }
 
 function findSegment(input: SocialReelsRequest, segmentId: string) {
@@ -281,10 +423,16 @@ export function buildSocialReelsLivePromptWindows(
   windows: SocialReelsDurationWindow[]
 ): SocialReelsPromptDurationWindow[] {
   return windows
-    .map((window) => ({
-      ...window,
-      text_excerpt: windowTextExcerpt(input, window),
-    }))
+    .map((window) => {
+      const scoredWindow = toScoredWindow(window);
+      const segment = findSegment(input, window.segment_id);
+
+      return {
+        ...scoredWindow,
+        speaker: segment?.speaker ?? null,
+        text_excerpt: windowTextExcerpt(input, window),
+      };
+    })
     .filter((window) => window.text_excerpt.length > 0);
 }
 

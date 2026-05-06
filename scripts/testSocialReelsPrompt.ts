@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
+  SOCIAL_REELS_CONTEXT_DEPENDENCIES,
+  SOCIAL_REELS_REJECTION_RISK_FLAGS,
+  SOCIAL_REELS_SENSITIVITY_LEVELS,
   SOCIAL_REELS_VIRAL_ATOMS,
   openAISocialReelsResponseFormat,
   socialReelsCandidateSchema,
@@ -14,7 +17,10 @@ import {
   buildSocialReelsLivePromptWindows,
   estimateSocialReelsPromptWindowCharCount,
   getSocialReelsLiveWindowCount,
+  scoreSocialReelsDurationWindow,
+  scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
+  summarizeSocialReelsWindowQuality,
 } from "../lib/socialReelsDurationWindows";
 import {
   durationFitsSocialReelsLiveBucket,
@@ -88,6 +94,8 @@ function candidate(index: number, includeViralMethodFields: boolean) {
     title_score: 0.82,
     edit_feasibility_score: 0.86,
     risk_penalty: 0.04,
+    context_dependency: "low",
+    sensitivity_level: "none",
   };
 }
 
@@ -123,8 +131,21 @@ for (const durationWindowGuidance of [
   "backend-generated duration windows",
   "chosen window_id",
   "return fewer candidates rather than padding",
+  "window_quality_score",
+  "window_quality_reasons",
+  "window_exclusion_reason",
 ]) {
   assert(promptSource.includes(durationWindowGuidance), `Prompt is missing duration window guidance: ${durationWindowGuidance}.`);
+}
+for (const editorialMetadataGuidance of [
+  "context_dependency",
+  "sensitivity_level",
+  "sensitive_topic",
+  "unsafe_or_policy_risk",
+  "Sexual wellness",
+  "promotional housekeeping",
+]) {
+  assert(promptSource.includes(editorialMetadataGuidance), `Prompt is missing compact editorial metadata guidance: ${editorialMetadataGuidance}.`);
 }
 
 assert(
@@ -189,6 +210,22 @@ assert(!durationFitsSocialReelsLiveBucket("5-10m", 120), "5-10m live bucket shou
 const shortlistFormat = openAISocialReelsShortlistResponseFormat(10);
 assert(shortlistFormat.schema.properties.candidates.minItems === 3, "Live shortlist response format should allow fewer than 10 valid items.");
 assert(shortlistFormat.schema.properties.candidates.maxItems === 10, "Live shortlist response format should cap at 10 items.");
+const shortlistItemFormat = shortlistFormat.schema.properties.candidates.items;
+const shortlistRequiredFields = shortlistItemFormat.required as readonly string[];
+const shortlistProperties = shortlistItemFormat.properties as Record<string, unknown>;
+for (const field of ["viral_atoms", "core_question", "payoff", "context_dependency", "sensitivity_level"]) {
+  assert(shortlistRequiredFields.includes(field), `Live shortlist schema is missing compact editorial field: ${field}.`);
+  assert(field in shortlistProperties, `Live shortlist schema is missing compact editorial property: ${field}.`);
+}
+assert(SOCIAL_REELS_CONTEXT_DEPENDENCIES.includes("low"), "Context dependency enum should include low.");
+assert(SOCIAL_REELS_SENSITIVITY_LEVELS.includes("sensitive_topic"), "Sensitivity enum should include sensitive_topic.");
+assert(SOCIAL_REELS_SENSITIVITY_LEVELS.includes("unsafe_or_policy_risk"), "Sensitivity enum should include unsafe_or_policy_risk.");
+assert(
+  SOCIAL_REELS_REJECTION_RISK_FLAGS.includes("sensitive_topic") &&
+    SOCIAL_REELS_REJECTION_RISK_FLAGS.includes("unsafe_or_policy_risk") &&
+    SOCIAL_REELS_REJECTION_RISK_FLAGS.includes("unsafe_or_sensitive"),
+  "Risk flags should split sensitive_topic from unsafe_or_policy_risk while preserving unsafe_or_sensitive compatibility."
+);
 
 const shortlistRequest = socialReelsRequestSchema.parse({
   project_hash: "schema-smoke-social-reels-project",
@@ -257,11 +294,98 @@ assert(
   selectedDurationWindows[0].start_seconds < selectedDurationWindows[selectedDurationWindows.length - 1].start_seconds,
   "Window selection should spread across the episode instead of clustering."
 );
+const scoredDurationWindows = scoreSocialReelsDurationWindows(durationWindowRequest, durationWindows);
+const qualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
+assert(
+  qualitySummary.windows_after_quality_filter === scoredDurationWindows.filter((window) => !window.window_exclusion_reason).length,
+  "Window quality summary should count non-excluded windows."
+);
+assert(
+  typeof qualitySummary.average_window_quality_score === "number" && qualitySummary.average_window_quality_score > 0,
+  "Window quality summary should report an average quality score."
+);
 const promptWindows = buildSocialReelsLivePromptWindows(durationWindowRequest, selectedDurationWindows);
 assert(promptWindows.length === selectedDurationWindows.length, "Prompt windows should keep selected windows with safe excerpts.");
 assert(
+  promptWindows.every((window) => typeof window.speaker === "string" && typeof window.window_quality_score === "number"),
+  "Prompt windows should include speaker and quality metadata for live shortlist guidance."
+);
+assert(
   estimateSocialReelsPromptWindowCharCount(promptWindows) < 18_000,
   "Prompt window context should stay bounded for live shortlist requests."
+);
+
+const windowQualityRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-window-quality",
+  source_duration_seconds: 960,
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Window quality smoke" },
+  context: { platform: "social" },
+  segments: [
+    {
+      segment_id: "quality-intro",
+      start_seconds: 0,
+      end_seconds: 120,
+      speaker: "Host",
+      text: "Welcome back before we start just a quick housekeeping note about the camera levels and the link down below in the show notes. Thanks for listening and make sure to like and subscribe before we get into the actual topic today.",
+    },
+    {
+      segment_id: "quality-outro",
+      start_seconds: 120,
+      end_seconds: 240,
+      speaker: "Host",
+      text: "Where can people find you and buy my book, the link is in the description and linked down below with the promo code. Follow up on social and check the show notes for all the details after the episode.",
+    },
+    ...Array.from({ length: 18 }, (_, index) => ({
+      segment_id: `quality-strong-${String(index + 1).padStart(2, "0")}`,
+      start_seconds: 240 + index * 40,
+      end_seconds: 240 + index * 40 + 90,
+      speaker: "Guest",
+      text: [
+        "The question is why people keep choosing the safe answer when the tension in their body is telling the truth.",
+        "The conflict is that everyone wants clarity, but the honest confession arrives before the practical lesson is comfortable.",
+        "The answer is to name the pressure directly, explain what changed, and give the viewer a rule they can use today.",
+        "The payoff lands when the speaker reframes vulnerability as useful information instead of a problem to hide.",
+        "That story beat gives the clip a clean ending and an identity trigger for people who recognize the pattern.",
+      ].join(" "),
+    })),
+  ],
+});
+const introWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
+  (window) => window.segment_id === "quality-intro"
+);
+const outroWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
+  (window) => window.segment_id === "quality-outro"
+);
+const strongWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
+  (window) => window.segment_id === "quality-strong-01"
+);
+assert(Boolean(introWindow && outroWindow && strongWindow), "Window quality fixture should create intro, outro, and strong windows.");
+if (introWindow && outroWindow && strongWindow) {
+  const scoredIntro = scoreSocialReelsDurationWindow(windowQualityRequest, introWindow);
+  const scoredOutro = scoreSocialReelsDurationWindow(windowQualityRequest, outroWindow);
+  const scoredStrong = scoreSocialReelsDurationWindow(windowQualityRequest, strongWindow);
+  assert(scoredIntro.window_exclusion_reason !== null, "Intro/setup window should be excluded or heavily demoted.");
+  assert(scoredOutro.window_exclusion_reason !== null, "Outro/book-link logistics window should be excluded or heavily demoted.");
+  assert(scoredStrong.window_quality_score > scoredIntro.window_quality_score, "Strong question/tension/payoff window should score above intro setup.");
+  assert(scoredStrong.window_quality_score > scoredOutro.window_quality_score, "Strong question/tension/payoff window should score above outro logistics.");
+}
+const selectedQualityWindows = selectSocialReelsLiveDurationWindows(
+  buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10),
+  18,
+  windowQualityRequest
+);
+assert(
+  selectedQualityWindows.every((window) => !["quality-intro", "quality-outro"].includes(window.segment_id)),
+  "Live window selection should avoid obvious intro/outro logistics when enough better windows exist."
+);
+assert(
+  new Set(selectedQualityWindows.map((window) => window.segment_id)).size >= 10,
+  "Quality-aware live window selection should preserve spread across many useful windows."
 );
 
 const appScaleSentence = [
@@ -290,7 +414,7 @@ const appScaleWindowRequest = socialReelsRequestSchema.parse({
   })),
 });
 const appScaleWindows = buildSocialReelsLiveDurationWindows({ ...appScaleWindowRequest, requested_candidate_count: 10 }, 10);
-const appScaleSelectedWindows = selectSocialReelsLiveDurationWindows(appScaleWindows, getSocialReelsLiveWindowCount("18"));
+const appScaleSelectedWindows = selectSocialReelsLiveDurationWindows(appScaleWindows, getSocialReelsLiveWindowCount("18"), appScaleWindowRequest);
 const appScalePromptWindows = buildSocialReelsLivePromptWindows(appScaleWindowRequest, appScaleSelectedWindows);
 const appScaleSelectedSegmentIndexes = new Set(
   appScaleSelectedWindows.map((window) => Number(window.segment_id.replace("app-scale-seg-", ""))).filter(Number.isFinite)
@@ -299,8 +423,8 @@ assert(appScaleWindows.length > appScaleSelectedWindows.length, "App-scale live 
 assert(appScaleSelectedWindows.length === 18, "App-scale live prompt should use the configured 18 selected windows.");
 assert(appScaleSelectedSegmentIndexes.size >= 12, "App-scale live window selection should spread across many segments.");
 assert(
-  Math.min(...appScaleSelectedSegmentIndexes) <= 2 && Math.max(...appScaleSelectedSegmentIndexes) >= 67,
-  "App-scale live window selection should preserve beginning-to-end episode coverage."
+  Math.min(...appScaleSelectedSegmentIndexes) <= 2 && Math.max(...appScaleSelectedSegmentIndexes) >= 64,
+  "App-scale live window selection should preserve broad beginning-to-end episode coverage."
 );
 assert(
   estimateSocialReelsPromptWindowCharCount(appScalePromptWindows) < 25_000,
@@ -335,6 +459,11 @@ const reducedShortlist = socialReelsShortlistResponseSchema.parse({
     clip_type: "quote_worthy_line",
     topic_tag: "schema smoke",
     why_it_works: "The clip opens with a clear question and ends after the answer lands.",
+    viral_atoms: ["question", "clear_answer", "reframe"],
+    core_question: "Why does this clip work as a standalone reel?",
+    payoff: "The final reframe gives the viewer a clean takeaway.",
+    context_dependency: "low",
+    sensitivity_level: "none",
     rejection_risk_flags: [],
     score: 0.76,
     scores: {

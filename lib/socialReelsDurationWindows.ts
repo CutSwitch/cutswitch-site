@@ -26,9 +26,16 @@ export type SocialReelsWindowExclusionReason =
   | "mic_check"
   | "technical_setup"
   | "housekeeping"
+  | "intro_setup"
+  | "outro_logistics"
   | "intro_outro_logistics"
+  | "podcast_wrapup"
   | "sponsor_or_ad"
+  | "book_link_outro"
   | "book_link_promo_outro"
+  | "follow_up_logistics"
+  | "product_promo"
+  | "meta_editing"
   | "dead_air_or_filler"
   | "weak_opening_chatter";
 
@@ -77,15 +84,24 @@ const EXCLUSION_PATTERNS: Array<{ reason: SocialReelsWindowExclusionReason; patt
   { reason: "countdown_or_timer", pattern: /\b(countdown|counting down|three two one|3\s*2\s*1|timer)\b/i },
   { reason: "pre_show_chatter", pattern: /\b(pre[-\s]?show|haven't started|have not started|before we start|before recording)\b/i },
   { reason: "mic_check", pattern: /\b(mic check|microphone check|check one two|testing testing|can you hear me)\b/i },
-  { reason: "technical_setup", pattern: /\b(camera|audio|levels|recording|zoom|riverside|setup|plugged in|headphones)\b/i },
+  { reason: "meta_editing", pattern: /\b(cut that out|cut this out|we'll cut|we will cut|edit that out|leave that in|don't include this|do not include this|fix it in post)\b/i },
+  {
+    reason: "product_promo",
+    pattern:
+      /\b(product|supplement|ingredient|capsule|powder|dose|dosage|flavor|tastes like|taste test|tasting|try this|order this|buy this|purchase|available now|launching|brand|skincare|serum|merch)\b/i,
+  },
+  { reason: "technical_setup", pattern: /\b(camera|audio levels|levels are|recording setup|zoom|riverside|plugged in|headphones|microphone|lighting|screen share)\b/i },
   { reason: "housekeeping", pattern: /\b(housekeeping|quick note|admin note|quick announcement|before we get into it)\b/i },
-  { reason: "intro_outro_logistics", pattern: /\b(welcome back|welcome to|thanks for listening|see you next time|like and subscribe)\b/i },
+  { reason: "intro_setup", pattern: /\b(welcome back|welcome to|today we are talking|in this episode|before we dive in|before we get started)\b/i },
+  { reason: "outro_logistics", pattern: /\b(thanks for listening|thanks for joining|see you next time|until next time|like and subscribe|subscribe and review|leave a review)\b/i },
+  { reason: "podcast_wrapup", pattern: /\b(come back on the podcast|have you back on|wrap this up|as we wrap|final question|where can people find you)\b/i },
   { reason: "sponsor_or_ad", pattern: /\b(sponsor|sponsored by|promo code|use code|ad read|advertisement)\b/i },
   {
-    reason: "book_link_promo_outro",
+    reason: "book_link_outro",
     pattern:
-      /\b(linked down below|show notes|link in (the )?(description|bio)|where can people find you|buy my book|order my book|my book is available|promo link|affiliate link)\b/i,
+      /\b(linked down below|show notes|link in (the )?(description|bio)|buy my book|order my book|my book is available|book is out|grab the book|promo link|affiliate link)\b/i,
   },
+  { reason: "follow_up_logistics", pattern: /\b(follow up|follow me|follow us|find me on|find us on|check out my|go to my website|website is|newsletter)\b/i },
   { reason: "dead_air_or_filler", pattern: /\b(um+|uh+|you know|sort of|kind of|whatever|anyway)\b/i },
 ];
 
@@ -100,6 +116,7 @@ const QUALITY_SIGNALS: Array<{ reason: string; pattern: RegExp; weight: number }
   { reason: "payoff", pattern: /\b(payoff|lands|finally|so that|because|therefore|the result|what changed)\b/i, weight: 0.1 },
   { reason: "story_beat", pattern: /\b(then|suddenly|moment|story|turn|change|became|before|after)\b/i, weight: 0.08 },
   { reason: "identity_trigger", pattern: /\b(women|men|mother|creator|editor|artist|entrepreneur|people like us|identity)\b/i, weight: 0.06 },
+  { reason: "specific_claim", pattern: /\b(the reason is|the truth is|what happens is|the thing is|here's the|here is the|I believe|I know that)\b/i, weight: 0.08 },
 ];
 
 function cleanWords(text: string) {
@@ -174,12 +191,12 @@ function firstExclusionReason(text: string, positiveReasonCount: number): Social
   for (const { reason, pattern } of EXCLUSION_PATTERNS) {
     if (pattern.test(text)) {
       if (reason === "dead_air_or_filler" && positiveReasonCount >= 3) continue;
-      if (reason === "book_link_promo_outro" && positiveReasonCount >= 4) continue;
+      if (reason === "technical_setup" && positiveReasonCount >= 4) continue;
       return reason;
     }
   }
 
-  if (/\bwelcome\b/i.test(text) && positiveReasonCount < 2) return "weak_opening_chatter";
+  if (/\bwelcome\b/i.test(text) && positiveReasonCount < 2) return "intro_setup";
   return null;
 }
 
@@ -196,7 +213,7 @@ export function scoreSocialReelsDurationWindow(input: SocialReelsRequest, window
   }
 
   const exclusionReason = firstExclusionReason(excerpt, reasons.length);
-  if (exclusionReason) score -= 0.3;
+  if (exclusionReason) score -= exclusionReason === "dead_air_or_filler" ? 0.22 : 0.38;
   if (reasons.length === 0) score -= 0.12;
 
   return {
@@ -385,7 +402,8 @@ export function selectSocialReelsLiveDurationWindows(
   const targetCount = clampWindowCount(desiredWindowCount);
   const scored = input ? scoreSocialReelsDurationWindows(input, windows) : windows.map(toScoredWindow);
   const qualityPool = scored.filter((window) => !window.window_exclusion_reason);
-  const pool = qualityPool.length >= targetCount ? qualityPool : scored;
+  const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.68);
+  const pool = strongQualityPool.length >= targetCount ? strongQualityPool : qualityPool.length >= targetCount ? qualityPool : scored;
 
   return selectBestSpreadWindows(pool, targetCount);
 }

@@ -12,6 +12,7 @@ import {
   socialReelsResponseSchema,
 } from "../lib/socialReelsSchema";
 import { summarizeSocialReelsOutputShape } from "../lib/socialReelsDiagnostics";
+import { buildSocialReelsOpenAIPromptInput } from "../lib/socialReelsOpenAIPrompt";
 import {
   buildSocialReelsLiveDurationWindows,
   buildSocialReelsLivePromptWindows,
@@ -134,6 +135,9 @@ for (const durationWindowGuidance of [
   "window_quality_score",
   "window_quality_reasons",
   "window_exclusion_reason",
+  "product_promo",
+  "meta_editing",
+  "book_link_outro",
 ]) {
   assert(promptSource.includes(durationWindowGuidance), `Prompt is missing duration window guidance: ${durationWindowGuidance}.`);
 }
@@ -310,6 +314,20 @@ assert(
   promptWindows.every((window) => typeof window.speaker === "string" && typeof window.window_quality_score === "number"),
   "Prompt windows should include speaker and quality metadata for live shortlist guidance."
 );
+const liveShortlistPromptInput = buildSocialReelsOpenAIPromptInput(
+  { ...durationWindowRequest, requested_candidate_count: 10 },
+  {
+    discoveryMode: "live_shortlist",
+    requestedCandidateCount: 30,
+    effectiveCandidateCount: 10,
+    durationWindows: promptWindows,
+  }
+);
+const liveShortlistUserPrompt = String(liveShortlistPromptInput[1].content);
+assert(!liveShortlistUserPrompt.includes("title_options"), "Live shortlist user prompt should not ask for title_options.");
+for (const compactField of ["title", "hook_title", "core_question", "payoff", "viral_atoms", "why_it_works"]) {
+  assert(liveShortlistUserPrompt.includes(compactField), `Live shortlist user prompt should ask for compact field: ${compactField}.`);
+}
 assert(
   estimateSocialReelsPromptWindowCharCount(promptWindows) < 18_000,
   "Prompt window context should stay bounded for live shortlist requests."
@@ -340,10 +358,24 @@ const windowQualityRequest = socialReelsRequestSchema.parse({
       speaker: "Host",
       text: "Where can people find you and buy my book, the link is in the description and linked down below with the promo code. Follow up on social and check the show notes for all the details after the episode.",
     },
+    {
+      segment_id: "quality-product",
+      start_seconds: 240,
+      end_seconds: 360,
+      speaker: "Host",
+      text: "This product has a supplement ingredient blend and the flavor tastes like citrus when we do the tasting reaction. You can order this product when it becomes available now and the brand will share a promo link later.",
+    },
+    {
+      segment_id: "quality-meta-editing",
+      start_seconds: 360,
+      end_seconds: 480,
+      speaker: "Host",
+      text: "We will cut that out and edit that out later, so do not include this part when the episode is published. The camera setup was weird and we can fix it in post before the real story starts.",
+    },
     ...Array.from({ length: 18 }, (_, index) => ({
       segment_id: `quality-strong-${String(index + 1).padStart(2, "0")}`,
-      start_seconds: 240 + index * 40,
-      end_seconds: 240 + index * 40 + 90,
+      start_seconds: 480 + index * 40,
+      end_seconds: 480 + index * 40 + 90,
       speaker: "Guest",
       text: [
         "The question is why people keep choosing the safe answer when the tension in their body is telling the truth.",
@@ -364,15 +396,30 @@ const outroWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityReques
 const strongWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
   (window) => window.segment_id === "quality-strong-01"
 );
-assert(Boolean(introWindow && outroWindow && strongWindow), "Window quality fixture should create intro, outro, and strong windows.");
-if (introWindow && outroWindow && strongWindow) {
+const productWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
+  (window) => window.segment_id === "quality-product"
+);
+const metaEditingWindow = buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10).find(
+  (window) => window.segment_id === "quality-meta-editing"
+);
+assert(
+  Boolean(introWindow && outroWindow && productWindow && metaEditingWindow && strongWindow),
+  "Window quality fixture should create intro, outro, product, meta-editing, and strong windows."
+);
+if (introWindow && outroWindow && productWindow && metaEditingWindow && strongWindow) {
   const scoredIntro = scoreSocialReelsDurationWindow(windowQualityRequest, introWindow);
   const scoredOutro = scoreSocialReelsDurationWindow(windowQualityRequest, outroWindow);
+  const scoredProduct = scoreSocialReelsDurationWindow(windowQualityRequest, productWindow);
+  const scoredMetaEditing = scoreSocialReelsDurationWindow(windowQualityRequest, metaEditingWindow);
   const scoredStrong = scoreSocialReelsDurationWindow(windowQualityRequest, strongWindow);
   assert(scoredIntro.window_exclusion_reason !== null, "Intro/setup window should be excluded or heavily demoted.");
   assert(scoredOutro.window_exclusion_reason !== null, "Outro/book-link logistics window should be excluded or heavily demoted.");
+  assert(scoredProduct.window_exclusion_reason === "product_promo", "Product/promo-heavy window should be excluded as product_promo.");
+  assert(scoredMetaEditing.window_exclusion_reason === "meta_editing", "Meta-editing window should be excluded as meta_editing.");
   assert(scoredStrong.window_quality_score > scoredIntro.window_quality_score, "Strong question/tension/payoff window should score above intro setup.");
   assert(scoredStrong.window_quality_score > scoredOutro.window_quality_score, "Strong question/tension/payoff window should score above outro logistics.");
+  assert(scoredStrong.window_quality_score > scoredProduct.window_quality_score, "Strong question/tension/payoff window should score above product promo.");
+  assert(scoredStrong.window_quality_score > scoredMetaEditing.window_quality_score, "Strong question/tension/payoff window should score above meta-editing.");
 }
 const selectedQualityWindows = selectSocialReelsLiveDurationWindows(
   buildSocialReelsLiveDurationWindows({ ...windowQualityRequest, requested_candidate_count: 10 }, 10),
@@ -380,8 +427,8 @@ const selectedQualityWindows = selectSocialReelsLiveDurationWindows(
   windowQualityRequest
 );
 assert(
-  selectedQualityWindows.every((window) => !["quality-intro", "quality-outro"].includes(window.segment_id)),
-  "Live window selection should avoid obvious intro/outro logistics when enough better windows exist."
+  selectedQualityWindows.every((window) => !["quality-intro", "quality-outro", "quality-product", "quality-meta-editing"].includes(window.segment_id)),
+  "Live window selection should avoid obvious intro/outro/product/meta-editing windows when enough better windows exist."
 );
 assert(
   new Set(selectedQualityWindows.map((window) => window.segment_id)).size >= 10,

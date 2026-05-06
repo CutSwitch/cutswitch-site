@@ -57,6 +57,13 @@ export type SocialReelsWindowQualitySummary = {
   average_window_quality_score: number | null;
   demoted_window_reason_counts: Record<string, number>;
   selected_window_quality_range: { min: number | null; max: number | null };
+  selected_window_quality_distribution: { strong: number; decent: number; weak: number };
+};
+
+export type SocialReelsWindowReasonCounts = {
+  quality_reasons: Record<string, number>;
+  demotion_reasons: Record<string, number>;
+  selected_windows_with_demotion_count: number;
 };
 
 export type SocialReelsPromptDurationWindow = SocialReelsScoredDurationWindow & {
@@ -67,7 +74,7 @@ export type SocialReelsPromptDurationWindow = SocialReelsScoredDurationWindow & 
 export const SOCIAL_REELS_LIVE_WINDOW_DEFAULT_COUNT = 18;
 export const SOCIAL_REELS_LIVE_WINDOW_MIN_COUNT = 6;
 export const SOCIAL_REELS_LIVE_WINDOW_MAX_COUNT = 24;
-const SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS = 900;
+const SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS = 840;
 
 const GENERIC_ANCHOR_WORDS = new Set([
   "yeah",
@@ -98,7 +105,7 @@ const EXCLUSION_PATTERNS: Array<{ reason: SocialReelsWindowExclusionReason; patt
   {
     reason: "product_promo",
     pattern:
-      /\b(product|supplement|ingredient|ingredients|capsule|powder|dose|dosage|flavor|tastes like|taste test|tasting|try this|order this|buy this|purchase|available now|launching|brand|skincare|serum|merch|use code|promo link)\b/i,
+      /\b(product|supplement|ingredient|ingredients|capsule|powder|dose|dosage|flavor|tastes like|taste test|tasting|try this|order this|buy this|purchase|available now|launching|brand|skincare|serum|merch|use code|promo link|formulated to|take it every day|caffeine)\b/i,
   },
   { reason: "technical_setup", pattern: /\b(recording setup|zoom|riverside|plugged in|headphones|microphone|lighting|screen share|tech setup|setup issue)\b/i },
   { reason: "housekeeping", pattern: /\b(housekeeping|quick note|admin note|quick announcement|before we get into it)\b/i },
@@ -116,21 +123,21 @@ const EXCLUSION_PATTERNS: Array<{ reason: SocialReelsWindowExclusionReason; patt
 ];
 
 const QUALITY_SIGNALS: Array<{ reason: string; pattern: RegExp; weight: number }> = [
-  { reason: "question", pattern: /\b(why|how|what|when|where|question|ask|wonder)\b/i, weight: 0.11 },
-  { reason: "tension", pattern: /\b(tension|problem|hard|difficult|struggle|pressure|risk|stakes|conflict|but)\b/i, weight: 0.12 },
-  { reason: "confession", pattern: /\b(confess|confession|truth|honestly|i realized|i learned|i felt|i was afraid|i used to)\b/i, weight: 0.1 },
-  { reason: "contrarian_take", pattern: /\b(wrong|myth|counterintuitive|actually|not true|opposite|instead|people think)\b/i, weight: 0.1 },
-  { reason: "practical_lesson", pattern: /\b(lesson|rule|practice|tool|framework|step|how to|what works|the answer)\b/i, weight: 0.11 },
-  { reason: "emotional_turn", pattern: /\b(fear|shame|grief|love|desire|intimacy|vulnerable|emotional|heart|body)\b/i, weight: 0.1 },
-  { reason: "clear_reframe", pattern: /\b(reframe|not .* it's|not .* but|the point is|what this means|really about)\b/i, weight: 0.12 },
+  { reason: "question", pattern: /\b(why|how|what|when|where|question|ask|wonder)\b/i, weight: 0.07 },
+  { reason: "tension", pattern: /\b(tension|problem|hard|difficult|struggle|pressure|risk|stakes|conflict|but)\b/i, weight: 0.09 },
+  { reason: "confession", pattern: /\b(confess|confession|truth|honestly|i realized|i learned|i felt|i was afraid|i used to)\b/i, weight: 0.08 },
+  { reason: "contrarian_take", pattern: /\b(wrong|myth|counterintuitive|actually|not true|opposite|instead|people think)\b/i, weight: 0.08 },
+  { reason: "practical_lesson", pattern: /\b(lesson|rule|practice|tool|framework|step|how to|what works|the answer)\b/i, weight: 0.08 },
+  { reason: "emotional_turn", pattern: /\b(fear|shame|grief|love|desire|intimacy|vulnerable|emotional|heart|body)\b/i, weight: 0.07 },
+  { reason: "clear_reframe", pattern: /\b(reframe|not .* it's|not .* but|the point is|what this means|really about)\b/i, weight: 0.1 },
   { reason: "payoff", pattern: /\b(payoff|lands|finally|so that|because|therefore|the result|what changed)\b/i, weight: 0.1 },
-  { reason: "story_beat", pattern: /\b(then|suddenly|moment|story|turn|change|became|before|after)\b/i, weight: 0.08 },
-  { reason: "identity_trigger", pattern: /\b(women|men|mother|creator|editor|artist|entrepreneur|people like us|identity)\b/i, weight: 0.06 },
-  { reason: "specific_claim", pattern: /\b(the reason is|the truth is|what happens is|the thing is|here's the|here is the|I believe|I know that)\b/i, weight: 0.08 },
-  { reason: "transformation", pattern: /\b(transformed|transformation|changed my life|what changed|before and after|became|shifted)\b/i, weight: 0.1 },
-  { reason: "vivid_example", pattern: /\b(for example|imagine|picture this|specific example|one time|I remember|the moment when)\b/i, weight: 0.08 },
-  { reason: "strong_answer", pattern: /\b(the answer is|the solution is|what you do is|the way through|here's what works)\b/i, weight: 0.11 },
-  { reason: "surprising_statement", pattern: /\b(surprising|nobody tells you|most people miss|you would think|the weird thing|secretly)\b/i, weight: 0.09 },
+  { reason: "story_beat", pattern: /\b(then|suddenly|moment|story|turn|change|became|before|after)\b/i, weight: 0.06 },
+  { reason: "identity_trigger", pattern: /\b(women|men|mother|creator|editor|artist|entrepreneur|people like us|identity)\b/i, weight: 0.04 },
+  { reason: "specific_claim", pattern: /\b(the reason is|the truth is|what happens is|the thing is|here's the|here is the|I believe|I know that)\b/i, weight: 0.07 },
+  { reason: "transformation", pattern: /\b(transformed|transformation|changed my life|what changed|before and after|became|shifted)\b/i, weight: 0.08 },
+  { reason: "vivid_example", pattern: /\b(for example|imagine|picture this|specific example|one time|I remember|the moment when)\b/i, weight: 0.06 },
+  { reason: "strong_answer", pattern: /\b(the answer is|the solution is|what you do is|the way through|here's what works)\b/i, weight: 0.09 },
+  { reason: "surprising_statement", pattern: /\b(surprising|nobody tells you|most people miss|you would think|the weird thing|secretly)\b/i, weight: 0.07 },
 ];
 
 function cleanWords(text: string) {
@@ -218,11 +225,15 @@ function getDemotionReasons(text: string) {
 }
 
 function demotionPenalty(reason: string) {
-  if (reason === "promo_adjacent") return 0.18;
-  if (reason === "logistics_adjacent") return 0.16;
+  if (reason === "promo_adjacent") return 0.28;
+  if (reason === "logistics_adjacent") return 0.22;
   if (reason === "setup_adjacent") return 0.14;
-  if (reason === "filler_adjacent") return 0.08;
+  if (reason === "filler_adjacent") return 0.1;
   return 0.08;
+}
+
+function hasReason(reasons: string[], ...candidates: string[]) {
+  return candidates.some((candidate) => reasons.includes(candidate));
 }
 
 function firstExclusionReason(text: string, positiveReasonCount: number): SocialReelsWindowExclusionReason | null {
@@ -242,7 +253,7 @@ function firstExclusionReason(text: string, positiveReasonCount: number): Social
 export function scoreSocialReelsDurationWindow(input: SocialReelsRequest, window: SocialReelsDurationWindow): SocialReelsScoredDurationWindow {
   const excerpt = windowTextExcerpt(input, window, SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS);
   const reasons: string[] = [];
-  let score = 0.42;
+  let score = 0.34;
 
   for (const signal of QUALITY_SIGNALS) {
     if (signal.pattern.test(excerpt)) {
@@ -253,9 +264,18 @@ export function scoreSocialReelsDurationWindow(input: SocialReelsRequest, window
 
   const demotionReasons = getDemotionReasons(excerpt);
   const exclusionReason = firstExclusionReason(excerpt, reasons.length);
+  const hasQuestion = hasReason(reasons, "question");
+  const hasTension = hasReason(reasons, "tension", "confession", "contrarian_take");
+  const hasAnswer = hasReason(reasons, "clear_reframe", "strong_answer", "practical_lesson");
+  const hasPayoff = hasReason(reasons, "payoff", "transformation");
+  if (hasQuestion && hasTension && hasAnswer && hasPayoff) score += 0.08;
+  else if ((hasQuestion || hasTension) && hasAnswer && hasPayoff) score += 0.04;
+  if (reasons.length >= 6 && hasPayoff) score += 0.03;
   if (exclusionReason) score -= exclusionReason === "dead_air_or_filler" ? 0.26 : 0.46;
   for (const demotionReason of demotionReasons) score -= demotionPenalty(demotionReason);
   if (reasons.length === 0) score -= 0.14;
+  if (!hasAnswer && !hasPayoff) score = Math.min(score, 0.74);
+  else if (!hasAnswer || !hasPayoff) score = Math.min(score, 0.84);
 
   return {
     ...window,
@@ -314,6 +334,7 @@ export function summarizeSocialReelsWindowQuality(windows: Array<SocialReelsDura
       min: qualityScores.length > 0 ? Math.min(...qualityScores) : null,
       max: qualityScores.length > 0 ? Math.max(...qualityScores) : null,
     },
+    selected_window_quality_distribution: getSocialReelsWindowQualityDistribution(scored),
   };
 }
 
@@ -322,6 +343,38 @@ export function getSocialReelsWindowQualityRange(windows: Array<SocialReelsDurat
   return {
     min: scores.length > 0 ? Math.min(...scores) : null,
     max: scores.length > 0 ? Math.max(...scores) : null,
+  };
+}
+
+export function getSocialReelsWindowQualityDistribution(windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>) {
+  const scores = windows.map((window) => toScoredWindow(window).window_quality_score);
+  return {
+    strong: scores.filter((score) => score >= 0.85).length,
+    decent: scores.filter((score) => score >= 0.65 && score < 0.85).length,
+    weak: scores.filter((score) => score < 0.65).length,
+  };
+}
+
+export function getSocialReelsWindowReasonCounts(windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>): SocialReelsWindowReasonCounts {
+  const qualityReasons: Record<string, number> = {};
+  const demotionReasons: Record<string, number> = {};
+  let selectedWindowsWithDemotionCount = 0;
+
+  for (const window of windows.map(toScoredWindow)) {
+    for (const reason of window.window_quality_reasons) {
+      qualityReasons[reason] = (qualityReasons[reason] || 0) + 1;
+    }
+
+    if (window.window_demotion_reasons.length > 0) selectedWindowsWithDemotionCount += 1;
+    for (const reason of window.window_demotion_reasons) {
+      demotionReasons[reason] = (demotionReasons[reason] || 0) + 1;
+    }
+  }
+
+  return {
+    quality_reasons: qualityReasons,
+    demotion_reasons: demotionReasons,
+    selected_windows_with_demotion_count: selectedWindowsWithDemotionCount,
   };
 }
 
@@ -435,23 +488,38 @@ function selectBestSpreadWindows(
 
   const sorted = [...windows].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
   const selected = new Map<string, SocialReelsScoredDurationWindow>();
+  const selectedPerSegment = new Map<string, number>();
   const minStart = sorted[0].start_seconds;
   const maxStart = sorted[sorted.length - 1].start_seconds;
   const span = Math.max(1, maxStart - minStart);
+  const maxWindowsPerSegment = windows.length >= targetCount * 2 ? 1 : Number.POSITIVE_INFINITY;
+  const canSelectWindow = (window: SocialReelsScoredDurationWindow) =>
+    !selected.has(window.window_id) && (selectedPerSegment.get(window.segment_id) || 0) < maxWindowsPerSegment;
+  const addWindow = (window: SocialReelsScoredDurationWindow) => {
+    selected.set(window.window_id, window);
+    selectedPerSegment.set(window.segment_id, (selectedPerSegment.get(window.segment_id) || 0) + 1);
+  };
 
   for (let index = 0; index < targetCount; index += 1) {
     const binStart = minStart + (span * index) / targetCount;
     const binEnd = index === targetCount - 1 ? maxStart + 1 : minStart + (span * (index + 1)) / targetCount;
     const bestInBin = sorted
-      .filter((window) => window.start_seconds >= binStart && window.start_seconds < binEnd && !selected.has(window.window_id))
+      .filter((window) => window.start_seconds >= binStart && window.start_seconds < binEnd && canSelectWindow(window))
       .sort((a, b) => b.window_quality_score - a.window_quality_score || a.start_seconds - b.start_seconds)[0];
-    if (bestInBin) selected.set(bestInBin.window_id, bestInBin);
+    if (bestInBin) addWindow(bestInBin);
   }
 
   if (selected.size < targetCount) {
     for (const window of sorted.sort((a, b) => b.window_quality_score - a.window_quality_score || a.start_seconds - b.start_seconds)) {
       if (selected.size >= targetCount) break;
-      selected.set(window.window_id, window);
+      if (canSelectWindow(window)) addWindow(window);
+    }
+  }
+
+  if (selected.size < targetCount) {
+    for (const window of sorted.sort((a, b) => b.window_quality_score - a.window_quality_score || a.start_seconds - b.start_seconds)) {
+      if (selected.size >= targetCount) break;
+      if (!selected.has(window.window_id)) addWindow(window);
     }
   }
 
@@ -466,7 +534,7 @@ export function selectSocialReelsLiveDurationWindows(
   const targetCount = clampWindowCount(desiredWindowCount);
   const scored = input ? scoreSocialReelsDurationWindows(input, windows) : windows.map(toScoredWindow);
   const qualityPool = scored.filter((window) => !window.window_exclusion_reason);
-  const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.72);
+  const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.78);
   const pool = strongQualityPool.length >= targetCount ? strongQualityPool : qualityPool.length >= targetCount ? qualityPool : scored;
 
   return selectBestSpreadWindows(pool, targetCount);

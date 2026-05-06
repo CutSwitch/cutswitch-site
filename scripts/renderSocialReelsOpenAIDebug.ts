@@ -5,7 +5,9 @@ import {
   buildSocialReelsLiveDurationWindows,
   buildSocialReelsLivePromptWindows,
   getSocialReelsLiveWindowCount,
+  getSocialReelsWindowQualityDistribution,
   getSocialReelsWindowQualityRange,
+  getSocialReelsWindowReasonCounts,
   scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
   summarizeSocialReelsWindowQuality,
@@ -24,6 +26,8 @@ const MAX_MAX_OUTPUT_TOKENS = 16_000;
 
 const INPUT_CANDIDATES = [
   process.env.SOCIAL_REELS_DEBUG_INPUT_PATH || "",
+  "/Users/studiosage/Desktop/SocialReels_10_10_Evaluation_App_Latest/app_social_reels_request.json",
+  "/Users/jamisonerwin/Desktop/SocialReels_10_10_Evaluation_App_Latest/app_social_reels_request.json",
   "/Users/studiosage/Desktop/SocialReels_10_10_Evaluation_App_v2/app_social_reels_request.json",
   "/Users/jamisonerwin/GitHub/cutswitch-site/tmp/social-reels-debug/app_social_reels_request_v2.json",
   "/Users/studiosage/Desktop/SocialReels_OpenAI_Debug_App/app_social_reels_request.json",
@@ -150,7 +154,9 @@ function safeWindowForJson(window: {
   end_anchor_hint: string;
   window_quality_score?: number;
   window_quality_reasons?: string[];
+  window_demotion_reasons?: string[];
   window_exclusion_reason?: string | null;
+  text_excerpt?: string;
 }, speakersBySegmentId: Map<string, string | null>) {
   return {
     window_id: window.window_id,
@@ -162,9 +168,11 @@ function safeWindowForJson(window: {
     duration_seconds: window.duration_seconds,
     window_quality_score: window.window_quality_score ?? null,
     window_quality_reasons: window.window_quality_reasons ?? [],
+    window_demotion_reasons: window.window_demotion_reasons ?? [],
     window_exclusion_reason: window.window_exclusion_reason ?? null,
     start_anchor_hint: window.start_anchor_hint,
     end_anchor_hint: window.end_anchor_hint,
+    text_excerpt: window.text_excerpt ?? null,
   };
 }
 
@@ -216,6 +224,8 @@ const scoredDurationWindows = scoreSocialReelsDurationWindows(liveShortlistInput
 const windowQualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
 const selectedDurationWindows = selectSocialReelsLiveDurationWindows(scoredDurationWindows, liveWindowCount);
 const selectedWindowQualityRange = getSocialReelsWindowQualityRange(selectedDurationWindows);
+const selectedWindowQualityDistribution = getSocialReelsWindowQualityDistribution(selectedDurationWindows);
+const selectedWindowReasonCounts = getSocialReelsWindowReasonCounts(selectedDurationWindows);
 const promptDurationWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedDurationWindows);
 const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
   discoveryMode: "live_shortlist",
@@ -250,6 +260,9 @@ const summaryRows: Array<[string, string | number | null]> = [
   ["requested_candidate_count", requestedCandidateCount],
   ["effective_candidate_count", effectiveCandidateCount],
   ["duration_preferences", durationPreferences.join(", ")],
+  ["style", request.style],
+  ["layout", request.layout],
+  ["caption_style", request.caption_style],
   ["segment_count", segmentCount],
   ["approximate_total_text_chars", approximateChars],
   ["eligible_duration_window_count", eligibleDurationWindows.length],
@@ -258,6 +271,8 @@ const summaryRows: Array<[string, string | number | null]> = [
   ["demoted_window_reason_counts", JSON.stringify(windowQualitySummary.demoted_window_reason_counts)],
   ["average_window_quality_score", windowQualitySummary.average_window_quality_score],
   ["selected_window_quality_range", JSON.stringify(selectedWindowQualityRange)],
+  ["selected_window_quality_distribution", JSON.stringify(selectedWindowQualityDistribution)],
+  ["selected_window_reason_counts", JSON.stringify(selectedWindowReasonCounts)],
   ["duration_window_count_sent_to_model", promptDurationWindows.length],
   ["prompt_context_char_count_sent_to_model", promptContextCharCount],
   ["selected_live_window_count", liveWindowCount],
@@ -370,6 +385,8 @@ console.log(
       demoted_window_reason_counts: windowQualitySummary.demoted_window_reason_counts,
       average_window_quality_score: windowQualitySummary.average_window_quality_score,
       selected_window_quality_range: selectedWindowQualityRange,
+      selected_window_quality_distribution: selectedWindowQualityDistribution,
+      selected_window_reason_counts: selectedWindowReasonCounts,
       duration_window_count_sent_to_model: promptDurationWindows.length,
       prompt_context_char_count_sent_to_model: promptContextCharCount,
       selected_live_window_count: liveWindowCount,

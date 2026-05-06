@@ -7,7 +7,9 @@ import {
   buildSocialReelsLivePromptWindows,
   estimateSocialReelsPromptWindowCharCount,
   getSocialReelsLiveWindowCount,
+  getSocialReelsWindowQualityDistribution,
   getSocialReelsWindowQualityRange,
+  getSocialReelsWindowReasonCounts,
   scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
   summarizeSocialReelsWindowQuality,
@@ -105,6 +107,8 @@ const scoredDurationWindows = scoreSocialReelsDurationWindows(liveShortlistInput
 const qualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
 const selectedWindows = selectSocialReelsLiveDurationWindows(scoredDurationWindows, liveWindowCount);
 const selectedWindowQualityRange = getSocialReelsWindowQualityRange(selectedWindows);
+const selectedWindowQualityDistribution = getSocialReelsWindowQualityDistribution(selectedWindows);
+const selectedWindowReasonCounts = getSocialReelsWindowReasonCounts(selectedWindows);
 const promptWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedWindows);
 const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
   discoveryMode: "live_shortlist",
@@ -131,7 +135,8 @@ assert(qualitySummary.windows_after_quality_filter >= liveWindowCount, "Golden f
 assert(selectedWindows.length === liveWindowCount, "Selected live windows should match configured live window count.");
 assert(promptWindows.length === selectedWindows.length, "Prompt windows should match selected windows.");
 assert(selectedExcludedWindows.length === 0, "Selected windows should not include excluded windows when enough good windows exist.");
-assert(selectedWindowQualityRange.min !== null && selectedWindowQualityRange.min >= 0.72, "Selected golden windows should come from the strong quality pool.");
+assert(selectedWindowQualityRange.min !== null && selectedWindowQualityRange.min >= 0.78, "Selected golden windows should come from the strong quality pool.");
+assert(selectedWindowQualityDistribution.strong < selectedWindows.length, "Selected golden windows should not all be scored near-perfect.");
 assert(promptContextCharCount < GOLDEN_PROMPT_CONTEXT_CHAR_CAP, "Golden rendered prompt should remain under the configured char cap.");
 
 for (const requiredPromptText of [
@@ -167,6 +172,8 @@ console.log(
       excluded_window_reason_counts: qualitySummary.excluded_window_reason_counts,
       demoted_window_reason_counts: qualitySummary.demoted_window_reason_counts,
       selected_window_quality_range: selectedWindowQualityRange,
+      selected_window_quality_distribution: selectedWindowQualityDistribution,
+      selected_window_reason_counts: selectedWindowReasonCounts,
       selected_window_count: selectedWindows.length,
       prompt_context_char_count: promptContextCharCount,
       raw_speaker_labels_remain: rawSpeakerLabelsRemain,

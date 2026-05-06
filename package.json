@@ -9,7 +9,8 @@
     "start": "next start",
     "test:backend": "tsx scripts/testBackend.ts",
     "test:social-reels-prompt": "tsx scripts/testSocialReelsPrompt.ts",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:social-reels-golden": "tsx scripts/testSocialReelsGolden.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

@@ -24,6 +24,8 @@ export type SocialReelsWindowExclusionReason =
   | "countdown_or_timer"
   | "pre_show_chatter"
   | "mic_check"
+  | "audio_check"
+  | "camera_check"
   | "technical_setup"
   | "housekeeping"
   | "intro_setup"
@@ -35,13 +37,17 @@ export type SocialReelsWindowExclusionReason =
   | "book_link_promo_outro"
   | "follow_up_logistics"
   | "product_promo"
+  | "product_ingredient_discussion"
+  | "tasting_product"
   | "meta_editing"
   | "dead_air_or_filler"
+  | "vague_greeting"
   | "weak_opening_chatter";
 
 export type SocialReelsScoredDurationWindow = SocialReelsDurationWindow & {
   window_quality_score: number;
   window_quality_reasons: string[];
+  window_demotion_reasons: string[];
   window_exclusion_reason: SocialReelsWindowExclusionReason | null;
 };
 
@@ -49,6 +55,8 @@ export type SocialReelsWindowQualitySummary = {
   windows_after_quality_filter: number;
   excluded_window_reason_counts: Record<string, number>;
   average_window_quality_score: number | null;
+  demoted_window_reason_counts: Record<string, number>;
+  selected_window_quality_range: { min: number | null; max: number | null };
 };
 
 export type SocialReelsPromptDurationWindow = SocialReelsScoredDurationWindow & {
@@ -83,26 +91,28 @@ const GENERIC_ANCHOR_WORDS = new Set([
 const EXCLUSION_PATTERNS: Array<{ reason: SocialReelsWindowExclusionReason; pattern: RegExp }> = [
   { reason: "countdown_or_timer", pattern: /\b(countdown|counting down|three two one|3\s*2\s*1|timer)\b/i },
   { reason: "pre_show_chatter", pattern: /\b(pre[-\s]?show|haven't started|have not started|before we start|before recording)\b/i },
-  { reason: "mic_check", pattern: /\b(mic check|microphone check|check one two|testing testing|can you hear me)\b/i },
   { reason: "meta_editing", pattern: /\b(cut that out|cut this out|we'll cut|we will cut|edit that out|leave that in|don't include this|do not include this|fix it in post)\b/i },
+  { reason: "mic_check", pattern: /\b(mic check|microphone check|check one two|testing testing|can you hear me)\b/i },
+  { reason: "audio_check", pattern: /\b(audio check|sound check|audio levels|levels are|is my audio|audio okay)\b/i },
+  { reason: "camera_check", pattern: /\b(camera check|camera setup|is my camera|video check|lighting check|camera angle|frame me up)\b/i },
   {
     reason: "product_promo",
     pattern:
-      /\b(product|supplement|ingredient|capsule|powder|dose|dosage|flavor|tastes like|taste test|tasting|try this|order this|buy this|purchase|available now|launching|brand|skincare|serum|merch)\b/i,
+      /\b(product|supplement|ingredient|ingredients|capsule|powder|dose|dosage|flavor|tastes like|taste test|tasting|try this|order this|buy this|purchase|available now|launching|brand|skincare|serum|merch|use code|promo link)\b/i,
   },
-  { reason: "technical_setup", pattern: /\b(camera|audio levels|levels are|recording setup|zoom|riverside|plugged in|headphones|microphone|lighting|screen share)\b/i },
+  { reason: "technical_setup", pattern: /\b(recording setup|zoom|riverside|plugged in|headphones|microphone|lighting|screen share|tech setup|setup issue)\b/i },
   { reason: "housekeeping", pattern: /\b(housekeeping|quick note|admin note|quick announcement|before we get into it)\b/i },
-  { reason: "intro_setup", pattern: /\b(welcome back|welcome to|today we are talking|in this episode|before we dive in|before we get started)\b/i },
-  { reason: "outro_logistics", pattern: /\b(thanks for listening|thanks for joining|see you next time|until next time|like and subscribe|subscribe and review|leave a review)\b/i },
-  { reason: "podcast_wrapup", pattern: /\b(come back on the podcast|have you back on|wrap this up|as we wrap|final question|where can people find you)\b/i },
+  { reason: "intro_setup", pattern: /\b(welcome back|welcome to|today we are talking|in this episode|before we dive in|before we get started|before we start)\b/i },
+  { reason: "outro_logistics", pattern: /\b(thanks for listening|thanks for joining|see you next time|until next time|like and subscribe|subscribe and review|leave a review|thanks for being here)\b/i },
+  { reason: "podcast_wrapup", pattern: /\b(come back on the podcast|have you back on|wrap this up|as we wrap|final question|where can people find you|where can listeners find you)\b/i },
   { reason: "sponsor_or_ad", pattern: /\b(sponsor|sponsored by|promo code|use code|ad read|advertisement)\b/i },
   {
     reason: "book_link_outro",
     pattern:
-      /\b(linked down below|show notes|link in (the )?(description|bio)|buy my book|order my book|my book is available|book is out|grab the book|promo link|affiliate link)\b/i,
+      /\b(linked down below|linked below|show notes|link in (the )?(description|bio)|buy my book|order my book|my book is available|book is out|grab the book|promo link|affiliate link)\b/i,
   },
-  { reason: "follow_up_logistics", pattern: /\b(follow up|follow me|follow us|find me on|find us on|check out my|go to my website|website is|newsletter)\b/i },
-  { reason: "dead_air_or_filler", pattern: /\b(um+|uh+|you know|sort of|kind of|whatever|anyway)\b/i },
+  { reason: "follow_up_logistics", pattern: /\b(follow up|follow me|follow us|find me on|find us on|check out my|go to my website|website is|newsletter|dm me|reach out)\b/i },
+  { reason: "dead_air_or_filler", pattern: /\b(um+|uh+|you know|sort of|kind of|whatever|anyway|blah blah|and so yeah)\b/i },
 ];
 
 const QUALITY_SIGNALS: Array<{ reason: string; pattern: RegExp; weight: number }> = [
@@ -117,6 +127,10 @@ const QUALITY_SIGNALS: Array<{ reason: string; pattern: RegExp; weight: number }
   { reason: "story_beat", pattern: /\b(then|suddenly|moment|story|turn|change|became|before|after)\b/i, weight: 0.08 },
   { reason: "identity_trigger", pattern: /\b(women|men|mother|creator|editor|artist|entrepreneur|people like us|identity)\b/i, weight: 0.06 },
   { reason: "specific_claim", pattern: /\b(the reason is|the truth is|what happens is|the thing is|here's the|here is the|I believe|I know that)\b/i, weight: 0.08 },
+  { reason: "transformation", pattern: /\b(transformed|transformation|changed my life|what changed|before and after|became|shifted)\b/i, weight: 0.1 },
+  { reason: "vivid_example", pattern: /\b(for example|imagine|picture this|specific example|one time|I remember|the moment when)\b/i, weight: 0.08 },
+  { reason: "strong_answer", pattern: /\b(the answer is|the solution is|what you do is|the way through|here's what works)\b/i, weight: 0.11 },
+  { reason: "surprising_statement", pattern: /\b(surprising|nobody tells you|most people miss|you would think|the weird thing|secretly)\b/i, weight: 0.09 },
 ];
 
 function cleanWords(text: string) {
@@ -187,6 +201,30 @@ function clampQualityScore(value: number) {
   return Number(Math.max(0, Math.min(1, value)).toFixed(2));
 }
 
+function getDemotionReasons(text: string) {
+  const demotions: string[] = [];
+  const demotionPatterns: Array<{ reason: string; pattern: RegExp }> = [
+    { reason: "promo_adjacent", pattern: /\b(product details|product line|available now|launching|promo|use code|brand deal)\b/i },
+    { reason: "logistics_adjacent", pattern: /\b(where can people find|linked below|show notes|come back on|follow up|newsletter)\b/i },
+    { reason: "setup_adjacent", pattern: /\b(before we start|before we get started|welcome back|camera|audio|microphone|recording)\b/i },
+    { reason: "filler_adjacent", pattern: /\b(you know|sort of|kind of|anyway|and so yeah)\b/i },
+  ];
+
+  for (const { reason, pattern } of demotionPatterns) {
+    if (pattern.test(text)) demotions.push(reason);
+  }
+
+  return demotions;
+}
+
+function demotionPenalty(reason: string) {
+  if (reason === "promo_adjacent") return 0.18;
+  if (reason === "logistics_adjacent") return 0.16;
+  if (reason === "setup_adjacent") return 0.14;
+  if (reason === "filler_adjacent") return 0.08;
+  return 0.08;
+}
+
 function firstExclusionReason(text: string, positiveReasonCount: number): SocialReelsWindowExclusionReason | null {
   for (const { reason, pattern } of EXCLUSION_PATTERNS) {
     if (pattern.test(text)) {
@@ -197,6 +235,7 @@ function firstExclusionReason(text: string, positiveReasonCount: number): Social
   }
 
   if (/\bwelcome\b/i.test(text) && positiveReasonCount < 2) return "intro_setup";
+  if (/\b(hi everyone|hello everyone|hey everybody|thanks so much)\b/i.test(text) && positiveReasonCount < 2) return "vague_greeting";
   return null;
 }
 
@@ -212,14 +251,17 @@ export function scoreSocialReelsDurationWindow(input: SocialReelsRequest, window
     }
   }
 
+  const demotionReasons = getDemotionReasons(excerpt);
   const exclusionReason = firstExclusionReason(excerpt, reasons.length);
-  if (exclusionReason) score -= exclusionReason === "dead_air_or_filler" ? 0.22 : 0.38;
-  if (reasons.length === 0) score -= 0.12;
+  if (exclusionReason) score -= exclusionReason === "dead_air_or_filler" ? 0.26 : 0.46;
+  for (const demotionReason of demotionReasons) score -= demotionPenalty(demotionReason);
+  if (reasons.length === 0) score -= 0.14;
 
   return {
     ...window,
     window_quality_score: clampQualityScore(score),
-    window_quality_reasons: reasons.slice(0, 8),
+    window_quality_reasons: reasons.slice(0, 10),
+    window_demotion_reasons: demotionReasons.slice(0, 6),
     window_exclusion_reason: exclusionReason,
   };
 }
@@ -229,7 +271,7 @@ export function scoreSocialReelsDurationWindows(input: SocialReelsRequest, windo
 }
 
 function toScoredWindow(window: SocialReelsDurationWindow | SocialReelsScoredDurationWindow): SocialReelsScoredDurationWindow {
-  if ("window_quality_score" in window && "window_quality_reasons" in window && "window_exclusion_reason" in window) {
+  if ("window_quality_score" in window && "window_quality_reasons" in window && "window_demotion_reasons" in window && "window_exclusion_reason" in window) {
     return window;
   }
 
@@ -237,6 +279,7 @@ function toScoredWindow(window: SocialReelsDurationWindow | SocialReelsScoredDur
     ...window,
     window_quality_score: 0.5,
     window_quality_reasons: [],
+    window_demotion_reasons: [],
     window_exclusion_reason: null,
   };
 }
@@ -245,11 +288,19 @@ export function summarizeSocialReelsWindowQuality(windows: Array<SocialReelsDura
   const scored = windows.map(toScoredWindow);
   const included = scored.filter((window) => !window.window_exclusion_reason);
   const excludedCounts: Record<string, number> = {};
+  const demotedCounts: Record<string, number> = {};
 
   for (const window of scored) {
-    if (!window.window_exclusion_reason) continue;
-    excludedCounts[window.window_exclusion_reason] = (excludedCounts[window.window_exclusion_reason] || 0) + 1;
+    if (window.window_exclusion_reason) {
+      excludedCounts[window.window_exclusion_reason] = (excludedCounts[window.window_exclusion_reason] || 0) + 1;
+    }
+
+    for (const reason of window.window_demotion_reasons) {
+      demotedCounts[reason] = (demotedCounts[reason] || 0) + 1;
+    }
   }
+
+  const qualityScores = scored.map((window) => window.window_quality_score);
 
   return {
     windows_after_quality_filter: included.length,
@@ -258,6 +309,19 @@ export function summarizeSocialReelsWindowQuality(windows: Array<SocialReelsDura
       scored.length > 0
         ? Number((scored.reduce((sum, window) => sum + window.window_quality_score, 0) / scored.length).toFixed(2))
         : null,
+    demoted_window_reason_counts: demotedCounts,
+    selected_window_quality_range: {
+      min: qualityScores.length > 0 ? Math.min(...qualityScores) : null,
+      max: qualityScores.length > 0 ? Math.max(...qualityScores) : null,
+    },
+  };
+}
+
+export function getSocialReelsWindowQualityRange(windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>) {
+  const scores = windows.map((window) => toScoredWindow(window).window_quality_score);
+  return {
+    min: scores.length > 0 ? Math.min(...scores) : null,
+    max: scores.length > 0 ? Math.max(...scores) : null,
   };
 }
 
@@ -402,7 +466,7 @@ export function selectSocialReelsLiveDurationWindows(
   const targetCount = clampWindowCount(desiredWindowCount);
   const scored = input ? scoreSocialReelsDurationWindows(input, windows) : windows.map(toScoredWindow);
   const qualityPool = scored.filter((window) => !window.window_exclusion_reason);
-  const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.68);
+  const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.72);
   const pool = strongQualityPool.length >= targetCount ? strongQualityPool : qualityPool.length >= targetCount ? qualityPool : scored;
 
   return selectBestSpreadWindows(pool, targetCount);

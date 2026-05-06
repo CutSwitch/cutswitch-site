@@ -478,6 +478,14 @@ if (!email || !password) {
       const filteredCandidateCount = numberField(body, "filtered_candidate_count");
       const eligibleDurationWindowCount = numberField(body, "eligible_duration_window_count");
       const windowsAfterQualityFilter = numberField(body, "windows_after_quality_filter");
+      const demotedWindowReasonCounts =
+        body && typeof body === "object" && "demoted_window_reason_counts" in body
+          ? (body as Record<string, unknown>).demoted_window_reason_counts
+          : null;
+      const selectedWindowQualityRange =
+        body && typeof body === "object" && "selected_window_quality_range" in body
+          ? (body as Record<string, unknown>).selected_window_quality_range
+          : null;
       const liveFilterReasons =
         body && typeof body === "object" && "live_filter_reasons" in body
           ? (body as Record<string, unknown>).live_filter_reasons
@@ -496,6 +504,8 @@ if (!email || !password) {
             effective_candidate_count: effectiveCandidateCount,
             eligible_duration_window_count: eligibleDurationWindowCount,
             windows_after_quality_filter: windowsAfterQualityFilter,
+            demoted_window_reason_counts: demotedWindowReasonCounts,
+            selected_window_quality_range: selectedWindowQualityRange,
             returned_candidate_count: returnedCandidateCount,
             filtered_candidate_count: filteredCandidateCount,
             live_filter_reasons: liveFilterReasons,
@@ -551,6 +561,13 @@ if (!email || !password) {
       const requestedCandidateCount = numberField(body, "requested_candidate_count");
       const durationWindowCountSentToModel = numberField(body, "duration_window_count_sent_to_model");
       const promptContextCharCountSentToModel = numberField(body, "prompt_context_char_count_sent_to_model");
+      const selectedWindowQualityRange =
+        body && typeof body === "object" && "selected_window_quality_range" in body
+          ? (body as Record<string, unknown>).selected_window_quality_range
+          : null;
+      if (selectedWindowQualityRange) {
+        console.log("SOCIAL_REELS_APP_SCALE_LIVE_SELECTED_WINDOW_QUALITY_RANGE:", JSON.stringify(selectedWindowQualityRange));
+      }
       const discoveryMode =
         body && typeof body === "object" && "discovery_mode" in body ? (body as Record<string, unknown>).discovery_mode : null;
 

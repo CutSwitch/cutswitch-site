@@ -25,6 +25,7 @@ import {
   buildSocialReelsLivePromptWindows,
   buildSocialReelsLiveDurationWindows,
   getSocialReelsLiveWindowCount,
+  getSocialReelsWindowQualityRange,
   scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
   summarizeSocialReelsWindowQuality,
@@ -117,6 +118,8 @@ export type SocialReelsServiceDiagnostics = {
   windowsAfterQualityFilter: number | null;
   excludedWindowReasonCounts: Record<string, number> | null;
   averageWindowQualityScore: number | null;
+  demotedWindowReasonCounts: Record<string, number> | null;
+  selectedWindowQualityRange: { min: number | null; max: number | null } | null;
 };
 
 export type SocialReelsInvalidResponseDiagnostics = {
@@ -134,6 +137,8 @@ export type SocialReelsInvalidResponseDiagnostics = {
   windows_after_quality_filter: number | null;
   excluded_window_reason_counts: Record<string, number> | null;
   average_window_quality_score: number | null;
+  demoted_window_reason_counts: Record<string, number> | null;
+  selected_window_quality_range: { min: number | null; max: number | null } | null;
   duration_window_count_sent_to_model: number;
   prompt_context_char_count_sent_to_model: number;
   max_output_tokens: number;
@@ -158,6 +163,8 @@ export type DiscoverSocialReelsResult = {
   windowsAfterQualityFilter: number | null;
   excludedWindowReasonCounts: Record<string, number> | null;
   averageWindowQualityScore: number | null;
+  demotedWindowReasonCounts: Record<string, number> | null;
+  selectedWindowQualityRange: { min: number | null; max: number | null } | null;
   durationWindowCountSentToModel: number | null;
   promptContextCharCountSentToModel: number | null;
   liveFilterReasons: SocialReelsLiveFilterReasons;
@@ -569,6 +576,8 @@ function invalidOpenAIResponseDiagnostics(input: {
   windowsAfterQualityFilter: number | null;
   excludedWindowReasonCounts: Record<string, number> | null;
   averageWindowQualityScore: number | null;
+  demotedWindowReasonCounts: Record<string, number> | null;
+  selectedWindowQualityRange: { min: number | null; max: number | null } | null;
   durationWindowCountSentToModel: number;
   promptContextCharCountSentToModel: number;
   maxOutputTokens: number;
@@ -588,6 +597,8 @@ function invalidOpenAIResponseDiagnostics(input: {
     windows_after_quality_filter: input.windowsAfterQualityFilter,
     excluded_window_reason_counts: input.excludedWindowReasonCounts,
     average_window_quality_score: input.averageWindowQualityScore,
+    demoted_window_reason_counts: input.demotedWindowReasonCounts,
+    selected_window_quality_range: input.selectedWindowQualityRange,
     duration_window_count_sent_to_model: input.durationWindowCountSentToModel,
     prompt_context_char_count_sent_to_model: input.promptContextCharCountSentToModel,
     max_output_tokens: input.maxOutputTokens,
@@ -622,6 +633,8 @@ export async function discoverSocialReelsCandidates(
       windowsAfterQualityFilter: null,
       excludedWindowReasonCounts: null,
       averageWindowQualityScore: null,
+      demotedWindowReasonCounts: null,
+      selectedWindowQualityRange: null,
       durationWindowCountSentToModel: null,
       promptContextCharCountSentToModel: null,
       liveFilterReasons: { duration_outside_bucket: 0 },
@@ -640,6 +653,8 @@ export async function discoverSocialReelsCandidates(
         windowsAfterQualityFilter: null,
         excludedWindowReasonCounts: null,
         averageWindowQualityScore: null,
+        demotedWindowReasonCounts: null,
+        selectedWindowQualityRange: null,
       },
     };
   }
@@ -665,6 +680,7 @@ export async function discoverSocialReelsCandidates(
   const scoredDurationWindows = scoreSocialReelsDurationWindows(liveShortlistInput, durationWindows);
   const windowQualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
   const selectedDurationWindows = selectSocialReelsLiveDurationWindows(scoredDurationWindows, getSocialReelsLivePromptWindowCount());
+  const selectedWindowQualityRange = getSocialReelsWindowQualityRange(selectedDurationWindows);
   const promptDurationWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedDurationWindows);
   const controller = new AbortController();
   const openaiStartedMs = Date.now();
@@ -758,6 +774,8 @@ export async function discoverSocialReelsCandidates(
       windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
       excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
       averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+      demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+      selectedWindowQualityRange,
       durationWindowCountSentToModel,
       promptContextCharCountSentToModel,
       liveFilterReasons: hydratedShortlist.liveFilterReasons,
@@ -776,6 +794,8 @@ export async function discoverSocialReelsCandidates(
         windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
         excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
         averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+        demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+        selectedWindowQualityRange,
       },
     };
   } catch (error) {
@@ -818,6 +838,8 @@ export async function discoverSocialReelsCandidates(
         windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
         excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
         averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+        demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+        selectedWindowQualityRange,
       }),
     });
   }

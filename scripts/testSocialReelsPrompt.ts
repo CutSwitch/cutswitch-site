@@ -18,6 +18,7 @@ import {
   buildSocialReelsLivePromptWindows,
   estimateSocialReelsPromptWindowCharCount,
   getSocialReelsLiveWindowCount,
+  getSocialReelsWindowQualityRange,
   scoreSocialReelsDurationWindow,
   scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
@@ -135,6 +136,9 @@ for (const durationWindowGuidance of [
   "window_quality_score",
   "window_quality_reasons",
   "window_exclusion_reason",
+  "window_demotion_reasons",
+  "audio_check",
+  "camera_check",
   "product_promo",
   "meta_editing",
   "book_link_outro",
@@ -434,6 +438,51 @@ assert(
   new Set(selectedQualityWindows.map((window) => window.segment_id)).size >= 10,
   "Quality-aware live window selection should preserve spread across many useful windows."
 );
+
+const selectedQualityRange = getSocialReelsWindowQualityRange(selectedQualityWindows);
+assert(
+  selectedQualityRange.min !== null && selectedQualityRange.min >= 0.72,
+  "Quality-aware selection should choose reasonably strong windows before preserving spread."
+);
+
+const sexualWellnessRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-sexual-wellness-not-unsafe",
+  source_duration_seconds: 120,
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Sexual wellness smoke" },
+  context: { platform: "social" },
+  segments: [
+    {
+      segment_id: "sexual-wellness-strong",
+      start_seconds: 0,
+      end_seconds: 120,
+      speaker: "Guest",
+      text: [
+        "The question is why pleasure and intimacy can feel unsafe even when the body wants connection.",
+        "The tension is that shame makes desire feel like a problem, but the answer is not to disconnect from the body.",
+        "The practical lesson is to name the sensation, breathe through vulnerability, and reframe orgasm as information instead of performance.",
+        "The payoff lands when healing becomes a way to listen to the body with more honesty and less pressure.",
+      ].join(" "),
+    },
+  ],
+});
+const sexualWellnessWindow = buildSocialReelsLiveDurationWindows({ ...sexualWellnessRequest, requested_candidate_count: 10 }, 10)[0];
+assert(Boolean(sexualWellnessWindow), "Sexual wellness fixture should create a duration window.");
+if (sexualWellnessWindow) {
+  const scoredSexualWellness = scoreSocialReelsDurationWindow(sexualWellnessRequest, sexualWellnessWindow);
+  assert(
+    scoredSexualWellness.window_exclusion_reason === null,
+    "Sexual wellness content alone should not be treated as junk or policy risk by window filtering."
+  );
+  assert(
+    scoredSexualWellness.window_quality_reasons.includes("emotional_turn"),
+    "Sexual wellness content can still receive positive editorial signals."
+  );
+}
 
 const appScaleSentence = [
   "The question is why a creator can have a strong idea and still lose the viewer before the point lands.",

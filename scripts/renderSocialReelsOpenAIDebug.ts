@@ -5,6 +5,7 @@ import {
   buildSocialReelsLiveDurationWindows,
   buildSocialReelsLivePromptWindows,
   getSocialReelsLiveWindowCount,
+  getSocialReelsWindowQualityRange,
   scoreSocialReelsDurationWindows,
   selectSocialReelsLiveDurationWindows,
   summarizeSocialReelsWindowQuality,
@@ -214,6 +215,7 @@ const eligibleDurationWindows = buildSocialReelsLiveDurationWindows(liveShortlis
 const scoredDurationWindows = scoreSocialReelsDurationWindows(liveShortlistInput, eligibleDurationWindows);
 const windowQualitySummary = summarizeSocialReelsWindowQuality(scoredDurationWindows);
 const selectedDurationWindows = selectSocialReelsLiveDurationWindows(scoredDurationWindows, liveWindowCount);
+const selectedWindowQualityRange = getSocialReelsWindowQualityRange(selectedDurationWindows);
 const promptDurationWindows = buildSocialReelsLivePromptWindows(liveShortlistInput, selectedDurationWindows);
 const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
   discoveryMode: "live_shortlist",
@@ -253,7 +255,9 @@ const summaryRows: Array<[string, string | number | null]> = [
   ["eligible_duration_window_count", eligibleDurationWindows.length],
   ["windows_after_quality_filter", windowQualitySummary.windows_after_quality_filter],
   ["excluded_window_reason_counts", JSON.stringify(windowQualitySummary.excluded_window_reason_counts)],
+  ["demoted_window_reason_counts", JSON.stringify(windowQualitySummary.demoted_window_reason_counts)],
   ["average_window_quality_score", windowQualitySummary.average_window_quality_score],
+  ["selected_window_quality_range", JSON.stringify(selectedWindowQualityRange)],
   ["duration_window_count_sent_to_model", promptDurationWindows.length],
   ["prompt_context_char_count_sent_to_model", promptContextCharCount],
   ["selected_live_window_count", liveWindowCount],
@@ -363,7 +367,9 @@ console.log(
       eligible_duration_window_count: eligibleDurationWindows.length,
       windows_after_quality_filter: windowQualitySummary.windows_after_quality_filter,
       excluded_window_reason_counts: windowQualitySummary.excluded_window_reason_counts,
+      demoted_window_reason_counts: windowQualitySummary.demoted_window_reason_counts,
       average_window_quality_score: windowQualitySummary.average_window_quality_score,
+      selected_window_quality_range: selectedWindowQualityRange,
       duration_window_count_sent_to_model: promptDurationWindows.length,
       prompt_context_char_count_sent_to_model: promptContextCharCount,
       selected_live_window_count: liveWindowCount,

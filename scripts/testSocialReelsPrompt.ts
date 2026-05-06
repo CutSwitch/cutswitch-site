@@ -91,7 +91,10 @@ function candidate(index: number, includeViralMethodFields: boolean) {
   };
 }
 
-const promptSource = readFileSync(resolve(process.cwd(), "lib/openaiSocialReels.ts"), "utf8");
+const promptSource = [
+  readFileSync(resolve(process.cwd(), "lib/openaiSocialReels.ts"), "utf8"),
+  readFileSync(resolve(process.cwd(), "lib/socialReelsOpenAIPrompt.ts"), "utf8"),
+].join("\n");
 
 assert(promptSource.includes("Question -> Tension -> Answer -> Reframe"), "Prompt is missing the viral reel story arc.");
 for (const atom of SOCIAL_REELS_VIRAL_ATOMS) {

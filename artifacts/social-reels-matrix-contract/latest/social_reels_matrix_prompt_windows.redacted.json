@@ -1,0 +1,66 @@
+{
+  "fixture_kind": "redacted_backend_prompt_window_shape",
+  "transcript_source": "utterances",
+  "requested_targets": [
+    {
+      "style": "balanced",
+      "duration": "30s"
+    },
+    {
+      "style": "hookFirst",
+      "duration": "15s"
+    },
+    {
+      "style": "educational",
+      "duration": "90s"
+    },
+    {
+      "style": "emotional",
+      "duration": "30s"
+    },
+    {
+      "style": "story",
+      "duration": "5-10m"
+    }
+  ],
+  "max_per_bucket": 12,
+  "max_unique_moments": 40,
+  "dedupe_shared_moments": true,
+  "duration_window_count": 0,
+  "selected_duration_window_count": 0,
+  "prompt_context_char_count": 11595,
+  "prompt_window_char_count": 2,
+  "quality_summary": {
+    "windows_after_quality_filter": 0,
+    "excluded_window_reason_counts": {},
+    "average_window_quality_score": null,
+    "demoted_window_reason_counts": {},
+    "selected_window_quality_range": {
+      "min": null,
+      "max": null
+    },
+    "selected_window_quality_distribution": {
+      "strong": 0,
+      "decent": 0,
+      "weak": 0
+    }
+  },
+  "selected_window_reason_counts": {
+    "quality_reasons": {},
+    "demotion_reasons": {},
+    "selected_windows_with_demotion_count": 0
+  },
+  "response_schema_summary": {
+    "type": "json_schema",
+    "name": "social_reels_discovery_matrix",
+    "strict": true,
+    "top_level_required": [
+      "moments",
+      "buckets",
+      "model_notes"
+    ],
+    "bucket_field_name": "buckets",
+    "moment_id_field_name": "moment_id"
+  },
+  "duration_windows": []
+}

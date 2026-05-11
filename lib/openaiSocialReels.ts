@@ -15,9 +15,12 @@ import {
   SOCIAL_REELS_CLIP_TYPES,
   SOCIAL_REELS_DURATION_BUCKETS,
   SOCIAL_REELS_REJECTION_RISK_FLAGS,
+  openAISocialReelsDiscoveryMatrixResponseFormat,
+  socialReelsDiscoveryMatrixResponseSchema,
   socialReelsRequestSchema,
   socialReelsResponseSchema,
   type SocialReelsCandidate,
+  type SocialReelsDiscoveryMatrixResponse,
   type SocialReelsRequest,
   type SocialReelsResponse,
 } from "@/lib/socialReelsSchema";
@@ -105,7 +108,7 @@ export type DiscoverSocialReelsOptions = {
   model?: string;
 };
 
-export type SocialReelsDiscoveryMode = "mock_full_pool" | "live_shortlist";
+export type SocialReelsDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix";
 
 export type SocialReelsServiceDiagnostics = {
   mode: "mock" | "live";
@@ -132,7 +135,7 @@ export type SocialReelsInvalidResponseDiagnostics = {
   provider_response_id: string | null;
   openai_status: number | null;
   elapsed_ms: number | null;
-  schema_mode: "live_shortlist_reduced";
+  schema_mode: "live_shortlist_reduced" | "discovery_matrix";
   effective_candidate_count: number;
   duration_preferences: string[];
   segment_count: number;
@@ -156,7 +159,8 @@ export type SocialReelsInvalidResponseDiagnostics = {
 };
 
 export type DiscoverSocialReelsResult = {
-  response: SocialReelsResponse;
+  response: SocialReelsResponse | null;
+  matrixResponse: SocialReelsDiscoveryMatrixResponse | null;
   usage: OpenAIUsage | null;
   providerResponseId: string | null;
   model: string;
@@ -560,6 +564,65 @@ function buildMockResponse(input: SocialReelsRequest): SocialReelsResponse {
   };
 }
 
+function buildMockMatrixResponse(input: SocialReelsRequest): SocialReelsDiscoveryMatrixResponse {
+  const matrix = input.discovery_matrix;
+  if (!matrix) {
+    return { moments: [], buckets: [], model_notes: "No discovery matrix requested." };
+  }
+
+  const momentsById = new Map<string, SocialReelsDiscoveryMatrixResponse["moments"][number]>();
+  const buckets = matrix.requested_targets.map((target) => {
+    const matchingMomentIds: string[] = [];
+    const limit = Math.min(input.max_per_bucket, target.max_candidates ?? input.max_per_bucket);
+
+    for (let index = 0; index < limit && momentsById.size < input.max_unique_moments; index += 1) {
+      const source = input.segments[(index + matchingMomentIds.length) % input.segments.length] ?? input.segments[0];
+      const momentId = matrix.dedupe_shared_moments && index === 0 ? "mock-shared-moment-001" : `mock-moment-${target.style}-${target.duration}-${index + 1}`;
+      matchingMomentIds.push(momentId);
+
+      const existing = momentsById.get(momentId);
+      const bucketMembership = {
+        style: target.style,
+        duration: target.duration,
+        rank: index + 1,
+        bucket_score: clampScore(0.86 - index * 0.02),
+        why_it_fits: "Mock matrix bucket membership for schema and prompt validation.",
+      };
+
+      if (existing) {
+        existing.buckets.push(bucketMembership);
+        continue;
+      }
+
+      momentsById.set(momentId, {
+        moment_id: momentId,
+        start_seconds: source?.start_seconds ?? 0,
+        end_seconds: source?.end_seconds ?? Math.min(30, input.source_duration_seconds),
+        start_timecode: source?.start_timecode ?? null,
+        end_timecode: source?.end_timecode ?? null,
+        speakers: source?.speakers && source.speakers.length > 0 ? source.speakers : [source?.speaker || "Speaker"],
+        title: `Mock ${target.style} ${target.duration} moment`,
+        summary: "Mock discovery matrix moment identity for local validation.",
+        raw_score: bucketMembership.bucket_score,
+        buckets: [bucketMembership],
+        review_flags: [],
+      });
+    }
+
+    return {
+      style: target.style,
+      duration: target.duration,
+      moment_ids: matchingMomentIds,
+    };
+  });
+
+  return socialReelsDiscoveryMatrixResponseSchema.parse({
+    moments: [...momentsById.values()],
+    buckets,
+    model_notes: "Mock discovery matrix response generated locally; no transcript text was sent to OpenAI.",
+  });
+}
+
 function approximateInputTextChars(input: SocialReelsRequest) {
   return input.segments.reduce((sum, segment) => sum + segment.text.length, 0);
 }
@@ -591,6 +654,7 @@ function invalidOpenAIResponseDiagnostics(input: {
   durationWindowCountSentToModel: number;
   promptContextCharCountSentToModel: number;
   maxOutputTokens: number;
+  schemaMode: SocialReelsInvalidResponseDiagnostics["schema_mode"];
 }): SocialReelsInvalidResponseDiagnostics {
   return {
     provider: "openai",
@@ -598,7 +662,7 @@ function invalidOpenAIResponseDiagnostics(input: {
     provider_response_id: input.body.id || null,
     openai_status: input.status,
     elapsed_ms: input.elapsedMs,
-    schema_mode: "live_shortlist_reduced",
+    schema_mode: input.schemaMode,
     effective_candidate_count: input.effectiveCandidateCount,
     duration_preferences: input.inputPayload.duration_preferences.slice(0, 12),
     segment_count: input.inputPayload.segments.length,
@@ -630,9 +694,57 @@ export async function discoverSocialReelsCandidates(
   const model = options.model || getSocialReelsOpenAIModel();
 
   if (shouldUseMock(options)) {
+    if (input.discovery_matrix) {
+      const matrixResponse = buildMockMatrixResponse(input);
+      return {
+        response: null,
+        matrixResponse,
+        usage: null,
+        providerResponseId: null,
+        model: "mock",
+        mock: true,
+        requestedCandidateCount: input.requested_candidate_count,
+        effectiveCandidateCount: input.max_unique_moments,
+        returnedCandidateCount: matrixResponse.moments.length,
+        filteredCandidateCount: 0,
+        eligibleDurationWindowCount: null,
+        windowsAfterQualityFilter: null,
+        excludedWindowReasonCounts: null,
+        averageWindowQualityScore: null,
+        demotedWindowReasonCounts: null,
+        selectedWindowQualityRange: null,
+        selectedWindowQualityDistribution: null,
+        selectedWindowReasonCounts: null,
+        durationWindowCountSentToModel: null,
+        promptContextCharCountSentToModel: null,
+        liveFilterReasons: { duration_outside_bucket: 0 },
+        returnedDurationSecondsRange: { min: null, max: null },
+        discoveryMode: "discovery_matrix",
+        diagnostics: {
+          mode: "mock",
+          openaiRequestStartedAt: null,
+          openaiElapsedMs: null,
+          responseParseMs: null,
+          provider: "mock",
+          model: "mock",
+          providerResponseId: null,
+          durationWindowCountSentToModel: null,
+          promptContextCharCountSentToModel: null,
+          windowsAfterQualityFilter: null,
+          excludedWindowReasonCounts: null,
+          averageWindowQualityScore: null,
+          demotedWindowReasonCounts: null,
+          selectedWindowQualityRange: null,
+          selectedWindowQualityDistribution: null,
+          selectedWindowReasonCounts: null,
+        },
+      };
+    }
+
     const response = socialReelsResponseSchema.parse(buildMockResponse(input));
     return {
       response,
+      matrixResponse: null,
       usage: null,
       providerResponseId: null,
       model: "mock",
@@ -704,8 +816,9 @@ export async function discoverSocialReelsCandidates(
   const openaiStartedMs = Date.now();
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const isDiscoveryMatrix = Boolean(input.discovery_matrix);
   const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
-    discoveryMode: "live_shortlist",
+    discoveryMode: isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist",
     requestedCandidateCount,
     effectiveCandidateCount,
     durationWindows: promptDurationWindows,
@@ -717,7 +830,9 @@ export async function discoverSocialReelsCandidates(
     input: promptInput,
     max_output_tokens: maxOutputTokens,
     text: {
-      format: openAISocialReelsShortlistResponseFormat(effectiveCandidateCount),
+      format: isDiscoveryMatrix
+        ? openAISocialReelsDiscoveryMatrixResponseFormat(input.max_unique_moments, input.max_per_bucket)
+        : openAISocialReelsShortlistResponseFormat(effectiveCandidateCount),
     },
   };
   if (reasoningEffort) {
@@ -774,12 +889,62 @@ export async function discoverSocialReelsCandidates(
     }
 
     const parsedOutput = JSON.parse(outputText) as unknown;
+    if (isDiscoveryMatrix) {
+      const matrixResponse = socialReelsDiscoveryMatrixResponseSchema.parse(parsedOutput);
+      const responseParseMs = Date.now() - responseParseStartedMs;
+
+      return {
+        response: null,
+        matrixResponse,
+        usage: body.usage || null,
+        providerResponseId: body.id || null,
+        model: body.model || model,
+        mock: false,
+        requestedCandidateCount,
+        effectiveCandidateCount: input.max_unique_moments,
+        returnedCandidateCount: matrixResponse.moments.length,
+        filteredCandidateCount: 0,
+        eligibleDurationWindowCount: durationWindows.length,
+        windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
+        excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
+        averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+        demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+        selectedWindowQualityRange,
+        selectedWindowQualityDistribution,
+        selectedWindowReasonCounts,
+        durationWindowCountSentToModel,
+        promptContextCharCountSentToModel,
+        liveFilterReasons: { duration_outside_bucket: 0 },
+        returnedDurationSecondsRange: { min: null, max: null },
+        discoveryMode: "discovery_matrix",
+        diagnostics: {
+          mode: "live",
+          openaiRequestStartedAt,
+          openaiElapsedMs,
+          responseParseMs,
+          provider: "openai",
+          model: body.model || model,
+          providerResponseId: body.id || null,
+          durationWindowCountSentToModel,
+          promptContextCharCountSentToModel,
+          windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
+          excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
+          averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+          demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+          selectedWindowQualityRange,
+          selectedWindowQualityDistribution,
+          selectedWindowReasonCounts,
+        },
+      };
+    }
+
     const shortlist = socialReelsShortlistResponseSchema.parse(parsedOutput);
     const hydratedShortlist = hydrateSocialReelsShortlistResponse(shortlist, liveShortlistInput);
     const responseParseMs = Date.now() - responseParseStartedMs;
 
     return {
       response: hydratedShortlist.response,
+      matrixResponse: null,
       usage: body.usage || null,
       providerResponseId: body.id || null,
       model: body.model || model,
@@ -830,8 +995,10 @@ export async function discoverSocialReelsCandidates(
       const outputText = extractOutputText(body);
       if (outputText) {
         parsedOutput = JSON.parse(outputText) as unknown;
-        const shortlistResult = socialReelsShortlistResponseSchema.safeParse(parsedOutput);
-        if (!shortlistResult.success) zodError = shortlistResult.error;
+        const responseResult = isDiscoveryMatrix
+          ? socialReelsDiscoveryMatrixResponseSchema.safeParse(parsedOutput)
+          : socialReelsShortlistResponseSchema.safeParse(parsedOutput);
+        if (!responseResult.success) zodError = responseResult.error;
       } else {
         parseError = new Error("missing_output_text");
       }
@@ -864,6 +1031,7 @@ export async function discoverSocialReelsCandidates(
         selectedWindowQualityRange,
         selectedWindowQualityDistribution,
         selectedWindowReasonCounts,
+        schemaMode: isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist_reduced",
       }),
     });
   }

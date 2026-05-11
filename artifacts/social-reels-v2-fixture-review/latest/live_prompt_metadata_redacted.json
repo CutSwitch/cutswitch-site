@@ -1,0 +1,51 @@
+{
+  "request_id": "5c2a813a-537d-4c36-a6b7-0e1d5a392947",
+  "provider": "openai",
+  "model": "gpt-5-mini-2025-08-07",
+  "provider_response_id": "resp_000c0f98dfc0ccb6006a02417eb82c8197b5e48b106d1d6437",
+  "discovery_mode": "live_shortlist",
+  "requested_candidate_count": 30,
+  "effective_candidate_count": 10,
+  "returned_candidate_count": 9,
+  "filtered_candidate_count": null,
+  "live_filter_reasons": {
+    "duration_outside_bucket": 0
+  },
+  "returned_duration_seconds_range": {
+    "min": 32,
+    "max": 42
+  },
+  "eligible_duration_window_count": 449,
+  "duration_window_count_sent_to_model": 18,
+  "prompt_context_char_count_sent_to_model": 56377,
+  "windows_after_quality_filter": 284,
+  "usage": {
+    "input_tokens": 14819,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 3147,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 17966
+  },
+  "diagnostics": {
+    "mode": "live",
+    "provider": "openai",
+    "model": "gpt-5-mini-2025-08-07",
+    "openai_elapsed_ms": 52703,
+    "response_parse_ms": 4,
+    "total_elapsed_ms": null,
+    "timeout_stage": null
+  },
+  "utterances_used": true,
+  "utterance_count": 583,
+  "segment_count": 76,
+  "speaker_labels": [
+    "Voice 1",
+    "Voice 2",
+    "Voice 3"
+  ],
+  "live_openai_call_count_from_this_script": 1
+}

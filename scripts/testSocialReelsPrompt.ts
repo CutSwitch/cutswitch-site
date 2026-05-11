@@ -3,10 +3,13 @@ import { resolve } from "node:path";
 
 import {
   SOCIAL_REELS_CONTEXT_DEPENDENCIES,
+  SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP,
   SOCIAL_REELS_REJECTION_RISK_FLAGS,
   SOCIAL_REELS_SENSITIVITY_LEVELS,
   SOCIAL_REELS_VIRAL_ATOMS,
+  openAISocialReelsDiscoveryMatrixResponseFormat,
   openAISocialReelsResponseFormat,
+  socialReelsDiscoveryMatrixResponseSchema,
   socialReelsCandidateSchema,
   socialReelsRequestSchema,
   socialReelsResponseSchema,
@@ -185,6 +188,28 @@ assert(
 );
 assert(promptSource.includes("segments: useLiveWindowInput ? [] : input.segments"), "Live shortlist should not send the full transcript segment blob.");
 assert(promptSource.includes("duration_windows_only"), "Live shortlist prompt should identify duration-window-only source input.");
+for (const utterancePromptRule of [
+  "utterances[] as the transcript source of truth",
+  "Each utterance is a single-speaker timed unit",
+  "speaker_label",
+  "start_timecode/end_timecode",
+  "do not flatten back to legacy segments[].text",
+  "Never choose a clip that ends mid-word or mid-thought",
+]) {
+  assert(promptSource.includes(utterancePromptRule), `Prompt is missing transcript v2 rule: ${utterancePromptRule}.`);
+}
+for (const matrixPromptRule of [
+  "Discovery Matrix mode",
+  "requested_targets",
+  "moment identities",
+  "Layout formats, aspect ratios, caption styles, and export variants are not discovery targets",
+  "avoid duplicates across buckets",
+  "dedupe_shared_moments",
+  "max_per_bucket",
+  "max_unique_moments",
+]) {
+  assert(promptSource.includes(matrixPromptRule), `Prompt is missing discovery matrix rule: ${matrixPromptRule}.`);
+}
 
 socialReelsCandidateSchema.parse(candidate(0, false));
 socialReelsCandidateSchema.parse(candidate(0, true));
@@ -234,6 +259,86 @@ assert(
     SOCIAL_REELS_REJECTION_RISK_FLAGS.includes("unsafe_or_sensitive"),
   "Risk flags should split sensitive_topic from unsafe_or_policy_risk while preserving unsafe_or_sensitive compatibility."
 );
+
+const utteranceV2Request = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-utterance-v2",
+  duration_preferences: ["60s"],
+  requested_candidate_count: 30,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Utterance v2 smoke" },
+  context: { platform: "social" },
+  utterances: [
+    {
+      utterance_id: "utt-layla-001",
+      speaker_label: "Layla",
+      start_seconds: 0,
+      end_seconds: 18,
+      start_timecode: "00:00:00:00",
+      end_timecode: "00:00:18:00",
+      text: "The question is why a strong moment can still feel confusing when the start hides the real tension from the viewer.",
+    },
+    {
+      utterance_id: "utt-fabienne-001",
+      speaker_label: "Fabienne",
+      start_seconds: 18,
+      end_seconds: 39,
+      start_timecode: "00:00:18:00",
+      end_timecode: "00:00:39:00",
+      text: "The tension is that the clip needs enough context to show the feeling, the practical lesson, and the specific claim without dragging.",
+    },
+    {
+      utterance_id: "utt-jef-001",
+      speaker_label: "Jef",
+      start_seconds: 39,
+      end_seconds: 61,
+      start_timecode: "00:00:39:00",
+      end_timecode: "00:01:01:00",
+      text: "The answer is to choose the window where the claim starts cleanly and the payoff lands after the reframe, not halfway through it.",
+    },
+    {
+      utterance_id: "utt-layla-002",
+      speaker_label: "Layla",
+      start_seconds: 61,
+      end_seconds: 74,
+      start_timecode: "00:01:01:00",
+      end_timecode: "00:01:14:00",
+      text: "That ending makes the viewer feel the lesson because the thought resolves instead of stopping midstream.",
+    },
+  ],
+});
+assert(utteranceV2Request.utterances.length === 4, "Backend schema should accept transcript v2 utterances.");
+assert(utteranceV2Request.segments.length === 4, "Backend schema should derive legacy-compatible segments from utterances when needed.");
+const utteranceV2Windows = buildSocialReelsLiveDurationWindows({ ...utteranceV2Request, requested_candidate_count: 10 }, 10);
+assert(utteranceV2Windows.length > 0, "Utterance-first window builder should create duration windows from utterances.");
+assert(
+  utteranceV2Windows.every((window) => window.transcript_source === "utterances" && window.utterance_ids.length > 0),
+  "Utterance-first windows should preserve utterance_ids and source metadata."
+);
+const utteranceV2PromptWindows = buildSocialReelsLivePromptWindows(utteranceV2Request, utteranceV2Windows.slice(0, 3));
+const utteranceV2PromptInput = buildSocialReelsOpenAIPromptInput(
+  { ...utteranceV2Request, requested_candidate_count: 10 },
+  {
+    discoveryMode: "live_shortlist",
+    requestedCandidateCount: 30,
+    effectiveCandidateCount: 10,
+    durationWindows: utteranceV2PromptWindows,
+  }
+);
+const utteranceV2UserPrompt = String(utteranceV2PromptInput[1].content);
+assert(utteranceV2UserPrompt.includes('"transcript_source":"utterances"'), "Live prompt should identify utterances as source of truth.");
+assert(utteranceV2UserPrompt.includes('"utterance_ids"'), "Live prompt windows should include utterance_ids.");
+assert(utteranceV2UserPrompt.includes('"utterances"'), "Live prompt windows should include utterance-level context.");
+for (const expectedSpeaker of ["Layla", "Fabienne", "Jef"]) {
+  assert(utteranceV2UserPrompt.includes(expectedSpeaker), `Live prompt should include clean speaker label ${expectedSpeaker}.`);
+}
+for (const expectedTimecode of ["00:00:00:00", "00:01:01:00"]) {
+  assert(utteranceV2UserPrompt.includes(expectedTimecode), `Live prompt should include editor timecode ${expectedTimecode}.`);
+}
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "Layla:"]) {
+  assert(!utteranceV2UserPrompt.includes(forbiddenLeak), `Live prompt should not include forbidden payload detail: ${forbiddenLeak}.`);
+}
 
 const shortlistRequest = socialReelsRequestSchema.parse({
   project_hash: "schema-smoke-social-reels-project",
@@ -649,6 +754,136 @@ for (const field of [
   assert(responseFormatRequired.includes(field), `OpenAI response format is missing required field: ${field}.`);
   assert(field in responseFormatProperties, `OpenAI response format is missing property: ${field}.`);
 }
+
+const matrixRequest = socialReelsRequestSchema.parse({
+  project_hash: "matrix-request-smoke",
+  requested_candidate_count: 30,
+  requested_targets: [
+    { style: "emotional", duration: "30s" },
+    { style: "story", duration: "30s" },
+    { style: "hookFirst", duration: "15s" },
+    { style: "educational", duration: "90s" },
+    { style: "inspirational", duration: "deepCut5To10m" },
+    { style: "emotional", duration: "30s" },
+  ],
+  max_per_bucket: 99,
+  max_unique_moments: 999,
+  dedupe_shared_moments: true,
+  style: "balanced",
+  layout: "vertical",
+  caption_style: "bold",
+  episode_metadata: { title: "Discovery Matrix Smoke" },
+  utterances: [
+    {
+      utterance_id: "utt-matrix-1",
+      speaker_label: "Layla",
+      start_seconds: 0,
+      end_seconds: 18,
+      start_timecode: "00:00:00:00",
+      end_timecode: "00:00:18:00",
+      text: "The question is how a single powerful story can work as more than one social reel target.",
+    },
+    {
+      utterance_id: "utt-matrix-2",
+      speaker_label: "Fabienne",
+      start_seconds: 18,
+      end_seconds: 44,
+      start_timecode: "00:00:18:00",
+      end_timecode: "00:00:44:00",
+      text: "The tension is that we do not want duplicates, padding, or format variants pretending to be new discoveries.",
+    },
+    {
+      utterance_id: "utt-matrix-3",
+      speaker_label: "Jef",
+      start_seconds: 44,
+      end_seconds: 76,
+      start_timecode: "00:00:44:00",
+      end_timecode: "00:01:16:00",
+      text: "The answer is to discover the moment identity once, then group it into every duration and style bucket it honestly fits.",
+    },
+  ],
+  segments: [
+    {
+      segment_id: "seg-matrix-1",
+      start_seconds: 0,
+      end_seconds: 76,
+      start_timecode: "00:00:00:00",
+      end_timecode: "00:01:16:00",
+      speakers: ["Layla", "Fabienne", "Jef"],
+      utterance_ids: ["utt-matrix-1", "utt-matrix-2", "utt-matrix-3"],
+      text: "The question, tension, and answer create one reusable discovery matrix moment.",
+    },
+  ],
+});
+const matrixFixture = socialReelsRequestSchema.parse(
+  JSON.parse(readFileSync(resolve(process.cwd(), "tests/fixtures/social_reels_discovery_matrix_request.redacted.json"), "utf8")) as unknown
+);
+assert(matrixFixture.discovery_matrix !== null, "App redacted discovery matrix fixture should parse as matrix request.");
+assert(matrixFixture.requested_targets.length === 5, "App redacted discovery matrix fixture should preserve requested target buckets.");
+assert(matrixFixture.dedupe_shared_moments === true, "App redacted discovery matrix fixture should request shared moment dedupe.");
+assert(matrixRequest.discovery_matrix !== null, "Matrix request should create discovery_matrix metadata.");
+assert(matrixRequest.requested_targets.length === 5, "Matrix request should dedupe duplicate target buckets.");
+assert(matrixRequest.duration_preferences.includes("15s"), "Matrix request should derive 15s duration preference from targets.");
+assert(matrixRequest.duration_preferences.includes("30s"), "Matrix request should derive 30s duration preference from targets.");
+assert(matrixRequest.duration_preferences.includes("90s"), "Matrix request should derive 90s duration preference from targets.");
+assert(matrixRequest.duration_preferences.includes("5-10m"), "Matrix request should normalize deepCut5To10m to 5-10m.");
+assert(matrixRequest.max_per_bucket === SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP, "Matrix max_per_bucket should cap at 20.");
+assert(matrixRequest.max_unique_moments === 80, "Matrix max_unique_moments should cap at 80.");
+assert(matrixRequest.dedupe_shared_moments === true, "Matrix request should preserve dedupe_shared_moments.");
+
+const matrixPromptInput = buildSocialReelsOpenAIPromptInput(matrixRequest, {
+  discoveryMode: "discovery_matrix",
+  requestedCandidateCount: matrixRequest.requested_candidate_count,
+  effectiveCandidateCount: 10,
+  durationWindows: [],
+});
+const matrixUserPrompt = String(matrixPromptInput[1].content);
+for (const expected of [
+  '"requested_targets"',
+  '"discovery_matrix"',
+  '"max_per_bucket":20',
+  '"max_unique_moments":80',
+  "format",
+  "caption",
+  "not discovery targets",
+  "utterances",
+]) {
+  assert(matrixUserPrompt.includes(expected), `Matrix prompt should include ${expected}.`);
+}
+assert(matrixUserPrompt.includes("Layla") && matrixUserPrompt.includes("Fabienne") && matrixUserPrompt.includes("Jef"), "Matrix prompt should preserve clean speaker labels.");
+assert(!matrixUserPrompt.includes("wordAlignment"), "Matrix prompt must not include raw word-aligned JSON.");
+
+const matrixResponseFormat = openAISocialReelsDiscoveryMatrixResponseFormat(matrixRequest.max_unique_moments, matrixRequest.max_per_bucket);
+assert(matrixResponseFormat.schema.properties.moments.maxItems === 80, "Matrix response schema should cap unique moments.");
+assert(
+  matrixResponseFormat.schema.properties.moments.items.properties.buckets.items.properties.rank.maximum === 20,
+  "Matrix response bucket rank should cap at max_per_bucket."
+);
+socialReelsDiscoveryMatrixResponseSchema.parse({
+  moments: [
+    {
+      moment_id: "moment-shared-1",
+      start_seconds: 18,
+      end_seconds: 48,
+      start_timecode: "00:00:18:00",
+      end_timecode: "00:00:48:00",
+      speakers: ["Fabienne", "Jef"],
+      title: "One moment can serve multiple targets",
+      summary: "A single moment identity is grouped into multiple target buckets without duplicate copies.",
+      raw_score: 0.86,
+      buckets: [
+        { style: "emotional", duration: "30s", rank: 1, bucket_score: 0.88, why_it_fits: "It has tension and a payoff." },
+        { style: "story", duration: "30s", rank: 1, bucket_score: 0.84, why_it_fits: "It has a clean story shape." },
+      ],
+      review_flags: [],
+    },
+  ],
+  buckets: [
+    { style: "emotional", duration: "30s", moment_ids: ["moment-shared-1"] },
+    { style: "story", duration: "30s", moment_ids: ["moment-shared-1"] },
+  ],
+  model_notes: "Discovery matrix schema smoke; no provider call.",
+});
 
 if (!failed) {
   console.log("PASS: social reels prompt/schema smoke passed without a live OpenAI call.");

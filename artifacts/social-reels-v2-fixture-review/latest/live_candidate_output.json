@@ -1,0 +1,565 @@
+{
+  "ok": true,
+  "http_status": 200,
+  "metadata": {
+    "request_id": "5c2a813a-537d-4c36-a6b7-0e1d5a392947",
+    "provider": "openai",
+    "model": "gpt-5-mini-2025-08-07",
+    "provider_response_id": "resp_000c0f98dfc0ccb6006a02417eb82c8197b5e48b106d1d6437",
+    "discovery_mode": "live_shortlist",
+    "requested_candidate_count": 30,
+    "effective_candidate_count": 10,
+    "returned_candidate_count": 9,
+    "filtered_candidate_count": null,
+    "live_filter_reasons": {
+      "duration_outside_bucket": 0
+    },
+    "returned_duration_seconds_range": {
+      "min": 32,
+      "max": 42
+    },
+    "eligible_duration_window_count": 449,
+    "duration_window_count_sent_to_model": 18,
+    "prompt_context_char_count_sent_to_model": 56377,
+    "windows_after_quality_filter": 284,
+    "usage": {
+      "input_tokens": 14819,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 3147,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 17966
+    },
+    "diagnostics": {
+      "mode": "live",
+      "openaiRequestStartedAt": "2026-05-11T20:52:13.083Z",
+      "openaiElapsedMs": 52703,
+      "responseParseMs": 4,
+      "provider": "openai",
+      "model": "gpt-5-mini-2025-08-07",
+      "providerResponseId": "resp_000c0f98dfc0ccb6006a02417eb82c8197b5e48b106d1d6437",
+      "durationWindowCountSentToModel": 18,
+      "promptContextCharCountSentToModel": 56377,
+      "windowsAfterQualityFilter": 284,
+      "excludedWindowReasonCounts": {
+        "dead_air_or_filler": 160,
+        "product_promo": 5
+      },
+      "averageWindowQualityScore": 0.41,
+      "demotedWindowReasonCounts": {
+        "filler_adjacent": 311
+      },
+      "selectedWindowQualityRange": {
+        "min": 0.84,
+        "max": 0.97
+      },
+      "selectedWindowQualityDistribution": {
+        "strong": 13,
+        "decent": 5,
+        "weak": 0
+      },
+      "selectedWindowReasonCounts": {
+        "quality_reasons": {
+          "question": 18,
+          "tension": 16,
+          "emotional_turn": 10,
+          "clear_reframe": 17,
+          "payoff": 18,
+          "story_beat": 9,
+          "contrarian_take": 11,
+          "practical_lesson": 4,
+          "confession": 5,
+          "strong_answer": 1
+        },
+        "demotion_reasons": {
+          "filler_adjacent": 11
+        },
+        "selected_windows_with_demotion_count": 11
+      }
+    },
+    "utterances_used": true,
+    "utterance_count": 583,
+    "segment_count": 76,
+    "speaker_labels": [
+      "Voice 1",
+      "Voice 2",
+      "Voice 3"
+    ],
+    "live_openai_call_count_from_this_script": 1
+  },
+  "candidates": [
+    {
+      "rank": 1,
+      "candidate_id": "window-30s-115",
+      "title": "I felt totally unsafe — and it flipped everything",
+      "suggested_human_readable_title": "That was the first time I felt that unsafe",
+      "suggested_caption_preview_text": "Yes. Yes. Yes. That's me. That was me. ... at any age, but especially at that age.",
+      "clip_type": "emotional_moment",
+      "topic_tag": "relationships",
+      "duration_bucket": "30s",
+      "start_seconds": 850.8,
+      "end_seconds": 887.8,
+      "start_timecode": "00:14:10:19",
+      "end_timecode": "00:14:47:19",
+      "approximate_duration": 37,
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.92,
+      "proposed_display_score": 92,
+      "status": "Ready",
+      "why_it_works": "Strong personal confession + tension (feeling unsafe) followed by a reframing that standing in your truth is mature — creates curiosity and emotional payoff.",
+      "risks": {
+        "risk_flags": [],
+        "rejection_risk_flags": [],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 37,
+          "declaredDuration": 37,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 5,
+        "standalone_clarity": 5,
+        "emotional_tension": 5,
+        "payoff_reframe": 5,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 5,
+        "editability": 5,
+        "overall_human_taste": 5
+      }
+    },
+    {
+      "rank": 2,
+      "candidate_id": "window-30s-373",
+      "title": "We chose each other every day — and fought into loving more",
+      "suggested_human_readable_title": "I love you even more after we fought",
+      "suggested_caption_preview_text": "I actually totally forgot why I was why I brought that up. Where I was going with that. ... fought. Like, what a what a weird thing.",
+      "clip_type": "transformation",
+      "topic_tag": "partnership",
+      "duration_bucket": "30s",
+      "start_seconds": 4484.3,
+      "end_seconds": 4523,
+      "start_timecode": "01:14:44:08",
+      "end_timecode": "01:15:22:23",
+      "approximate_duration": 39,
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.9,
+      "proposed_display_score": 90,
+      "status": "Ready",
+      "why_it_works": "Nice arc: realization → reframing of partnership as choice → emotional payoff about loving more after conflict. Very shareable for relationship audiences.",
+      "risks": {
+        "risk_flags": [],
+        "rejection_risk_flags": [],
+        "sensitivity_level": "none",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 39,
+          "declaredDuration": 39,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 5,
+        "standalone_clarity": 5,
+        "emotional_tension": 5,
+        "payoff_reframe": 5,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 5,
+        "editability": 4,
+        "overall_human_taste": 5
+      }
+    },
+    {
+      "rank": 3,
+      "candidate_id": "window-30s-412",
+      "title": "Perfect isn't the goal — marriage is messy and beautiful",
+      "suggested_human_readable_title": "It's perfect in its messiness",
+      "suggested_caption_preview_text": "Yeah, yeah. Yeah, it is. Yeah. ... sense that this is the one for you.",
+      "clip_type": "educational_explainer",
+      "topic_tag": "love_advice",
+      "duration_bucket": "30s",
+      "start_seconds": 4844.1,
+      "end_seconds": 4885.6,
+      "start_timecode": "01:20:44:02",
+      "end_timecode": "01:21:25:14",
+      "approximate_duration": 42,
+      "speakers": [
+        "Voice 1",
+        "Voice 3"
+      ],
+      "raw_score": 0.86,
+      "proposed_display_score": 86,
+      "status": "Ready",
+      "why_it_works": "Emotional turn + reframe: rejects perfectionism and offers a positive view of commitment; broad appeal and easy to caption for social.",
+      "risks": {
+        "risk_flags": [],
+        "rejection_risk_flags": [],
+        "sensitivity_level": "none",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 42,
+          "declaredDuration": 42,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 4,
+      "candidate_id": "window-30s-116",
+      "title": "Saying 'that's not true' at 20 felt surprisingly mature",
+      "suggested_human_readable_title": "That was the first time I felt that unsafe",
+      "suggested_caption_preview_text": "that was the first time I felt that unsafe. So it was like total, total roll reversal. ... at any age, but especially at that age.",
+      "clip_type": "story_beat",
+      "topic_tag": "personal_growth",
+      "duration_bucket": "30s",
+      "start_seconds": 856.3,
+      "end_seconds": 887.8,
+      "start_timecode": "00:14:16:07",
+      "end_timecode": "00:14:47:19",
+      "approximate_duration": 32,
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.84,
+      "proposed_display_score": 84,
+      "status": "Ready",
+      "why_it_works": "Compact story: confession → tension → interpretation as maturity; good emotional hook and clear ending for social viewers.",
+      "risks": {
+        "risk_flags": [],
+        "rejection_risk_flags": [],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 32,
+          "declaredDuration": 32,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 5,
+      "candidate_id": "window-30s-96",
+      "title": "People-pleasing keeps you at arm's length",
+      "suggested_human_readable_title": "You're pleasing so everybody else will like you",
+      "suggested_caption_preview_text": "That's so funny. Because you're not necessarily pleasing to make everybody else happy, you're pleasing so everybody else will like you. Yeah. ... You're you're putting what I think you want, which is the first step. You don't actually get to know them. And then and then you meet",
+      "clip_type": "educational_explainer",
+      "topic_tag": "self_help",
+      "duration_bucket": "30s",
+      "start_seconds": 690.7,
+      "end_seconds": 724.9,
+      "start_timecode": "00:11:30:18",
+      "end_timecode": "00:12:04:22",
+      "approximate_duration": 36,
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.83,
+      "proposed_display_score": 83,
+      "status": "Reject",
+      "why_it_works": "Clear contrarian insight that reframes a common behavior; strong standalone lesson and identity-trigger for viewers who relate.",
+      "risks": {
+        "risk_flags": [
+          "weak_hook"
+        ],
+        "rejection_risk_flags": [
+          "weak_hook"
+        ],
+        "sensitivity_level": "none",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 34,
+          "declaredDuration": 36,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 6,
+      "candidate_id": "window-30s-206",
+      "title": "I dated a charismatic abuser — they can seem fine on the surface",
+      "suggested_human_readable_title": "They are terrifying, horrifying people and often charismatic",
+      "suggested_caption_preview_text": "and I've I I dated one briefly, and they are some of the most terrifying, horrifying people on earth, and they're often quite charismatic. ... And good in friendships and business. So you don't really understand the depth of that. And you can have people who have a lot of childho",
+      "clip_type": "contrarian_take",
+      "topic_tag": "red_flags",
+      "duration_bucket": "30s",
+      "start_seconds": 2068.9,
+      "end_seconds": 2103.4,
+      "start_timecode": "00:34:28:21",
+      "end_timecode": "00:35:03:10",
+      "approximate_duration": 35,
+      "speakers": [
+        "Voice 1",
+        "Voice 3"
+      ],
+      "raw_score": 0.82,
+      "proposed_display_score": 82,
+      "status": "Needs Review",
+      "why_it_works": "Shocking confession + nuance: charismatic exterior can hide pain-driven harm — high curiosity and practical warning for viewers.",
+      "risks": {
+        "risk_flags": [
+          "sensitive_topic"
+        ],
+        "rejection_risk_flags": [
+          "sensitive_topic"
+        ],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "medium",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 35,
+          "declaredDuration": 35,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 7,
+      "candidate_id": "window-30s-203",
+      "title": "People-pleasing is a giant cry for help",
+      "suggested_human_readable_title": "It's all a giant cry for help",
+      "suggested_caption_preview_text": "Well when the when the external world makes you feel like every everything is a problem, like you were a problem, or how you did that was a problem. ... It's all a it's all a giant cry for help because you do feel like you",
+      "clip_type": "useful_lesson",
+      "topic_tag": "mental_health",
+      "duration_bucket": "30s",
+      "start_seconds": 1930,
+      "end_seconds": 1965.2,
+      "start_timecode": "00:32:10:01",
+      "end_timecode": "00:32:45:05",
+      "approximate_duration": 35,
+      "speakers": [
+        "Voice 1",
+        "Voice 2"
+      ],
+      "raw_score": 0.8,
+      "proposed_display_score": 80,
+      "status": "Ready",
+      "why_it_works": "Clear problem → explanation → emotional payoff; succinct lesson that reframes behavior as a signal for help rather than weakness.",
+      "risks": {
+        "risk_flags": [],
+        "rejection_risk_flags": [],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "low",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 35,
+          "declaredDuration": 35,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 8,
+      "candidate_id": "window-30s-398",
+      "title": "Remove the ceiling — suddenly everything's possible",
+      "suggested_human_readable_title": "Once I stepped out of religion and removed the ceiling",
+      "suggested_caption_preview_text": "And somehow you have not shied away from I mean, maybe at first, maybe ... this life is um without a ceiling. And",
+      "clip_type": "contrarian_take",
+      "topic_tag": "personal_freedom",
+      "duration_bucket": "30s",
+      "start_seconds": 4733.8,
+      "end_seconds": 4767.2,
+      "start_timecode": "01:18:53:18",
+      "end_timecode": "01:19:27:05",
+      "approximate_duration": 33,
+      "speakers": [
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.79,
+      "proposed_display_score": 79,
+      "status": "Reject",
+      "why_it_works": "Strong transformational claim with identity trigger (freedom from limits); visually and emotionally resonant for viewers who desire change.",
+      "risks": {
+        "risk_flags": [
+          "too_context_dependent"
+        ],
+        "rejection_risk_flags": [
+          "too_context_dependent"
+        ],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "medium",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 33,
+          "declaredDuration": 33,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 9,
+      "candidate_id": "window-30s-67",
+      "title": "I grew up people-pleasing — it caused real conflict",
+      "suggested_human_readable_title": "I grew up people pleasing a lot",
+      "suggested_caption_preview_text": "Well, and that's that's where the conflict came was that ... you as my wife s seeing me do all the things you want would",
+      "clip_type": "story_beat",
+      "topic_tag": "upbringing",
+      "duration_bucket": "30s",
+      "start_seconds": 457.5,
+      "end_seconds": 498.3,
+      "start_timecode": "00:07:37:12",
+      "end_timecode": "00:08:18:08",
+      "approximate_duration": 41,
+      "speakers": [
+        "Voice 2",
+        "Voice 3"
+      ],
+      "raw_score": 0.75,
+      "proposed_display_score": 75,
+      "status": "Reject",
+      "why_it_works": "Authentic confession with immediate conflict and hint of resolution; relatable and emotionally driven for viewers who’ve struggled with people-pleasing.",
+      "risks": {
+        "risk_flags": [
+          "weak_hook"
+        ],
+        "rejection_risk_flags": [
+          "weak_hook"
+        ],
+        "sensitivity_level": "sensitive_topic",
+        "context_dependency": "medium",
+        "duration_compliance": {
+          "ok": true,
+          "durationSeconds": 41,
+          "declaredDuration": 41,
+          "minSeconds": 22,
+          "maxSeconds": 42
+        }
+      },
+      "boundary_quality": "Duration bucket compliant by backend range; app should still word/frame snap.",
+      "standalone_clarity": "Strong",
+      "first_3_seconds_hook": "Strong",
+      "ending_satisfaction": "Strong",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "request_id": "5c2a813a-537d-4c36-a6b7-0e1d5a392947",
+    "provider": "openai",
+    "model": "gpt-5-mini-2025-08-07",
+    "candidate_count": 9
+  },
+  "candidates": [
+    {
+      "rank": 1,
+      "candidate_id": "window-30s-115",
+      "title": "I felt totally unsafe — and it flipped everything",
+      "status": "Ready",
+      "quality_scores_1_to_5": {
+        "hook": 5,
+        "standalone_clarity": 5,
+        "emotional_tension": 5,
+        "payoff_reframe": 5,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 5,
+        "editability": 5,
+        "overall_human_taste": 5
+      }
+    },
+    {
+      "rank": 2,
+      "candidate_id": "window-30s-373",
+      "title": "We chose each other every day — and fought into loving more",
+      "status": "Ready",
+      "quality_scores_1_to_5": {
+        "hook": 5,
+        "standalone_clarity": 5,
+        "emotional_tension": 5,
+        "payoff_reframe": 5,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 5,
+        "editability": 4,
+        "overall_human_taste": 5
+      }
+    },
+    {
+      "rank": 3,
+      "candidate_id": "window-30s-412",
+      "title": "Perfect isn't the goal — marriage is messy and beautiful",
+      "status": "Ready",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 4,
+      "candidate_id": "window-30s-116",
+      "title": "Saying 'that's not true' at 20 felt surprisingly mature",
+      "status": "Ready",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 5,
+      "candidate_id": "window-30s-96",
+      "title": "People-pleasing keeps you at arm's length",
+      "status": "Reject",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 5,
+        "platform_suitability": 4,
+        "editability": 5,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 6,
+      "candidate_id": "window-30s-206",
+      "title": "I dated a charismatic abuser — they can seem fine on the surface",
+      "status": "Needs Review",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 7,
+      "candidate_id": "window-30s-203",
+      "title": "People-pleasing is a giant cry for help",
+      "status": "Ready",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 8,
+      "candidate_id": "window-30s-398",
+      "title": "Remove the ceiling — suddenly everything's possible",
+      "status": "Reject",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    },
+    {
+      "rank": 9,
+      "candidate_id": "window-30s-67",
+      "title": "I grew up people-pleasing — it caused real conflict",
+      "status": "Reject",
+      "quality_scores_1_to_5": {
+        "hook": 4,
+        "standalone_clarity": 4,
+        "emotional_tension": 4,
+        "payoff_reframe": 4,
+        "boundary_cleanliness": 4,
+        "platform_suitability": 4,
+        "editability": 4,
+        "overall_human_taste": 4
+      }
+    }
+  ]
+}

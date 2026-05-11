@@ -1,0 +1,191 @@
+{
+  "ok": true,
+  "fixture_kind": "backend_generated_mock_golden",
+  "response_schema": "discovery_matrix",
+  "moments": [
+    {
+      "moment_id": "moment-shared-emotional-educational-30s",
+      "start_seconds": 0,
+      "end_seconds": 30,
+      "start_timecode": "00:00:00:00",
+      "end_timecode": "00:00:20:00",
+      "speakers": [
+        "Fabienne",
+        "Jef",
+        "Layla"
+      ],
+      "title": "One Moment Can Teach and Move People",
+      "summary": "A compact matrix moment showing why the same identity can satisfy emotional and educational 30s buckets.",
+      "raw_score": 0.9,
+      "buckets": [
+        {
+          "style": "emotional",
+          "duration": "30s",
+          "rank": 1,
+          "bucket_score": 0.9,
+          "why_it_fits": "It has emotional stakes and a clean payoff within the 30s target."
+        },
+        {
+          "style": "educational",
+          "duration": "30s",
+          "rank": 1,
+          "bucket_score": 0.86,
+          "why_it_fits": "It teaches the discovery-matrix idea without creating a duplicate moment."
+        }
+      ],
+      "review_flags": []
+    },
+    {
+      "moment_id": "moment-ready-hookfirst-15s",
+      "start_seconds": 4,
+      "end_seconds": 19,
+      "start_timecode": "00:00:04:00",
+      "end_timecode": "00:00:20:00",
+      "speakers": [
+        "Fabienne",
+        "Jef",
+        "Layla"
+      ],
+      "title": "The Fastest Hook Is the Real Question",
+      "summary": "A short hook-first moment intended to validate 15s bucket decoding.",
+      "raw_score": 0.84,
+      "buckets": [
+        {
+          "style": "hookFirst",
+          "duration": "15s",
+          "rank": 1,
+          "bucket_score": 0.84,
+          "why_it_fits": "It starts quickly and resolves before the clip drags."
+        }
+      ],
+      "review_flags": []
+    },
+    {
+      "moment_id": "moment-review-story-90s",
+      "start_seconds": 0,
+      "end_seconds": 90,
+      "start_timecode": "00:00:00:00",
+      "end_timecode": "00:00:20:00",
+      "speakers": [
+        "Fabienne",
+        "Jef",
+        "Layla"
+      ],
+      "title": "A Bigger Story Arc Needs Review",
+      "summary": "A 90s story candidate with enough structure for app-side review and timing validation.",
+      "raw_score": 0.72,
+      "buckets": [
+        {
+          "style": "story",
+          "duration": "90s",
+          "rank": 1,
+          "bucket_score": 0.72,
+          "why_it_fits": "It can carry a longer story arc, but should be reviewed for context dependence."
+        }
+      ],
+      "review_flags": [
+        "too_context_dependent"
+      ]
+    },
+    {
+      "moment_id": "moment-rejected-controversial-30s",
+      "start_seconds": 8,
+      "end_seconds": 38,
+      "start_timecode": "00:00:08:00",
+      "end_timecode": "00:00:20:00",
+      "speakers": [
+        "Fabienne",
+        "Jef",
+        "Layla"
+      ],
+      "title": "A Controversial Angle With Weak Payoff",
+      "summary": "A deliberately lower-quality example so the app can verify rejected matrix states.",
+      "raw_score": 0.48,
+      "buckets": [
+        {
+          "style": "controversial",
+          "duration": "30s",
+          "rank": 1,
+          "bucket_score": 0.48,
+          "why_it_fits": "It has a provocative angle but lacks a satisfying payoff."
+        }
+      ],
+      "review_flags": [
+        "weak_hook",
+        "missing_payoff"
+      ]
+    },
+    {
+      "moment_id": "moment-review-deepcut-5-10m",
+      "start_seconds": 0,
+      "end_seconds": 300,
+      "start_timecode": "00:00:00:00",
+      "end_timecode": "00:00:20:00",
+      "speakers": [
+        "Fabienne",
+        "Jef",
+        "Layla"
+      ],
+      "title": "The Longform Deep Cut Needs a Full Arc",
+      "summary": "A conservative deepCut5To10m fixture example for apps that expose long-form matrix buckets.",
+      "raw_score": 0.68,
+      "buckets": [
+        {
+          "style": "inspirational",
+          "duration": "5-10m",
+          "rank": 1,
+          "bucket_score": 0.68,
+          "why_it_fits": "It models a long-form bucket while remaining clearly marked for review."
+        }
+      ],
+      "review_flags": [
+        "too_context_dependent"
+      ]
+    }
+  ],
+  "buckets": [
+    {
+      "style": "emotional",
+      "duration": "30s",
+      "moment_ids": [
+        "moment-shared-emotional-educational-30s"
+      ]
+    },
+    {
+      "style": "educational",
+      "duration": "30s",
+      "moment_ids": [
+        "moment-shared-emotional-educational-30s"
+      ]
+    },
+    {
+      "style": "hookFirst",
+      "duration": "15s",
+      "moment_ids": [
+        "moment-ready-hookfirst-15s"
+      ]
+    },
+    {
+      "style": "story",
+      "duration": "90s",
+      "moment_ids": [
+        "moment-review-story-90s"
+      ]
+    },
+    {
+      "style": "controversial",
+      "duration": "30s",
+      "moment_ids": [
+        "moment-rejected-controversial-30s"
+      ]
+    },
+    {
+      "style": "inspirational",
+      "duration": "5-10m",
+      "moment_ids": [
+        "moment-review-deepcut-5-10m"
+      ]
+    }
+  ],
+  "modelNotes": "Backend-generated mock/golden matrix fixture. No live OpenAI call was made."
+}

@@ -1,7 +1,7 @@
 import type { SocialReelsPromptDurationWindow } from "./socialReelsDurationWindows";
 import type { SocialReelsRequest } from "./socialReelsSchema";
 
-export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist";
+export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix";
 
 export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
@@ -13,7 +13,10 @@ export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "Score harshly. Most clips should not score above 0.80. A score above 0.90 requires a strong hook, clear tension/conflict, satisfying payoff, standalone clarity, title potential, and clean editability. Apply penalties through score and rejection_risk_flags for weak hooks, missing payoff, context dependence, unsafe/sensitive material, low editability, junk setup, misleading title potential, or any anti-junk risk.",
   "Avoid countdowns, timers, pre-show chatter, mic checks, technical setup, sponsor/ad reads unless explicitly requested, intro/outro logistics, vague greetings, housekeeping, dead air, generic motivational filler, purely transitional moments, clips that begin mid-thought, clips that require too much prior context, and clips with missing payoff.",
   "A good reel must have a fast first 1-3 seconds hook, standalone clarity, specificity, emotional charge or humor or conflict or insight, a clear story arc or idea, clean editability, and a satisfying ending/payoff.",
-  "duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided segment text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript.",
+  "duration_bucket is not just a label: start_anchor_quote and end_anchor_quote must span the selected clip duration as closely as possible. Copy both anchor quotes exactly from the provided utterance/window transcript text; do not invent anchor quotes. Anchor quotes must be distinctive and present in the transcript.",
+  "Transcript v2 rule: when utterances[] are present, use utterances[] as the transcript source of truth. Each utterance is a single-speaker timed unit. Use speaker_label from each utterance, start_seconds/end_seconds for machine timing, and start_timecode/end_timecode for human/editor traceability. Use windows/segments only as candidate windows or grouping hints.",
+  "Do not treat inline speaker labels inside text as source of truth. Do not invent speaker names. Do not invent timestamps. If a window has multiple speakers, inspect its utterances and preserve the utterance-level speaker labels. If utterances[] exists, do not flatten back to legacy segments[].text.",
+  "Candidate starts/ends should align to utterance-safe and word-safe boundaries where possible. Prefer clean sentence or thought endings. Never choose a clip that ends mid-word or mid-thought when the provided timing data allows correction.",
   "Duration bucket is a hard constraint. 15s clips must be about 10-22 seconds, 30s clips about 22-42 seconds, 60s clips about 45-78 seconds, 90s clips about 70-115 seconds, and 5-10m clips about 240-660 seconds. Do not return a candidate for a bucket if the available transcript span cannot support that duration.",
   "When duration_windows are provided, use them as the duration source of truth. Choose one duration-valid window per candidate, keep start_seconds/end_seconds/duration_seconds inside that window, and place start/end anchor quotes near the provided boundary hints. For a 60s request, select a real 45-78 second story span; do not compress a small highlight into a fake 60s clip. A 60s clip is not a 10-second highlight.",
   "Use duration window quality metadata as a guide, not as a replacement for editorial judgment. Prefer windows with standalone Question -> Tension -> Answer -> Reframe shape, clear tension, confession, practical lesson, emotional turn, reframe, payoff, or a specific claim. Avoid windows marked as intro_setup, outro_logistics, podcast_wrapup, product_promo, sponsor_or_ad, book_link_outro, follow_up_logistics, meta_editing, audio_check, camera_check, mic checks, technical setup, pre-show chatter, dead air, tasting/product ingredient discussion, or filler unless the requested style explicitly requires that material.",
@@ -22,6 +25,10 @@ export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "If you cannot find enough duration-valid candidates, return fewer candidates rather than padding with compact quotes or weak starts. CutSwitch will filter candidates outside the duration range.",
   "rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
 ].join(" ");
+
+function uniquePromptStrings(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))].slice(0, 40);
+}
 
 export function buildSocialReelsOpenAIPromptInput(
   input: SocialReelsRequest,
@@ -32,7 +39,7 @@ export function buildSocialReelsOpenAIPromptInput(
     durationWindows?: SocialReelsPromptDurationWindow[];
   }
 ) {
-  const useLiveWindowInput = metadata?.discoveryMode === "live_shortlist";
+  const useLiveWindowInput = metadata?.discoveryMode === "live_shortlist" || metadata?.discoveryMode === "discovery_matrix";
 
   return [
     {
@@ -49,17 +56,37 @@ export function buildSocialReelsOpenAIPromptInput(
         original_requested_candidate_count: metadata?.requestedCandidateCount ?? input.requested_candidate_count,
         effective_candidate_count: metadata?.effectiveCandidateCount ?? input.requested_candidate_count,
         discovery_mode: metadata?.discoveryMode ?? "mock_full_pool",
+        ...(input.discovery_matrix
+          ? {
+              discovery_matrix: input.discovery_matrix,
+              requested_targets: input.requested_targets,
+              max_per_bucket: input.max_per_bucket,
+              max_unique_moments: input.max_unique_moments,
+              dedupe_shared_moments: input.dedupe_shared_moments,
+              discovery_matrix_instruction:
+                "Discovery Matrix mode: find deduped moment identities across requested_targets; avoid duplicates across buckets. Each target is a style/duration pair. Layout formats, aspect ratios, caption styles, and export variants are not discovery targets. A moment can satisfy multiple buckets, so return stable moment_id values and bucket memberships instead of duplicate candidate copies. Respect max_per_bucket and max_unique_moments; return fewer moments rather than padding weak ones. Use utterances[] as source of truth, preserve speaker labels/timecodes, respect duration target boundaries, and do not invent timestamps or word timings.",
+              export_variant_instruction:
+                "vertical, square, horizontal, captions, karaoke/subtitle styles, and export formats are not discovery targets. The backend discovers reusable editorial moments; the app handles caption/layout/export variants.",
+            }
+          : {}),
         live_shortlist_note:
           useLiveWindowInput
             ? "Return up to effective_candidate_count candidates using the reduced shortlist schema. Preserve the Viral Reel Method: Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and ranked strongest-to-weakest choices. Return only schema-supported compact editorial fields: title, hook_title, core_question, payoff, viral_atoms, why_it_works, context_dependency, sensitivity_level, scores, and risk flags. Prefer high-quality windows with question, tension, confession, practical lesson, emotional turn, reframe, payoff, story beat, or specific claim signals. Do not choose intro/outro logistics, promo housekeeping, promotional housekeeping, book/link outro logistics, product_promo, sponsor_or_ad, meta_editing, audio_check, camera_check, mic checks, pre-show chatter, product/tasting/ingredient discussion, caffeine/formulated/take-it-daily product discussion, or technical setup windows when better options exist. Duration bucket compliance is mandatory: for a 60s request, each candidate must span roughly 45-78 seconds of spoken content; never return 8s, 12s, 16s, 22s, or 32s clips as 60s candidates. A 60s clip is not a 10-second highlight. Choose from duration_windows when present. Use each window's start/end/duration as the clip span, then copy distinctive transcript anchor quotes near that window's boundary hints. If there are fewer duration-valid candidates than requested, return fewer candidates rather than padding."
             : null,
         duration_window_instruction:
           useLiveWindowInput
-            ? "Choose only from provided duration_windows. These are backend-generated duration windows, not a full transcript scan. Do not scan or invent from a full transcript blob. Each duration_window contains a bounded transcript excerpt, speaker metadata when available, start/end boundary hints, window_quality_score, window_quality_reasons, window_demotion_reasons, and window_exclusion_reason. Use high-quality non-excluded windows first. Use the selected window start/end as the intended clip span, choose start_anchor_quote near the beginning of text_excerpt, choose end_anchor_quote near the end of text_excerpt, and do not output candidates from outside the provided windows. Set candidate_id to the chosen window_id or a stable derivative."
+            ? "Choose only from provided duration_windows. These are backend-generated duration windows, not a full transcript scan. Do not scan or invent from a full transcript blob. Each duration_window contains a bounded transcript excerpt, utterance_ids and utterances when transcript v2 is present, speaker metadata, start/end timecodes when available, start/end boundary hints, window_quality_score, window_quality_reasons, window_demotion_reasons, and window_exclusion_reason. Treat utterances as source-of-truth transcript units and windows as grouping hints. Use high-quality non-excluded windows first. Use the selected window start/end as the intended clip span, choose start_anchor_quote near the beginning of text_excerpt/utterances, choose end_anchor_quote near the end of text_excerpt/utterances, and do not output candidates from outside the provided windows. Set candidate_id to the chosen window_id or a stable derivative."
             : null,
         duration_windows: metadata?.durationWindows ?? [],
+        transcript_source: input.utterances.length > 0 ? "utterances" : "segments",
         source_segments_sent: useLiveWindowInput ? "duration_windows_only" : "full_segments",
         source_segment_count: input.segments.length,
+        source_utterance_count: input.utterances.length,
+        source_speaker_labels: uniquePromptStrings([
+          ...input.utterances.map((utterance) => utterance.speaker_label),
+          ...input.segments.flatMap((segment) => segment.speakers ?? []),
+          ...input.segments.map((segment) => segment.speaker),
+        ]),
         custom_duration_seconds: input.custom_duration_seconds || null,
         style: input.style,
         layout: input.layout,

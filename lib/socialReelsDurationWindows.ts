@@ -12,6 +12,11 @@ type ConcreteDurationBucket = (typeof SOCIAL_REELS_DURATION_BUCKETS)[number];
 export type SocialReelsDurationWindow = {
   window_id: string;
   segment_id: string;
+  transcript_source: "utterances" | "segments";
+  utterance_ids: string[];
+  speakers: string[];
+  start_timecode: string | null;
+  end_timecode: string | null;
   duration_bucket: ConcreteDurationBucket;
   start_seconds: number;
   end_seconds: number;
@@ -68,13 +73,27 @@ export type SocialReelsWindowReasonCounts = {
 
 export type SocialReelsPromptDurationWindow = SocialReelsScoredDurationWindow & {
   speaker: string | null;
+  speakers?: string[];
+  utterance_ids?: string[];
+  start_timecode?: string | null;
+  end_timecode?: string | null;
+  transcript_source?: "utterances" | "segments";
   text_excerpt: string;
+  utterances?: Array<{
+    utterance_id: string;
+    speaker_label: string | null;
+    start_seconds: number;
+    end_seconds: number;
+    start_timecode: string | null;
+    end_timecode: string | null;
+    text: string;
+  }>;
 };
 
 export const SOCIAL_REELS_LIVE_WINDOW_DEFAULT_COUNT = 18;
 export const SOCIAL_REELS_LIVE_WINDOW_MIN_COUNT = 6;
 export const SOCIAL_REELS_LIVE_WINDOW_MAX_COUNT = 24;
-const SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS = 840;
+const SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS = 680;
 
 const GENERIC_ANCHOR_WORDS = new Set([
   "yeah",
@@ -202,6 +221,43 @@ function liveWindowTargetDurationSeconds(bucket: ConcreteDurationBucket) {
 
 function roundWindowSeconds(value: number) {
   return Number(value.toFixed(1));
+}
+
+function uniqueCleanStrings(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const clean = value?.trim();
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    result.push(clean);
+  }
+
+  return result;
+}
+
+function getUtteranceSpeakerLabel(utterance: SocialReelsRequest["utterances"][number]) {
+  return utterance.speaker_label ?? utterance.speaker ?? null;
+}
+
+function getSegmentSpeakers(segment: SocialReelsRequest["segments"][number]) {
+  return uniqueCleanStrings([...(segment.speakers ?? []), segment.speaker]);
+}
+
+function getUtteranceUnits(input: SocialReelsRequest) {
+  return [...input.utterances]
+    .sort((a, b) => a.start_seconds - b.start_seconds || a.id.localeCompare(b.id))
+    .map((utterance) => ({
+      id: utterance.id,
+      start_seconds: utterance.start_seconds,
+      end_seconds: utterance.end_seconds,
+      start_timecode: utterance.start_timecode ?? null,
+      end_timecode: utterance.end_timecode ?? null,
+      speakers: uniqueCleanStrings([getUtteranceSpeakerLabel(utterance)]),
+      utterance_ids: [utterance.id],
+      text: utterance.text,
+    }));
 }
 
 function clampQualityScore(value: number) {
@@ -413,11 +469,30 @@ function segmentSupportsLiveBucket(segment: SocialReelsRequest["segments"][numbe
   return segmentDuration >= range.min && words.length >= 24;
 }
 
+function utterancesSupportLiveBucket(input: SocialReelsRequest, bucket: ConcreteDurationBucket) {
+  const units = getUtteranceUnits(input);
+  const range = getSocialReelsLiveDurationRange(bucket);
+
+  for (let startIndex = 0; startIndex < units.length; startIndex += 1) {
+    let wordCount = 0;
+    for (let endIndex = startIndex; endIndex < units.length; endIndex += 1) {
+      wordCount += cleanWords(units[endIndex].text).length;
+      const duration = units[endIndex].end_seconds - units[startIndex].start_seconds;
+      if (duration > range.max) break;
+      if (duration >= range.min && wordCount >= 24) return true;
+    }
+  }
+
+  return false;
+}
+
 export function getConcreteSocialReelsDurationBuckets(input: SocialReelsRequest) {
   const preferences = input.duration_preferences || [input.duration_bucket];
   if (preferences.includes("mixed") || preferences.includes("custom")) {
     const usableBuckets = SOCIAL_REELS_DURATION_BUCKETS.filter((bucket) =>
-      input.segments.some((segment) => segmentSupportsLiveBucket(segment, bucket))
+      input.utterances.length > 0
+        ? utterancesSupportLiveBucket(input, bucket)
+        : input.segments.some((segment) => segmentSupportsLiveBucket(segment, bucket))
     );
     return usableBuckets.length > 0 ? usableBuckets : SOCIAL_REELS_DURATION_BUCKETS;
   }
@@ -425,16 +500,136 @@ export function getConcreteSocialReelsDurationBuckets(input: SocialReelsRequest)
   const concreteBuckets = preferences.filter((preference): preference is ConcreteDurationBucket =>
     SOCIAL_REELS_DURATION_BUCKETS.includes(preference as ConcreteDurationBucket)
   );
-  const usableBuckets = concreteBuckets.filter((bucket) => input.segments.some((segment) => segmentSupportsLiveBucket(segment, bucket)));
+  const usableBuckets = concreteBuckets.filter((bucket) =>
+    input.utterances.length > 0
+      ? utterancesSupportLiveBucket(input, bucket)
+      : input.segments.some((segment) => segmentSupportsLiveBucket(segment, bucket))
+  );
 
   if (usableBuckets.length > 0) return usableBuckets;
   return concreteBuckets.length > 0 ? concreteBuckets : SOCIAL_REELS_DURATION_BUCKETS;
+}
+
+function makeUtteranceDurationWindow(
+  bucket: ConcreteDurationBucket,
+  windowIndex: number,
+  units: ReturnType<typeof getUtteranceUnits>,
+  startIndex: number,
+  endIndex: number,
+  segmentId?: string
+): SocialReelsDurationWindow | null {
+  const includedUnits = units.slice(startIndex, endIndex + 1);
+  if (includedUnits.length === 0) return null;
+
+  const firstUnit = includedUnits[0];
+  const lastUnit = includedUnits[includedUnits.length - 1];
+  const durationSeconds = Math.round(lastUnit.end_seconds - firstUnit.start_seconds);
+  if (!durationFitsSocialReelsLiveBucket(bucket, durationSeconds)) return null;
+
+  const combinedWords = cleanWords(includedUnits.map((unit) => unit.text).join(" "));
+  if (combinedWords.length < 24) return null;
+
+  const firstWords = cleanWords(firstUnit.text);
+  const lastWords = cleanWords(lastUnit.text);
+
+  return {
+    window_id: `window-${bucket}-${String(windowIndex).padStart(2, "0")}`,
+    segment_id: segmentId ?? firstUnit.id,
+    transcript_source: "utterances",
+    utterance_ids: includedUnits.flatMap((unit) => unit.utterance_ids),
+    speakers: uniqueCleanStrings(includedUnits.flatMap((unit) => unit.speakers)),
+    start_timecode: firstUnit.start_timecode,
+    end_timecode: lastUnit.end_timecode,
+    duration_bucket: bucket,
+    start_seconds: roundWindowSeconds(firstUnit.start_seconds),
+    end_seconds: roundWindowSeconds(lastUnit.end_seconds),
+    duration_seconds: durationSeconds,
+    start_anchor_hint: anchorHintAt(firstWords.length > 0 ? firstWords : combinedWords, 0),
+    end_anchor_hint: anchorHintAt(lastWords.length > 0 ? lastWords : combinedWords, Math.max(0, (lastWords.length > 0 ? lastWords : combinedWords).length - 8)),
+  };
+}
+
+function buildSegmentReferencedUtteranceWindows(
+  input: SocialReelsRequest,
+  buckets: readonly ConcreteDurationBucket[],
+  units: ReturnType<typeof getUtteranceUnits>
+) {
+  const windows: SocialReelsDurationWindow[] = [];
+  const unitsById = new Map(units.map((unit) => [unit.id, unit]));
+
+  for (const bucket of buckets) {
+    for (const segment of input.segments) {
+      if (!segment.utterance_ids || segment.utterance_ids.length === 0) continue;
+
+      const includedUnits = segment.utterance_ids
+        .map((utteranceId) => unitsById.get(utteranceId))
+        .filter((unit): unit is NonNullable<typeof unit> => Boolean(unit))
+        .sort((a, b) => a.start_seconds - b.start_seconds || a.id.localeCompare(b.id));
+      if (includedUnits.length === 0) continue;
+
+      const window = makeUtteranceDurationWindow(
+        bucket,
+        windows.length + 1,
+        includedUnits,
+        0,
+        includedUnits.length - 1,
+        segment.id
+      );
+      if (window) {
+        windows.push({
+          ...window,
+          speakers: uniqueCleanStrings([...(segment.speakers ?? []), ...window.speakers]),
+        });
+      }
+    }
+  }
+
+  return windows;
+}
+
+function buildUtteranceDurationWindows(input: SocialReelsRequest, buckets: readonly ConcreteDurationBucket[]) {
+  const units = getUtteranceUnits(input);
+  const windows: SocialReelsDurationWindow[] = buildSegmentReferencedUtteranceWindows(input, buckets, units);
+
+  for (const bucket of buckets) {
+    const targetDuration = liveWindowTargetDurationSeconds(bucket);
+    const range = getSocialReelsLiveDurationRange(bucket);
+
+    for (let startIndex = 0; startIndex < units.length; startIndex += 1) {
+      let wordCount = 0;
+      let bestEndIndex: number | null = null;
+      let bestDelta = Number.POSITIVE_INFINITY;
+
+      for (let endIndex = startIndex; endIndex < units.length; endIndex += 1) {
+        wordCount += cleanWords(units[endIndex].text).length;
+        const duration = units[endIndex].end_seconds - units[startIndex].start_seconds;
+        if (duration > range.max) break;
+        if (duration < range.min || wordCount < 24) continue;
+
+        const delta = Math.abs(duration - targetDuration);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestEndIndex = endIndex;
+        }
+      }
+
+      if (bestEndIndex === null) continue;
+      const window = makeUtteranceDurationWindow(bucket, windows.length + 1, units, startIndex, bestEndIndex);
+      if (window) windows.push(window);
+    }
+  }
+
+  return windows;
 }
 
 export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, effectiveCandidateCount: number) {
   const buckets = getConcreteSocialReelsDurationBuckets(input);
   const windows: SocialReelsDurationWindow[] = [];
   void effectiveCandidateCount;
+
+  if (input.utterances.length > 0) {
+    return buildUtteranceDurationWindows(input, buckets);
+  }
 
   for (const bucket of buckets) {
     const targetDuration = liveWindowTargetDurationSeconds(bucket);
@@ -463,6 +658,11 @@ export function buildSocialReelsLiveDurationWindows(input: SocialReelsRequest, e
         windows.push({
           window_id: `window-${bucket}-${String(windows.length + 1).padStart(2, "0")}`,
           segment_id: segment.id,
+          transcript_source: "segments",
+          utterance_ids: segment.utterance_ids ?? [],
+          speakers: getSegmentSpeakers(segment),
+          start_timecode: segment.start_timecode ?? null,
+          end_timecode: segment.end_timecode ?? null,
           duration_bucket: bucket,
           start_seconds: roundWindowSeconds(startSeconds),
           end_seconds: roundWindowSeconds(endSeconds),
@@ -544,6 +744,10 @@ function findSegment(input: SocialReelsRequest, segmentId: string) {
   return input.segments.find((segment) => segment.id === segmentId || segment.segment_id === segmentId) || null;
 }
 
+function findUtterance(input: SocialReelsRequest, utteranceId: string) {
+  return input.utterances.find((utterance) => utterance.id === utteranceId || utterance.utterance_id === utteranceId) || null;
+}
+
 function trimExcerpt(text: string, maxChars: number) {
   const compact = text.replace(/\s+/g, " ").trim();
   if (compact.length <= maxChars) return compact;
@@ -551,6 +755,15 @@ function trimExcerpt(text: string, maxChars: number) {
 }
 
 function windowTextExcerpt(input: SocialReelsRequest, window: SocialReelsDurationWindow, maxChars = SOCIAL_REELS_LIVE_WINDOW_EXCERPT_CHARS) {
+  if (input.utterances.length > 0 && window.utterance_ids.length > 0) {
+    const text = window.utterance_ids
+      .map((utteranceId) => findUtterance(input, utteranceId)?.text ?? "")
+      .filter(Boolean)
+      .join(" ");
+
+    return trimExcerpt(text, maxChars);
+  }
+
   const segment = findSegment(input, window.segment_id);
   if (!segment) return "";
 
@@ -568,6 +781,23 @@ function windowTextExcerpt(input: SocialReelsRequest, window: SocialReelsDuratio
   return trimExcerpt(excerpt || segment.text, maxChars);
 }
 
+function promptUtterancesForWindow(input: SocialReelsRequest, window: SocialReelsDurationWindow) {
+  if (input.utterances.length === 0 || window.utterance_ids.length === 0) return [];
+
+  return window.utterance_ids
+    .map((utteranceId) => findUtterance(input, utteranceId))
+    .filter((utterance): utterance is NonNullable<ReturnType<typeof findUtterance>> => Boolean(utterance))
+    .map((utterance) => ({
+      utterance_id: utterance.id,
+      speaker_label: getUtteranceSpeakerLabel(utterance),
+      start_seconds: roundWindowSeconds(utterance.start_seconds),
+      end_seconds: roundWindowSeconds(utterance.end_seconds),
+      start_timecode: utterance.start_timecode ?? null,
+      end_timecode: utterance.end_timecode ?? null,
+      text: trimExcerpt(utterance.text, 260),
+    }));
+}
+
 export function buildSocialReelsLivePromptWindows(
   input: SocialReelsRequest,
   windows: SocialReelsDurationWindow[]
@@ -576,11 +806,19 @@ export function buildSocialReelsLivePromptWindows(
     .map((window) => {
       const scoredWindow = toScoredWindow(window);
       const segment = findSegment(input, window.segment_id);
+      const speakers = window.speakers.length > 0 ? window.speakers : segment ? getSegmentSpeakers(segment) : [];
+      const promptUtterances = promptUtterancesForWindow(input, window);
 
       return {
         ...scoredWindow,
-        speaker: segment?.speaker ?? null,
+        speaker: speakers[0] ?? segment?.speaker ?? null,
+        ...(speakers.length > 1 ? { speakers } : {}),
+        ...(window.utterance_ids.length > 0 ? { utterance_ids: window.utterance_ids } : {}),
+        ...(window.start_timecode ? { start_timecode: window.start_timecode } : {}),
+        ...(window.end_timecode ? { end_timecode: window.end_timecode } : {}),
+        ...(window.transcript_source === "utterances" ? { transcript_source: window.transcript_source } : {}),
         text_excerpt: windowTextExcerpt(input, window),
+        ...(promptUtterances.length > 0 ? { utterances: promptUtterances } : {}),
       };
     })
     .filter((window) => window.text_excerpt.length > 0);

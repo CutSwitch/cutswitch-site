@@ -1,0 +1,115 @@
+{
+  "caption_style": "clean",
+  "duration_preferences": [
+    "30s"
+  ],
+  "episode_metadata": {
+    "drop_frame": false,
+    "duration_seconds": 42,
+    "frame_rate": "23.976",
+    "speaker_count": 3,
+    "timecode_basis": "relative_00:00:00:00",
+    "title": "Redacted Fixture",
+    "transcript_created_at": "2026-05-11T00:00:00Z",
+    "transcript_schema_version": "cutswitch.transcript.v2"
+  },
+  "layout": "9:16",
+  "project_duration_seconds": 42,
+  "project_hash": "redacted-project-fingerprint",
+  "requested_candidate_count": 12,
+  "segments": [
+    {
+      "end_seconds": 12,
+      "end_timecode": "00:00:12:00",
+      "segment_id": "sr_seg_0001",
+      "speaker": "Layla Martin, Fabienne Fredrickson, Jef Szi",
+      "speaker_full_name": "Layla Martin, Fabienne Fredrickson, Jef Szi",
+      "speaker_label": "Layla, Fabienne, Jef",
+      "speakers": [
+        "Layla",
+        "Fabienne",
+        "Jef"
+      ],
+      "start_seconds": 0,
+      "start_timecode": "00:00:00:00",
+      "text": "{{CLEAN_WINDOW_TEXT}}",
+      "utterance_ids": [
+        "utt_0001",
+        "utt_0002",
+        "utt_0003"
+      ]
+    },
+    {
+      "end_seconds": 20,
+      "end_timecode": "00:00:20:00",
+      "segment_id": "sr_seg_0002",
+      "speaker": "Layla Martin",
+      "speaker_full_name": "Layla Martin",
+      "speaker_id": "speaker_1",
+      "speaker_label": "Layla",
+      "speakers": [
+        "Layla"
+      ],
+      "start_seconds": 12,
+      "start_timecode": "00:00:12:00",
+      "text": "{{CLEAN_WINDOW_TEXT}}",
+      "utterance_ids": [
+        "utt_0004"
+      ]
+    }
+  ],
+  "speaker_count": 3,
+  "style": "balanced",
+  "transcript_diagnostics": [
+    "transcript_openai_payload_utterance_ready",
+    "transcript_discovery_windows_built_from_utterances"
+  ],
+  "transcript_schema_version": "cutswitch.transcript.v2",
+  "transcript_version": 2,
+  "utterances": [
+    {
+      "end_seconds": 4,
+      "end_timecode": "00:00:04:00",
+      "id": "utt_0001",
+      "speaker_full_name": "Layla Martin",
+      "speaker_id": "speaker_1",
+      "speaker_label": "Layla",
+      "start_seconds": 0,
+      "start_timecode": "00:00:00:00",
+      "text": "{{CLEAN_UTTERANCE_TEXT}}"
+    },
+    {
+      "end_seconds": 8,
+      "end_timecode": "00:00:08:00",
+      "id": "utt_0002",
+      "speaker_full_name": "Fabienne Fredrickson",
+      "speaker_id": "speaker_2",
+      "speaker_label": "Fabienne",
+      "start_seconds": 4,
+      "start_timecode": "00:00:04:00",
+      "text": "{{CLEAN_UTTERANCE_TEXT}}"
+    },
+    {
+      "end_seconds": 12,
+      "end_timecode": "00:00:12:00",
+      "id": "utt_0003",
+      "speaker_full_name": "Jef Szi",
+      "speaker_id": "speaker_3",
+      "speaker_label": "Jef",
+      "start_seconds": 8,
+      "start_timecode": "00:00:08:00",
+      "text": "{{CLEAN_UTTERANCE_TEXT}}"
+    },
+    {
+      "end_seconds": 20,
+      "end_timecode": "00:00:20:00",
+      "id": "utt_0004",
+      "speaker_full_name": "Layla Martin",
+      "speaker_id": "speaker_1",
+      "speaker_label": "Layla",
+      "start_seconds": 12,
+      "start_timecode": "00:00:12:00",
+      "text": "{{CLEAN_UTTERANCE_TEXT}}"
+    }
+  ]
+}

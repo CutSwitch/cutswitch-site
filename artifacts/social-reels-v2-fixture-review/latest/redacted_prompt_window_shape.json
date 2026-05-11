@@ -1,0 +1,1399 @@
+{
+  "generated_from": "tests/fixtures/social_reels_transcript_v2_real_request.local.json",
+  "transcript_source": "utterances",
+  "requested_candidate_count": 30,
+  "effective_candidate_count": 10,
+  "duration_preferences": [
+    "30s"
+  ],
+  "eligible_duration_window_count": 449,
+  "selected_duration_window_count": 18,
+  "prompt_window_count": 18,
+  "prompt_context_char_count": 56377,
+  "windows_after_quality_filter": 284,
+  "selected_window_quality_range": {
+    "min": 0.84,
+    "max": 0.97
+  },
+  "duration_windows": [
+    {
+      "window_id": "window-30s-67",
+      "segment_id": "sr_utt_0075",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 457.5,
+      "end_seconds": 498.3,
+      "duration_seconds": 41,
+      "start_timecode": "00:07:37:12",
+      "end_timecode": "00:08:18:08",
+      "speakers": [
+        "Voice 2",
+        "Voice 3"
+      ],
+      "utterance_ids": [
+        "sr_utt_0075",
+        "sr_utt_0076",
+        "sr_utt_0077",
+        "sr_utt_0078"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.84,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0075",
+          "speaker_label": "Voice 2",
+          "start_seconds": 457.5,
+          "end_seconds": 460.6,
+          "start_timecode": "00:07:37:12",
+          "end_timecode": "00:07:40:15",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0076",
+          "speaker_label": "Voice 3",
+          "start_seconds": 460.6,
+          "end_seconds": 461,
+          "start_timecode": "00:07:40:15",
+          "end_timecode": "00:07:40:23",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0077",
+          "speaker_label": "Voice 2",
+          "start_seconds": 460.7,
+          "end_seconds": 467.2,
+          "start_timecode": "00:07:40:17",
+          "end_timecode": "00:07:47:05",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0078",
+          "speaker_label": "Voice 2",
+          "start_seconds": 468.6,
+          "end_seconds": 498.3,
+          "start_timecode": "00:07:48:14",
+          "end_timecode": "00:08:18:08",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-96",
+      "segment_id": "sr_utt_0107",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 689.2,
+      "end_seconds": 724.9,
+      "duration_seconds": 36,
+      "start_timecode": "00:11:29:05",
+      "end_timecode": "00:12:04:22",
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "utterance_ids": [
+        "sr_utt_0107",
+        "sr_utt_0108",
+        "sr_utt_0109",
+        "sr_utt_0110",
+        "sr_utt_0111",
+        "sr_utt_0112"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.84,
+      "window_quality_reasons": [
+        "question",
+        "contrarian_take",
+        "practical_lesson",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0107",
+          "speaker_label": "Voice 1",
+          "start_seconds": 689.2,
+          "end_seconds": 689.9,
+          "start_timecode": "00:11:29:05",
+          "end_timecode": "00:11:29:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0108",
+          "speaker_label": "Voice 1",
+          "start_seconds": 690.7,
+          "end_seconds": 696.9,
+          "start_timecode": "00:11:30:18",
+          "end_timecode": "00:11:36:21",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0109",
+          "speaker_label": "Voice 2",
+          "start_seconds": 696.7,
+          "end_seconds": 712,
+          "start_timecode": "00:11:36:16",
+          "end_timecode": "00:11:52:00",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0110",
+          "speaker_label": "Voice 1",
+          "start_seconds": 712,
+          "end_seconds": 712.3,
+          "start_timecode": "00:11:52:00",
+          "end_timecode": "00:11:52:07",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0111",
+          "speaker_label": "Voice 2",
+          "start_seconds": 712.5,
+          "end_seconds": 725,
+          "start_timecode": "00:11:52:12",
+          "end_timecode": "00:12:05:01",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0112",
+          "speaker_label": "Voice 3",
+          "start_seconds": 724.5,
+          "end_seconds": 724.9,
+          "start_timecode": "00:12:04:12",
+          "end_timecode": "00:12:04:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-97",
+      "segment_id": "sr_utt_0108",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 690.7,
+      "end_seconds": 724.9,
+      "duration_seconds": 34,
+      "start_timecode": "00:11:30:18",
+      "end_timecode": "00:12:04:22",
+      "speakers": [
+        "Voice 1",
+        "Voice 2",
+        "Voice 3"
+      ],
+      "utterance_ids": [
+        "sr_utt_0108",
+        "sr_utt_0109",
+        "sr_utt_0110",
+        "sr_utt_0111",
+        "sr_utt_0112"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.84,
+      "window_quality_reasons": [
+        "question",
+        "contrarian_take",
+        "practical_lesson",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0108",
+          "speaker_label": "Voice 1",
+          "start_seconds": 690.7,
+          "end_seconds": 696.9,
+          "start_timecode": "00:11:30:18",
+          "end_timecode": "00:11:36:21",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0109",
+          "speaker_label": "Voice 2",
+          "start_seconds": 696.7,
+          "end_seconds": 712,
+          "start_timecode": "00:11:36:16",
+          "end_timecode": "00:11:52:00",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0110",
+          "speaker_label": "Voice 1",
+          "start_seconds": 712,
+          "end_seconds": 712.3,
+          "start_timecode": "00:11:52:00",
+          "end_timecode": "00:11:52:07",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0111",
+          "speaker_label": "Voice 2",
+          "start_seconds": 712.5,
+          "end_seconds": 725,
+          "start_timecode": "00:11:52:12",
+          "end_timecode": "00:12:05:01",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0112",
+          "speaker_label": "Voice 3",
+          "start_seconds": 724.5,
+          "end_seconds": 724.9,
+          "start_timecode": "00:12:04:12",
+          "end_timecode": "00:12:04:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-115",
+      "segment_id": "sr_utt_0129",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 850.8,
+      "end_seconds": 887.8,
+      "duration_seconds": 37,
+      "start_timecode": "00:14:10:19",
+      "end_timecode": "00:14:47:19",
+      "speakers": [
+        "Voice 2",
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0129",
+        "sr_utt_0130",
+        "sr_utt_0131",
+        "sr_utt_0132"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.97,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "confession",
+        "contrarian_take",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0129",
+          "speaker_label": "Voice 2",
+          "start_seconds": 850.8,
+          "end_seconds": 854.1,
+          "start_timecode": "00:14:10:19",
+          "end_timecode": "00:14:14:02",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0130",
+          "speaker_label": "Voice 3",
+          "start_seconds": 856.3,
+          "end_seconds": 861,
+          "start_timecode": "00:14:16:07",
+          "end_timecode": "00:14:21:00",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0131",
+          "speaker_label": "Voice 2",
+          "start_seconds": 861.4,
+          "end_seconds": 861.7,
+          "start_timecode": "00:14:21:10",
+          "end_timecode": "00:14:21:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0132",
+          "speaker_label": "Voice 1",
+          "start_seconds": 864.5,
+          "end_seconds": 887.8,
+          "start_timecode": "00:14:24:12",
+          "end_timecode": "00:14:47:19",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-116",
+      "segment_id": "sr_utt_0130",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 856.3,
+      "end_seconds": 887.8,
+      "duration_seconds": 32,
+      "start_timecode": "00:14:16:07",
+      "end_timecode": "00:14:47:19",
+      "speakers": [
+        "Voice 3",
+        "Voice 2",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0130",
+        "sr_utt_0131",
+        "sr_utt_0132"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.97,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "confession",
+        "contrarian_take",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0130",
+          "speaker_label": "Voice 3",
+          "start_seconds": 856.3,
+          "end_seconds": 861,
+          "start_timecode": "00:14:16:07",
+          "end_timecode": "00:14:21:00",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0131",
+          "speaker_label": "Voice 2",
+          "start_seconds": 861.4,
+          "end_seconds": 861.7,
+          "start_timecode": "00:14:21:10",
+          "end_timecode": "00:14:21:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0132",
+          "speaker_label": "Voice 1",
+          "start_seconds": 864.5,
+          "end_seconds": 887.8,
+          "start_timecode": "00:14:24:12",
+          "end_timecode": "00:14:47:19",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-117",
+      "segment_id": "sr_utt_0131",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 861.4,
+      "end_seconds": 887.8,
+      "duration_seconds": 26,
+      "start_timecode": "00:14:21:10",
+      "end_timecode": "00:14:47:19",
+      "speakers": [
+        "Voice 2",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0131",
+        "sr_utt_0132"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.97,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "confession",
+        "contrarian_take",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0131",
+          "speaker_label": "Voice 2",
+          "start_seconds": 861.4,
+          "end_seconds": 861.7,
+          "start_timecode": "00:14:21:10",
+          "end_timecode": "00:14:21:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0132",
+          "speaker_label": "Voice 1",
+          "start_seconds": 864.5,
+          "end_seconds": 887.8,
+          "start_timecode": "00:14:24:12",
+          "end_timecode": "00:14:47:19",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-118",
+      "segment_id": "sr_utt_0132",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 864.5,
+      "end_seconds": 887.8,
+      "duration_seconds": 23,
+      "start_timecode": "00:14:24:12",
+      "end_timecode": "00:14:47:19",
+      "speakers": [
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0132"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.97,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "confession",
+        "contrarian_take",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0132",
+          "speaker_label": "Voice 1",
+          "start_seconds": 864.5,
+          "end_seconds": 887.8,
+          "start_timecode": "00:14:24:12",
+          "end_timecode": "00:14:47:19",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-203",
+      "segment_id": "sr_utt_0251",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 1930,
+      "end_seconds": 1965.2,
+      "duration_seconds": 35,
+      "start_timecode": "00:32:10:01",
+      "end_timecode": "00:32:45:05",
+      "speakers": [
+        "Voice 2"
+      ],
+      "utterance_ids": [
+        "sr_utt_0251"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.84,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "practical_lesson",
+        "payoff",
+        "story_beat",
+        "strong_answer"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0251",
+          "speaker_label": "Voice 2",
+          "start_seconds": 1930,
+          "end_seconds": 1965.2,
+          "start_timecode": "00:32:10:01",
+          "end_timecode": "00:32:45:05",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-206",
+      "segment_id": "sr_utt_0258",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 2068.9,
+      "end_seconds": 2103.4,
+      "duration_seconds": 35,
+      "start_timecode": "00:34:28:21",
+      "end_timecode": "00:35:03:10",
+      "speakers": [
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0258",
+        "sr_utt_0259",
+        "sr_utt_0260",
+        "sr_utt_0261"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.86,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "contrarian_take",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0258",
+          "speaker_label": "Voice 3",
+          "start_seconds": 2068.9,
+          "end_seconds": 2069.2,
+          "start_timecode": "00:34:28:21",
+          "end_timecode": "00:34:29:05",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0259",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2069.3,
+          "end_seconds": 2078.4,
+          "start_timecode": "00:34:29:08",
+          "end_timecode": "00:34:38:11",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0260",
+          "speaker_label": "Voice 3",
+          "start_seconds": 2078.6,
+          "end_seconds": 2078.8,
+          "start_timecode": "00:34:38:14",
+          "end_timecode": "00:34:38:20",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0261",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2078.8,
+          "end_seconds": 2103.4,
+          "start_timecode": "00:34:38:19",
+          "end_timecode": "00:35:03:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-207",
+      "segment_id": "sr_utt_0259",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 2069.3,
+      "end_seconds": 2103.4,
+      "duration_seconds": 34,
+      "start_timecode": "00:34:29:08",
+      "end_timecode": "00:35:03:10",
+      "speakers": [
+        "Voice 1",
+        "Voice 3"
+      ],
+      "utterance_ids": [
+        "sr_utt_0259",
+        "sr_utt_0260",
+        "sr_utt_0261"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.86,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "contrarian_take",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0259",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2069.3,
+          "end_seconds": 2078.4,
+          "start_timecode": "00:34:29:08",
+          "end_timecode": "00:34:38:11",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0260",
+          "speaker_label": "Voice 3",
+          "start_seconds": 2078.6,
+          "end_seconds": 2078.8,
+          "start_timecode": "00:34:38:14",
+          "end_timecode": "00:34:38:20",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0261",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2078.8,
+          "end_seconds": 2103.4,
+          "start_timecode": "00:34:38:19",
+          "end_timecode": "00:35:03:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-208",
+      "segment_id": "sr_utt_0260",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 2078.6,
+      "end_seconds": 2103.4,
+      "duration_seconds": 25,
+      "start_timecode": "00:34:38:14",
+      "end_timecode": "00:35:03:10",
+      "speakers": [
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0260",
+        "sr_utt_0261"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.86,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "contrarian_take",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0260",
+          "speaker_label": "Voice 3",
+          "start_seconds": 2078.6,
+          "end_seconds": 2078.8,
+          "start_timecode": "00:34:38:14",
+          "end_timecode": "00:34:38:20",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0261",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2078.8,
+          "end_seconds": 2103.4,
+          "start_timecode": "00:34:38:19",
+          "end_timecode": "00:35:03:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-209",
+      "segment_id": "sr_utt_0261",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 2078.8,
+      "end_seconds": 2103.4,
+      "duration_seconds": 25,
+      "start_timecode": "00:34:38:19",
+      "end_timecode": "00:35:03:10",
+      "speakers": [
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0261"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.86,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "contrarian_take",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0261",
+          "speaker_label": "Voice 1",
+          "start_seconds": 2078.8,
+          "end_seconds": 2103.4,
+          "start_timecode": "00:34:38:19",
+          "end_timecode": "00:35:03:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-373",
+      "segment_id": "sr_utt_0502",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4484.3,
+      "end_seconds": 4523,
+      "duration_seconds": 39,
+      "start_timecode": "01:14:44:08",
+      "end_timecode": "01:15:22:23",
+      "speakers": [
+        "Voice 3",
+        "Voice 1",
+        "Voice 2"
+      ],
+      "utterance_ids": [
+        "sr_utt_0502",
+        "sr_utt_0503",
+        "sr_utt_0504",
+        "sr_utt_0505",
+        "sr_utt_0506"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.92,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "contrarian_take",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0502",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4484.3,
+          "end_seconds": 4488.1,
+          "start_timecode": "01:14:44:08",
+          "end_timecode": "01:14:48:03",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0503",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4488.2,
+          "end_seconds": 4491.9,
+          "start_timecode": "01:14:48:06",
+          "end_timecode": "01:14:51:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0504",
+          "speaker_label": "Voice 2",
+          "start_seconds": 4492.1,
+          "end_seconds": 4492.8,
+          "start_timecode": "01:14:52:03",
+          "end_timecode": "01:14:52:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0505",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4492.6,
+          "end_seconds": 4493.9,
+          "start_timecode": "01:14:52:14",
+          "end_timecode": "01:14:53:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0506",
+          "speaker_label": "Voice 2",
+          "start_seconds": 4494.5,
+          "end_seconds": 4523,
+          "start_timecode": "01:14:54:12",
+          "end_timecode": "01:15:22:23",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-374",
+      "segment_id": "sr_utt_0503",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4488.2,
+      "end_seconds": 4523,
+      "duration_seconds": 35,
+      "start_timecode": "01:14:48:06",
+      "end_timecode": "01:15:22:23",
+      "speakers": [
+        "Voice 1",
+        "Voice 2"
+      ],
+      "utterance_ids": [
+        "sr_utt_0503",
+        "sr_utt_0504",
+        "sr_utt_0505",
+        "sr_utt_0506"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.84,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0503",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4488.2,
+          "end_seconds": 4491.9,
+          "start_timecode": "01:14:48:06",
+          "end_timecode": "01:14:51:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0504",
+          "speaker_label": "Voice 2",
+          "start_seconds": 4492.1,
+          "end_seconds": 4492.8,
+          "start_timecode": "01:14:52:03",
+          "end_timecode": "01:14:52:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0505",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4492.6,
+          "end_seconds": 4493.9,
+          "start_timecode": "01:14:52:14",
+          "end_timecode": "01:14:53:22",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0506",
+          "speaker_label": "Voice 2",
+          "start_seconds": 4494.5,
+          "end_seconds": 4523,
+          "start_timecode": "01:14:54:12",
+          "end_timecode": "01:15:22:23",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-398",
+      "segment_id": "sr_utt_0530",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4733.8,
+      "end_seconds": 4767.2,
+      "duration_seconds": 33,
+      "start_timecode": "01:18:53:18",
+      "end_timecode": "01:19:27:05",
+      "speakers": [
+        "Voice 3",
+        "Voice 2"
+      ],
+      "utterance_ids": [
+        "sr_utt_0530",
+        "sr_utt_0531",
+        "sr_utt_0532",
+        "sr_utt_0533"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.87,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "confession",
+        "practical_lesson",
+        "clear_reframe",
+        "payoff"
+      ],
+      "window_demotion_reasons": [
+        "filler_adjacent"
+      ],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0530",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4733.8,
+          "end_seconds": 4737.3,
+          "start_timecode": "01:18:53:18",
+          "end_timecode": "01:18:57:07",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0531",
+          "speaker_label": "Voice 2",
+          "start_seconds": 4737.6,
+          "end_seconds": 4738.3,
+          "start_timecode": "01:18:57:14",
+          "end_timecode": "01:18:58:08",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0532",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4738.3,
+          "end_seconds": 4740.6,
+          "start_timecode": "01:18:58:08",
+          "end_timecode": "01:19:00:15",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0533",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4741.6,
+          "end_seconds": 4767.2,
+          "start_timecode": "01:19:01:16",
+          "end_timecode": "01:19:27:05",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-412",
+      "segment_id": "sr_utt_0544",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4844.1,
+      "end_seconds": 4885.6,
+      "duration_seconds": 42,
+      "start_timecode": "01:20:44:02",
+      "end_timecode": "01:21:25:14",
+      "speakers": [
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0544",
+        "sr_utt_0545",
+        "sr_utt_0546",
+        "sr_utt_0547",
+        "sr_utt_0548",
+        "sr_utt_0549",
+        "sr_utt_0550",
+        "sr_utt_0551",
+        "sr_utt_0552",
+        "sr_utt_0553"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.94,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0544",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4844.1,
+          "end_seconds": 4844.7,
+          "start_timecode": "01:20:44:02",
+          "end_timecode": "01:20:44:17",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0545",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4846,
+          "end_seconds": 4847.8,
+          "start_timecode": "01:20:46:00",
+          "end_timecode": "01:20:47:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0546",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4848.6,
+          "end_seconds": 4856.4,
+          "start_timecode": "01:20:48:13",
+          "end_timecode": "01:20:56:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0547",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4856.4,
+          "end_seconds": 4856.7,
+          "start_timecode": "01:20:56:10",
+          "end_timecode": "01:20:56:17",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0548",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4856.5,
+          "end_seconds": 4859.6,
+          "start_timecode": "01:20:56:13",
+          "end_timecode": "01:20:59:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0549",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4859.8,
+          "end_seconds": 4863.1,
+          "start_timecode": "01:20:59:19",
+          "end_timecode": "01:21:03:01",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0550",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4863.8,
+          "end_seconds": 4864.1,
+          "start_timecode": "01:21:03:20",
+          "end_timecode": "01:21:04:02",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0551",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.2,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:06",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0552",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4864.3,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:08",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0553",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.6,
+          "end_seconds": 4885.6,
+          "start_timecode": "01:21:04:13",
+          "end_timecode": "01:21:25:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-413",
+      "segment_id": "sr_utt_0545",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4846,
+      "end_seconds": 4885.6,
+      "duration_seconds": 40,
+      "start_timecode": "01:20:46:00",
+      "end_timecode": "01:21:25:14",
+      "speakers": [
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0545",
+        "sr_utt_0546",
+        "sr_utt_0547",
+        "sr_utt_0548",
+        "sr_utt_0549",
+        "sr_utt_0550",
+        "sr_utt_0551",
+        "sr_utt_0552",
+        "sr_utt_0553"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.94,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0545",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4846,
+          "end_seconds": 4847.8,
+          "start_timecode": "01:20:46:00",
+          "end_timecode": "01:20:47:18",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0546",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4848.6,
+          "end_seconds": 4856.4,
+          "start_timecode": "01:20:48:13",
+          "end_timecode": "01:20:56:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0547",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4856.4,
+          "end_seconds": 4856.7,
+          "start_timecode": "01:20:56:10",
+          "end_timecode": "01:20:56:17",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0548",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4856.5,
+          "end_seconds": 4859.6,
+          "start_timecode": "01:20:56:13",
+          "end_timecode": "01:20:59:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0549",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4859.8,
+          "end_seconds": 4863.1,
+          "start_timecode": "01:20:59:19",
+          "end_timecode": "01:21:03:01",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0550",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4863.8,
+          "end_seconds": 4864.1,
+          "start_timecode": "01:21:03:20",
+          "end_timecode": "01:21:04:02",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0551",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.2,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:06",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0552",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4864.3,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:08",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0553",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.6,
+          "end_seconds": 4885.6,
+          "start_timecode": "01:21:04:13",
+          "end_timecode": "01:21:25:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    },
+    {
+      "window_id": "window-30s-414",
+      "segment_id": "sr_utt_0546",
+      "transcript_source": "utterances",
+      "duration_bucket": "30s",
+      "start_seconds": 4848.6,
+      "end_seconds": 4885.6,
+      "duration_seconds": 37,
+      "start_timecode": "01:20:48:13",
+      "end_timecode": "01:21:25:14",
+      "speakers": [
+        "Voice 3",
+        "Voice 1"
+      ],
+      "utterance_ids": [
+        "sr_utt_0546",
+        "sr_utt_0547",
+        "sr_utt_0548",
+        "sr_utt_0549",
+        "sr_utt_0550",
+        "sr_utt_0551",
+        "sr_utt_0552",
+        "sr_utt_0553"
+      ],
+      "start_anchor_hint": "{{START_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "end_anchor_hint": "{{END_ANCHOR_HINT_FROM_TRANSCRIPT}}",
+      "window_quality_score": 0.94,
+      "window_quality_reasons": [
+        "question",
+        "tension",
+        "emotional_turn",
+        "clear_reframe",
+        "payoff",
+        "story_beat"
+      ],
+      "window_demotion_reasons": [],
+      "window_exclusion_reason": null,
+      "text_excerpt": "{{CLEAN_UTTERANCE_TEXT}}",
+      "utterances": [
+        {
+          "utterance_id": "sr_utt_0546",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4848.6,
+          "end_seconds": 4856.4,
+          "start_timecode": "01:20:48:13",
+          "end_timecode": "01:20:56:10",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0547",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4856.4,
+          "end_seconds": 4856.7,
+          "start_timecode": "01:20:56:10",
+          "end_timecode": "01:20:56:17",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0548",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4856.5,
+          "end_seconds": 4859.6,
+          "start_timecode": "01:20:56:13",
+          "end_timecode": "01:20:59:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0549",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4859.8,
+          "end_seconds": 4863.1,
+          "start_timecode": "01:20:59:19",
+          "end_timecode": "01:21:03:01",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0550",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4863.8,
+          "end_seconds": 4864.1,
+          "start_timecode": "01:21:03:20",
+          "end_timecode": "01:21:04:02",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0551",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.2,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:06",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0552",
+          "speaker_label": "Voice 3",
+          "start_seconds": 4864.3,
+          "end_seconds": 4864.6,
+          "start_timecode": "01:21:04:08",
+          "end_timecode": "01:21:04:13",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        },
+        {
+          "utterance_id": "sr_utt_0553",
+          "speaker_label": "Voice 1",
+          "start_seconds": 4864.6,
+          "end_seconds": 4885.6,
+          "start_timecode": "01:21:04:13",
+          "end_timecode": "01:21:25:14",
+          "text": "{{CLEAN_UTTERANCE_TEXT}}"
+        }
+      ]
+    }
+  ]
+}

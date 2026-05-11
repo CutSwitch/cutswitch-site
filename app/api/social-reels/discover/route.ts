@@ -342,8 +342,11 @@ export async function POST(req: Request) {
     return noStoreJson({
       ok: true,
       request_id: requestId,
-      candidates: result.response.candidates,
-      modelNotes: result.response.model_notes,
+      candidates: result.response?.candidates ?? [],
+      moments: result.matrixResponse?.moments,
+      buckets: result.matrixResponse?.buckets,
+      modelNotes: result.matrixResponse?.model_notes ?? result.response?.model_notes ?? null,
+      response_schema: result.matrixResponse ? "discovery_matrix" : "candidates",
       usage: result.usage,
       providerResponseId: result.providerResponseId,
       requested_candidate_count: result.requestedCandidateCount,

@@ -17,6 +17,13 @@ import {
 import { summarizeSocialReelsOutputShape } from "../lib/socialReelsDiagnostics";
 import { buildSocialReelsOpenAIPromptInput } from "../lib/socialReelsOpenAIPrompt";
 import {
+  SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
+  buildSocialReelsEditAssistantPromptInput,
+  proposeSocialReelsEdit,
+  socialReelsEditAssistantRequestSchema,
+  socialReelsEditAssistantResponseSchema,
+} from "../lib/socialReelsEditAssistant";
+import {
   buildSocialReelsLiveDurationWindows,
   buildSocialReelsLivePromptWindows,
   estimateSocialReelsPromptWindowCharCount,
@@ -107,6 +114,7 @@ function candidate(index: number, includeViralMethodFields: boolean) {
 const promptSource = [
   readFileSync(resolve(process.cwd(), "lib/openaiSocialReels.ts"), "utf8"),
   readFileSync(resolve(process.cwd(), "lib/socialReelsOpenAIPrompt.ts"), "utf8"),
+  readFileSync(resolve(process.cwd(), "lib/socialReelsEditAssistant.ts"), "utf8"),
 ].join("\n");
 
 assert(promptSource.includes("Question -> Tension -> Answer -> Reframe"), "Prompt is missing the viral reel story arc.");
@@ -224,6 +232,21 @@ for (const smartStoryEditRule of [
   "The macOS app will validate and export the recipe",
 ]) {
   assert(promptSource.includes(smartStoryEditRule), `Prompt is missing Smart Story Edit rule: ${smartStoryEditRule}.`);
+}
+
+for (const editAssistantRule of [
+  "Social Reel Edit Assistant",
+  "non-destructively",
+  "Do not invent spoken words",
+  "Use existing utterance IDs",
+  "word IDs when provided",
+  "If the user asks to start with a line",
+  "cold_open_hook",
+  "Must not cut mid-word or mid-thought",
+  "Conversation state is explicit and stateless",
+  "The app applies edits only after user confirmation",
+]) {
+  assert(SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT.includes(editAssistantRule), `Edit assistant prompt is missing rule: ${editAssistantRule}.`);
 }
 
 socialReelsCandidateSchema.parse(candidate(0, false));
@@ -442,6 +465,92 @@ for (const expectedTimecode of ["00:00:00:00", "00:01:01:00"]) {
 }
 for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "Layla:"]) {
   assert(!utteranceV2UserPrompt.includes(forbiddenLeak), `Live prompt should not include forbidden payload detail: ${forbiddenLeak}.`);
+}
+
+const editAssistantRequest = socialReelsEditAssistantRequestSchema.parse({
+  project_hash: "edit-assistant-smoke-project",
+  candidate_id: "candidate-female-blue-balls",
+  moment_id: "moment-blue-balls",
+  current_edit_recipe: { edit_mode: "linear", timeline_segments: [] },
+  user_instruction: "I like this clip, but start with the blue balls line as the hook and give it a cleaner ending.",
+  relevant_utterances: [
+    {
+      utterance_id: "utt-context-001",
+      speaker_label: "Layla",
+      start_seconds: 661,
+      end_seconds: 681,
+      start_timecode: "00:11:01:00",
+      end_timecode: "00:11:21:00",
+      text: "The context explains why the body needs movement before the later hook makes sense.",
+    },
+    {
+      utterance_id: "utt-hook-001",
+      speaker_label: "Layla",
+      start_seconds: 725,
+      end_seconds: 733,
+      start_timecode: "00:12:05:00",
+      end_timecode: "00:12:13:00",
+      text: "If you are not moving your energy it can feel like female blue balls.",
+    },
+    {
+      utterance_id: "utt-closing-001",
+      speaker_label: "Layla",
+      start_seconds: 755,
+      end_seconds: 760,
+      start_timecode: "00:12:35:00",
+      end_timecode: "00:12:40:00",
+      text: "That is the clean closing thought that makes the edit land.",
+    },
+  ],
+  relevant_words: [
+    {
+      word_id: "word-hook-001",
+      utterance_id: "utt-hook-001",
+      start_seconds: 725,
+      end_seconds: 725.4,
+      text: "If",
+    },
+  ],
+  neighboring_context_window: { start_seconds: 650, end_seconds: 770 },
+  conversation_id: null,
+  previous_response_id: null,
+  edit_history: [],
+});
+const editAssistantPrompt = buildSocialReelsEditAssistantPromptInput(editAssistantRequest);
+const editAssistantUserPrompt = String(editAssistantPrompt[1].content);
+assert(editAssistantUserPrompt.includes('"endpoint_mode":"stateless"'), "Edit assistant prompt should declare stateless mode.");
+assert(editAssistantUserPrompt.includes('"utterance_id":"utt-hook-001"'), "Edit assistant prompt should include real utterance IDs.");
+assert(editAssistantUserPrompt.includes('"word_id":"word-hook-001"'), "Edit assistant prompt should include real word IDs when provided.");
+assert(editAssistantUserPrompt.includes("00:12:05:00"), "Edit assistant prompt should include source timecodes.");
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
+  assert(!editAssistantUserPrompt.includes(forbiddenLeak), `Edit assistant prompt should not include forbidden payload detail: ${forbiddenLeak}.`);
+}
+const editAssistantResponse = proposeSocialReelsEdit(editAssistantRequest);
+socialReelsEditAssistantResponseSchema.parse(editAssistantResponse);
+assert(editAssistantResponse.conversation_state === "stateless", "Edit assistant endpoint should be explicitly stateless.");
+assert(editAssistantResponse.needs_user_confirmation === true, "Edit assistant patches should require user confirmation.");
+assert(editAssistantResponse.proposed_edit_recipe.edit_mode === "story_edit", "Hook relocation request should produce a story_edit recipe.");
+assert(editAssistantResponse.proposed_edit_recipe.composition_type === "hook_reordered", "Hook relocation request should use hook_reordered composition.");
+assert(
+  editAssistantResponse.changed_segments.some((segment) =>
+    segment.role === "cold_open_hook" && segment.utterance_ids.includes("utt-hook-001")
+  ),
+  "Edit assistant patch should move the requested source utterance into a cold_open_hook segment."
+);
+assert(
+  editAssistantResponse.changed_segments.every((segment) => segment.utterance_ids.length > 0 && segment.source_end_seconds > segment.source_start_seconds),
+  "Edit assistant changed segments should reference real utterance IDs and valid source times."
+);
+const editAssistantFixture = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), "artifacts/social-reels-edit-assistant/latest/social_reels_edit_assistant_response.mock_fixture.json"),
+    "utf8"
+  )
+) as unknown;
+socialReelsEditAssistantResponseSchema.parse(editAssistantFixture);
+const editAssistantFixtureJson = JSON.stringify(editAssistantFixture);
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
+  assert(!editAssistantFixtureJson.includes(forbiddenLeak), `Edit assistant fixture should not include forbidden payload detail: ${forbiddenLeak}.`);
 }
 
 const shortlistRequest = socialReelsRequestSchema.parse({

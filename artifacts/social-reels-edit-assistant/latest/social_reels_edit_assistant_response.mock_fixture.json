@@ -1,0 +1,149 @@
+{
+  "fixture_kind": "backend_generated_mock",
+  "live_openai_call_made": false,
+  "assistant_message": "I moved the requested source line to the front as a cold-open hook and kept real source context after it for review.",
+  "proposed_edit_recipe": {
+    "edit_mode": "story_edit",
+    "composition_type": "hook_reordered",
+    "timeline_segments": [
+      {
+        "segment_id": "edit-utt-redacted-hook-hook",
+        "role": "cold_open_hook",
+        "source_start_seconds": 725,
+        "source_end_seconds": 733,
+        "source_start_timecode": "00:12:05:00",
+        "source_end_timecode": "00:12:13:00",
+        "utterance_ids": ["utt-redacted-hook"],
+        "speaker_labels": ["Layla"],
+        "transcript_excerpt": "{{REDACTED_HOOK_LINE}}",
+        "reason_for_placement": "Selected because it best matches the user's requested line or hook intent."
+      },
+      {
+        "segment_id": "edit-utt-redacted-context-context",
+        "role": "context",
+        "source_start_seconds": 661,
+        "source_end_seconds": 681,
+        "source_start_timecode": "00:11:01:00",
+        "source_end_timecode": "00:11:21:00",
+        "utterance_ids": ["utt-redacted-context"],
+        "speaker_labels": ["Layla"],
+        "transcript_excerpt": "{{REDACTED_CONTEXT_LINE}}",
+        "reason_for_placement": "Keeps the original context after the relocated hook so the edit remains source-true."
+      },
+      {
+        "segment_id": "edit-utt-redacted-closing-closing",
+        "role": "closing_button",
+        "source_start_seconds": 755,
+        "source_end_seconds": 760,
+        "source_start_timecode": "00:12:35:00",
+        "source_end_timecode": "00:12:40:00",
+        "utterance_ids": ["utt-redacted-closing"],
+        "speaker_labels": ["Layla"],
+        "transcript_excerpt": "{{REDACTED_CLOSING_LINE}}",
+        "reason_for_placement": "Provides a cleaner ending or payoff from real source context."
+      }
+    ],
+    "display_title": null,
+    "display_teaser": "Start with the hook line and keep source context.",
+    "opening_hook": "{{REDACTED_HOOK_LINE}}",
+    "closing_line": "{{REDACTED_CLOSING_LINE}}",
+    "coherence_score": 0.82,
+    "continuity_risk": "medium",
+    "edit_decision_rationale": "The user requested a hook/front-placement edit, so the patch moves the matching source utterance to the cold open and keeps real source context after it.",
+    "review_flags": []
+  },
+  "edit_recipe_patch": {
+    "patch_type": "replace_edit_recipe",
+    "operations": [
+      { "op": "set", "path": "/edit_mode", "value": "story_edit" },
+      { "op": "set", "path": "/composition_type", "value": "hook_reordered" },
+      {
+        "op": "replace",
+        "path": "/timeline_segments",
+        "value": [
+          {
+            "segment_id": "edit-utt-redacted-hook-hook",
+            "role": "cold_open_hook",
+            "source_start_seconds": 725,
+            "source_end_seconds": 733,
+            "source_start_timecode": "00:12:05:00",
+            "source_end_timecode": "00:12:13:00",
+            "utterance_ids": ["utt-redacted-hook"],
+            "speaker_labels": ["Layla"],
+            "transcript_excerpt": "{{REDACTED_HOOK_LINE}}",
+            "reason_for_placement": "Selected because it best matches the user's requested line or hook intent."
+          },
+          {
+            "segment_id": "edit-utt-redacted-context-context",
+            "role": "context",
+            "source_start_seconds": 661,
+            "source_end_seconds": 681,
+            "source_start_timecode": "00:11:01:00",
+            "source_end_timecode": "00:11:21:00",
+            "utterance_ids": ["utt-redacted-context"],
+            "speaker_labels": ["Layla"],
+            "transcript_excerpt": "{{REDACTED_CONTEXT_LINE}}",
+            "reason_for_placement": "Keeps the original context after the relocated hook so the edit remains source-true."
+          },
+          {
+            "segment_id": "edit-utt-redacted-closing-closing",
+            "role": "closing_button",
+            "source_start_seconds": 755,
+            "source_end_seconds": 760,
+            "source_start_timecode": "00:12:35:00",
+            "source_end_timecode": "00:12:40:00",
+            "utterance_ids": ["utt-redacted-closing"],
+            "speaker_labels": ["Layla"],
+            "transcript_excerpt": "{{REDACTED_CLOSING_LINE}}",
+            "reason_for_placement": "Provides a cleaner ending or payoff from real source context."
+          }
+        ]
+      }
+    ]
+  },
+  "changed_segments": [
+    {
+      "segment_id": "edit-utt-redacted-hook-hook",
+      "role": "cold_open_hook",
+      "source_start_seconds": 725,
+      "source_end_seconds": 733,
+      "source_start_timecode": "00:12:05:00",
+      "source_end_timecode": "00:12:13:00",
+      "utterance_ids": ["utt-redacted-hook"],
+      "speaker_labels": ["Layla"],
+      "transcript_excerpt": "{{REDACTED_HOOK_LINE}}",
+      "reason_for_placement": "Selected because it best matches the user's requested line or hook intent."
+    },
+    {
+      "segment_id": "edit-utt-redacted-context-context",
+      "role": "context",
+      "source_start_seconds": 661,
+      "source_end_seconds": 681,
+      "source_start_timecode": "00:11:01:00",
+      "source_end_timecode": "00:11:21:00",
+      "utterance_ids": ["utt-redacted-context"],
+      "speaker_labels": ["Layla"],
+      "transcript_excerpt": "{{REDACTED_CONTEXT_LINE}}",
+      "reason_for_placement": "Keeps the original context after the relocated hook so the edit remains source-true."
+    },
+    {
+      "segment_id": "edit-utt-redacted-closing-closing",
+      "role": "closing_button",
+      "source_start_seconds": 755,
+      "source_end_seconds": 760,
+      "source_start_timecode": "00:12:35:00",
+      "source_end_timecode": "00:12:40:00",
+      "utterance_ids": ["utt-redacted-closing"],
+      "speaker_labels": ["Layla"],
+      "transcript_excerpt": "{{REDACTED_CLOSING_LINE}}",
+      "reason_for_placement": "Provides a cleaner ending or payoff from real source context."
+    }
+  ],
+  "rationale": "This endpoint is stateless and returns a non-destructive patch only. The app must validate utterance IDs, source times, word boundaries, and user confirmation before applying the edit.",
+  "warnings": ["needs_user_confirmation"],
+  "confidence": 0.82,
+  "needs_user_confirmation": true,
+  "conversation_id": null,
+  "previous_response_id": null,
+  "conversation_state": "stateless"
+}

@@ -332,6 +332,19 @@ Rules:
 - A `60s` candidate is expected to be an actual `45-78` second span, not a 10-second highlight. The prompt explicitly tells the model to return fewer candidates rather than padding with compact quotes when too few duration-valid spans are available.
 - Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, compact viral metadata (`viral_atoms`, `core_question`, `payoff`), `context_dependency`, `sensitivity_level`, risk flags, and compact Smart Story Edit fields (`edit_mode`, `composition_type`, `timeline_segments`, `display_title`, `display_teaser`, `opening_hook`, `closing_line`, `coherence_score`, `continuity_risk`, `edit_decision_rationale`, `review_flags`). The route hydrates those into app-decodable candidate objects. Heavier fields such as `title_options` and captions are reserved for a later full/enrichment pass and are not requested from the live shortlist schema.
 
+
+## Conversational Edit Assistant
+
+Endpoint: `POST /api/social-reels/edit`
+
+This endpoint is explicitly stateless for now. The app must send the current edit context on every request, including `current_edit_recipe`, `user_instruction`, `relevant_utterances`, optional `relevant_words`, optional `neighboring_context_window`, and optional `edit_history`. The backend does not assume independent OpenAI calls remember prior app interactions.
+
+The endpoint returns a non-destructive edit recipe patch for app preview/confirmation, not rewritten video text. It must reference real utterance IDs, source seconds/timecodes, and speaker labels. The app owns validation, word/frame boundary correction, preview, and applying the patch only after user confirmation.
+
+Response fields include `assistant_message`, `proposed_edit_recipe`, `edit_recipe_patch`, `changed_segments`, `rationale`, `warnings`, `confidence`, `needs_user_confirmation`, `conversation_id`, `previous_response_id`, and `conversation_state: "stateless"`.
+
+Privacy rules: normal logs contain only safe counts and request IDs, never transcript text, word arrays, raw request bodies, local paths, bearer tokens, or provider secrets.
+
 ## Timeout Diagnostics
 
 The route returns and logs privacy-safe timing diagnostics. These diagnostics are safe to copy into debugging notes because they do not include transcript text, local paths, tokens, OpenAI keys, raw request bodies, or raw provider responses.

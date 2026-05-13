@@ -1,0 +1,45 @@
+{
+  "artifact_type": "redacted_reproduction_shape_not_actual_provider_body",
+  "request_id": "3c3f20cc-93e4-4095-9dc7-a5421db3f2a6",
+  "why_no_actual_output": "Runtime logs with the raw or sanitized OpenAI output were not available locally; raw provider bodies should not be logged or copied into artifacts.",
+  "reproduced_shape": {
+    "candidates": [
+      {
+        "candidate_id": "redacted-window-id",
+        "title": "{{REDACTED_TITLE}}",
+        "hook_title": "{{REDACTED_HOOK_TITLE}}",
+        "summary": "{{REDACTED_SUMMARY}}",
+        "duration_bucket": "60s",
+        "segment_id": "redacted-segment-id",
+        "start_seconds": 100.0,
+        "end_seconds": 160.0,
+        "duration_seconds": 60,
+        "start_anchor_quote": "{{REDACTED_ANCHOR_QUOTE}}",
+        "end_anchor_quote": "{{REDACTED_ANCHOR_QUOTE}}",
+        "clip_type": "story_beat",
+        "topic_tag": "redacted-topic",
+        "why_it_works": "{{REDACTED_EDITORIAL_REASON}}",
+        "viral_atoms": ["question", "clear_answer", "reframe"],
+        "core_question": "{{REDACTED_CORE_QUESTION}}",
+        "payoff": "{{REDACTED_PAYOFF}}",
+        "context_dependency": "low",
+        "sensitivity_level": "none",
+        "rejection_risk_flags": [],
+        "score": 0.78,
+        "scores": {
+          "hook_strength": 0.8,
+          "standalone_clarity": 0.8,
+          "payoff_strength": 0.78,
+          "emotional_charge": 0.7,
+          "novelty": 0.72,
+          "editability": 0.84,
+          "shareability": 0.79,
+          "context_independence": 0.8,
+          "overall": 0.78
+        }
+      }
+    ],
+    "model_notes": "{{REDACTED_MODEL_NOTES}}"
+  },
+  "previous_failure_vector": "Before this fix, the live shortlist Structured Outputs schema required Smart Story Edit recipe fields such as edit_mode, composition_type, timeline_segments, display_title, display_teaser, opening_hook, closing_line, coherence_score, continuity_risk, edit_decision_rationale, and review_flags. Compact live shortlist outputs that omitted those fields failed schema validation. The reduced schema now omits those provider requirements and hydrates defaults server-side."
+}

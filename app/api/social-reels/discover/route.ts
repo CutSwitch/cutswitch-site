@@ -6,6 +6,7 @@ import {
   SocialReelsDiscoveryError,
   discoverSocialReelsCandidates,
   getSocialReelsOpenAIMode,
+  isSocialReelsInvalidResponseRetryAllowed,
 } from "@/lib/openaiSocialReels";
 import { readJsonBody } from "@/lib/request";
 import { enforceRateLimit, noStoreJson } from "@/lib/security";
@@ -423,12 +424,26 @@ export async function POST(req: Request) {
       );
     }
 
+    if (stage === "openai_invalid_response") {
+      const reasonCode = invalidResponseDiagnostics?.reason_code ?? "unsupported_shape";
+      return noStoreJson(
+        {
+          error: "Social reels provider returned an invalid response.",
+          stage,
+          reason_code: reasonCode,
+          request_id: requestId,
+          retry_allowed: isSocialReelsInvalidResponseRetryAllowed(reasonCode),
+          invalid_response_diagnostics: invalidResponseDiagnostics,
+        },
+        502
+      );
+    }
+
     return noStoreJson(
       {
         error: "Unable to discover social reel candidates.",
         stage,
         request_id: requestId,
-        invalid_response_diagnostics: stage === "openai_invalid_response" ? invalidResponseDiagnostics : undefined,
       },
       500
     );

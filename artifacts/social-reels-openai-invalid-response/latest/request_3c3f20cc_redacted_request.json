@@ -1,0 +1,17 @@
+{
+  "request_id": "3c3f20cc-93e4-4095-9dc7-a5421db3f2a6",
+  "route": "/api/social-reels/discover",
+  "reported_http_status": 500,
+  "reported_stage": "openai_invalid_response",
+  "mode": "live",
+  "schema_mode": "live_shortlist_reduced",
+  "request_shape": {
+    "transcript_source": "utterances_or_segments_redacted",
+    "duration_preferences": "redacted_or_unavailable_from_app_report",
+    "requested_candidate_count": "redacted_or_unavailable_from_app_report",
+    "segments": "redacted_count_only_unavailable_from_runtime_logs",
+    "utterances": "redacted_count_only_unavailable_from_runtime_logs"
+  },
+  "privacy_note": "Raw transcript text, utterance text, word JSON, tokens, user paths, and secrets were intentionally not captured in this artifact.",
+  "runtime_log_status": "not_found_in_available_streamed_vercel_logs"
+}

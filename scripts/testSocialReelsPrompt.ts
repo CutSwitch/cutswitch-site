@@ -116,6 +116,7 @@ const promptSource = [
   readFileSync(resolve(process.cwd(), "lib/socialReelsOpenAIPrompt.ts"), "utf8"),
   readFileSync(resolve(process.cwd(), "lib/socialReelsEditAssistant.ts"), "utf8"),
 ].join("\n");
+const discoverRouteSource = readFileSync(resolve(process.cwd(), "app/api/social-reels/discover/route.ts"), "utf8");
 
 assert(promptSource.includes("Question -> Tension -> Answer -> Reframe"), "Prompt is missing the viral reel story arc.");
 for (const atom of SOCIAL_REELS_VIRAL_ATOMS) {
@@ -196,6 +197,13 @@ assert(
 );
 assert(promptSource.includes("segments: useLiveWindowInput ? [] : input.segments"), "Live shortlist should not send the full transcript segment blob.");
 assert(promptSource.includes("duration_windows_only"), "Live shortlist prompt should identify duration-window-only source input.");
+assert(promptSource.includes("compact linear candidates only"), "Live shortlist prompt should not request story edit recipes from the reduced schema.");
+assert(promptSource.includes("schema_validation_failed"), "Invalid OpenAI response diagnostics should classify schema validation failures.");
+assert(promptSource.includes("malformed_json"), "Invalid OpenAI response diagnostics should classify malformed JSON.");
+assert(promptSource.includes("truncated_output"), "Invalid OpenAI response diagnostics should classify truncated output.");
+assert(discoverRouteSource.includes("reason_code"), "Invalid OpenAI response route error should expose a sanitized reason_code.");
+assert(discoverRouteSource.includes("retry_allowed"), "Invalid OpenAI response route error should expose retry_allowed.");
+assert(discoverRouteSource.includes("502"), "Invalid OpenAI response route error should return a recoverable provider error status.");
 for (const utterancePromptRule of [
   "utterances[] as the transcript source of truth",
   "Each utterance is a single-speaker timed unit",
@@ -374,8 +382,8 @@ for (const field of [
   "edit_decision_rationale",
   "review_flags",
 ]) {
-  assert(shortlistRequiredFields.includes(field), `Live shortlist schema is missing Smart Story Edit field: ${field}.`);
-  assert(field in shortlistProperties, `Live shortlist schema is missing Smart Story Edit property: ${field}.`);
+  assert(!shortlistRequiredFields.includes(field), `Live shortlist reduced schema should not require Smart Story Edit field: ${field}.`);
+  assert(!(field in shortlistProperties), `Live shortlist reduced schema should not ask OpenAI for Smart Story Edit property: ${field}.`);
 }
 assert(SOCIAL_REELS_CONTEXT_DEPENDENCIES.includes("low"), "Context dependency enum should include low.");
 assert(SOCIAL_REELS_SENSITIVITY_LEVELS.includes("sensitive_topic"), "Sensitivity enum should include sensitive_topic.");
@@ -906,6 +914,37 @@ for (const hydratedCandidate of hydratedShortlist.response.candidates) {
 assert(
   getSocialReelsLiveDurationCompliance(reducedShortlist.candidates[0]).ok,
   "60s reduced shortlist candidate should pass duration compliance."
+);
+assert(reducedShortlist.candidates[0].edit_mode === "linear", "Reduced live shortlist candidates should default to linear edit_mode.");
+assert(
+  reducedShortlist.candidates[0].composition_type === "contiguous",
+  "Reduced live shortlist candidates should default to contiguous composition_type."
+);
+
+const aliasShortlist = socialReelsShortlistResponseSchema.parse({
+  candidates: Array.from({ length: 3 }, (_, index) => ({
+    ...reducedShortlist.candidates[index],
+    candidate_id: undefined,
+    moment_id: `alias-moment-${index + 1}`,
+    title: undefined,
+    social_title: `Alias Social Title ${index + 1}`,
+    hook_title: undefined,
+    headline: `Alias Headline ${index + 1}`,
+    summary: undefined,
+    preview_text: "A safe alias preview that can hydrate into the app response.",
+    score: undefined,
+    raw_score: 0.74,
+    rejection_risk_flags: undefined,
+    review_flags: ["weak_hook"],
+  })),
+  model_notes: "Alias compatibility smoke only.",
+});
+assert(aliasShortlist.candidates[0].candidate_id === "alias-moment-1", "Shortlist parser should accept moment_id as candidate_id alias.");
+assert(aliasShortlist.candidates[0].title === "Alias Social Title 1", "Shortlist parser should accept social_title as title alias.");
+assert(aliasShortlist.candidates[0].score === 0.74, "Shortlist parser should accept raw_score as score alias.");
+assert(
+  aliasShortlist.candidates[0].rejection_risk_flags.includes("weak_hook"),
+  "Shortlist parser should accept review_flags as rejection_risk_flags alias."
 );
 
 const durationFilteredShortlist = socialReelsShortlistResponseSchema.parse({

@@ -71,8 +71,33 @@ export function getSocialReelsLiveDurationCompliance(
   };
 }
 
-export const socialReelsShortlistCandidateSchema = z
-  .object({
+function normalizeSocialReelsShortlistCandidateAliases(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+
+  const record = value as Record<string, unknown>;
+  const read = (...keys: string[]) => keys.map((key) => record[key]).find((candidateValue) => candidateValue !== undefined);
+  const readArray = (...keys: string[]) => {
+    const valueCandidate = read(...keys);
+    return Array.isArray(valueCandidate) ? valueCandidate : undefined;
+  };
+
+  return {
+    ...record,
+    candidate_id: record.candidate_id ?? read("moment_id", "momentID", "id"),
+    title: record.title ?? read("social_title", "headline", "display_title"),
+    hook_title: record.hook_title ?? read("title", "social_title", "headline", "display_title"),
+    summary: record.summary ?? read("preview_text", "teaser", "display_teaser", "why_it_works"),
+    duration_bucket: record.duration_bucket ?? read("duration"),
+    score: record.score ?? read("raw_score", "display_score"),
+    rejection_risk_flags: record.rejection_risk_flags ?? readArray("risk_flags", "review_flags") ?? [],
+    review_flags: record.review_flags ?? readArray("rejection_risk_flags", "risk_flags") ?? [],
+  };
+}
+
+export const socialReelsShortlistCandidateSchema = z.preprocess(
+  normalizeSocialReelsShortlistCandidateAliases,
+  z
+    .object({
     candidate_id: z.string().trim().min(1).max(80),
     title: z.string().trim().min(1).max(120),
     hook_title: z.string().trim().min(1).max(120),
@@ -177,7 +202,8 @@ export const socialReelsShortlistCandidateSchema = z
         message: "duration_seconds must match source duration or timeline segment duration.",
       });
     }
-  });
+  })
+);
 
 export const socialReelsShortlistResponseSchema = z.object({
   candidates: z
@@ -245,17 +271,6 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               "clip_type",
               "topic_tag",
               "why_it_works",
-              "edit_mode",
-              "composition_type",
-              "timeline_segments",
-              "display_title",
-              "display_teaser",
-              "opening_hook",
-              "closing_line",
-              "coherence_score",
-              "continuity_risk",
-              "edit_decision_rationale",
-              "review_flags",
               "viral_atoms",
               "core_question",
               "payoff",
@@ -280,62 +295,6 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               clip_type: { type: "string", enum: SOCIAL_REELS_CLIP_TYPES },
               topic_tag: { type: "string", minLength: 1, maxLength: 80 },
               why_it_works: { type: "string", minLength: 1, maxLength: 360 },
-              edit_mode: { type: "string", enum: SOCIAL_REELS_EDIT_MODES },
-              composition_type: { type: "string", enum: SOCIAL_REELS_COMPOSITION_TYPES },
-              timeline_segments: {
-                type: "array",
-                maxItems: 4,
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  required: [
-                    "segment_id",
-                    "role",
-                    "source_start_seconds",
-                    "source_end_seconds",
-                    "source_start_timecode",
-                    "source_end_timecode",
-                    "utterance_ids",
-                    "speaker_labels",
-                    "transcript_excerpt",
-                    "reason_for_placement",
-                  ],
-                  properties: {
-                    segment_id: { type: "string", minLength: 1, maxLength: 128 },
-                    role: { type: "string", enum: SOCIAL_REELS_TIMELINE_SEGMENT_ROLES },
-                    source_start_seconds: { type: "number", minimum: 0, maximum: 86400 },
-                    source_end_seconds: { type: "number", minimum: 0, maximum: 86400 },
-                    source_start_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
-                    source_end_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
-                    utterance_ids: {
-                      type: "array",
-                      minItems: 1,
-                      maxItems: 80,
-                      items: { type: "string", minLength: 1, maxLength: 128 },
-                    },
-                    speaker_labels: {
-                      type: "array",
-                      minItems: 1,
-                      maxItems: 24,
-                      items: { type: "string", minLength: 1, maxLength: 80 },
-                    },
-                    transcript_excerpt: { type: "string", minLength: 1, maxLength: 360 },
-                    reason_for_placement: { type: "string", minLength: 1, maxLength: 360 },
-                  },
-                },
-              },
-              display_title: { anyOf: [{ type: "string", maxLength: 120 }, { type: "null" }] },
-              display_teaser: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
-              opening_hook: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
-              closing_line: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
-              coherence_score: { anyOf: [{ type: "number", minimum: 0, maximum: 1 }, { type: "null" }] },
-              continuity_risk: { anyOf: [{ type: "string", enum: SOCIAL_REELS_CONTINUITY_RISKS }, { type: "null" }] },
-              edit_decision_rationale: { anyOf: [{ type: "string", maxLength: 500 }, { type: "null" }] },
-              review_flags: {
-                type: "array",
-                maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
-                items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
-              },
               viral_atoms: {
                 type: "array",
                 maxItems: SOCIAL_REELS_VIRAL_ATOMS.length,

@@ -1,0 +1,28 @@
+{
+  "request_id": "3c3f20cc-93e4-4095-9dc7-a5421db3f2a6",
+  "actual_runtime_errors_available": false,
+  "safe_reproduced_errors_before_fix": [
+    { "path": "candidates.0.edit_mode", "code": "missing_required_field" },
+    { "path": "candidates.0.composition_type", "code": "missing_required_field" },
+    { "path": "candidates.0.timeline_segments", "code": "missing_required_field" },
+    { "path": "candidates.0.display_title", "code": "missing_required_field" },
+    { "path": "candidates.0.display_teaser", "code": "missing_required_field" },
+    { "path": "candidates.0.opening_hook", "code": "missing_required_field" },
+    { "path": "candidates.0.closing_line", "code": "missing_required_field" },
+    { "path": "candidates.0.coherence_score", "code": "missing_required_field" },
+    { "path": "candidates.0.continuity_risk", "code": "missing_required_field" },
+    { "path": "candidates.0.edit_decision_rationale", "code": "missing_required_field" },
+    { "path": "candidates.0.review_flags", "code": "missing_required_field" }
+  ],
+  "post_fix_expected_behavior": {
+    "compact_live_shortlist_output_validates": true,
+    "server_hydrates_linear_defaults": ["edit_mode", "composition_type", "timeline_segments"],
+    "invalid_provider_outputs_return": {
+      "status": 502,
+      "stage": "openai_invalid_response",
+      "reason_code": "schema_validation_failed",
+      "retry_allowed": true
+    }
+  },
+  "privacy_note": "No raw transcript, candidate text, raw model body, tokens, user paths, or secrets are included."
+}

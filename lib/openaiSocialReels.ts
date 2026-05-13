@@ -130,6 +130,12 @@ export type SocialReelsServiceDiagnostics = {
 };
 
 export type SocialReelsInvalidResponseDiagnostics = {
+  reason_code:
+    | "schema_validation_failed"
+    | "malformed_json"
+    | "truncated_output"
+    | "unsupported_shape"
+    | "model_refusal";
   provider: "openai";
   model: string;
   provider_response_id: string | null;
@@ -644,6 +650,35 @@ function safeParseErrorCode(error: unknown) {
   return "unknown_parse_error";
 }
 
+export function getSocialReelsInvalidResponseReasonCode(input: {
+  body?: { status?: string; incomplete_details?: { reason?: string } } | null;
+  parseError?: unknown;
+  zodError?: z.ZodError | null;
+  parsedOutput?: unknown;
+}) {
+  if (input.body?.status === "incomplete" || input.body?.incomplete_details?.reason) return "truncated_output";
+
+  if (input.parseError instanceof SyntaxError) return "malformed_json";
+
+  if (input.parseError instanceof Error) {
+    const message = input.parseError.message.toLowerCase();
+    if (message.includes("refused")) return "model_refusal";
+    if (message.includes("unexpected") || message.includes("json")) return "malformed_json";
+    if (message.includes("missing_output_text")) return "unsupported_shape";
+  }
+
+  if (input.zodError) return "schema_validation_failed";
+  if (input.parsedOutput !== null && input.parsedOutput !== undefined) return "unsupported_shape";
+
+  return "unsupported_shape";
+}
+
+export function isSocialReelsInvalidResponseRetryAllowed(
+  reasonCode: SocialReelsInvalidResponseDiagnostics["reason_code"]
+) {
+  return reasonCode !== "model_refusal";
+}
+
 function invalidOpenAIResponseDiagnostics(input: {
   body: OpenAIResponseBody;
   parsedOutput: unknown;
@@ -667,7 +702,15 @@ function invalidOpenAIResponseDiagnostics(input: {
   maxOutputTokens: number;
   schemaMode: SocialReelsInvalidResponseDiagnostics["schema_mode"];
 }): SocialReelsInvalidResponseDiagnostics {
+  const reasonCode = getSocialReelsInvalidResponseReasonCode({
+    body: input.body,
+    parseError: input.parseError,
+    zodError: input.zodError,
+    parsedOutput: input.parsedOutput,
+  });
+
   return {
+    reason_code: reasonCode,
     provider: "openai",
     model: input.body.model || input.model,
     provider_response_id: input.body.id || null,

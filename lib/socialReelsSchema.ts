@@ -61,6 +61,26 @@ export const SOCIAL_REELS_REJECTION_RISK_FLAGS = [
 ] as const;
 export const SOCIAL_REELS_CONTEXT_DEPENDENCIES = ["low", "medium", "high"] as const;
 export const SOCIAL_REELS_SENSITIVITY_LEVELS = ["none", "sensitive_topic", "unsafe_or_policy_risk"] as const;
+export const SOCIAL_REELS_EDIT_MODES = ["linear", "story_edit"] as const;
+export const SOCIAL_REELS_COMPOSITION_TYPES = [
+  "contiguous",
+  "hook_reordered",
+  "hook_setup_payoff",
+  "question_answer",
+  "callback",
+  "mini_montage",
+] as const;
+export const SOCIAL_REELS_TIMELINE_SEGMENT_ROLES = [
+  "cold_open_hook",
+  "setup",
+  "context",
+  "evidence",
+  "escalation",
+  "payoff",
+  "closing_button",
+  "bridge",
+] as const;
+export const SOCIAL_REELS_CONTINUITY_RISKS = ["low", "medium", "high"] as const;
 
 export const SOCIAL_REELS_MIN_CANDIDATES = 30;
 export const SOCIAL_REELS_MIN_RESPONSE_CANDIDATES = 3;
@@ -418,6 +438,30 @@ export const socialReelsRequestSchema = z
     }
   });
 
+
+export const socialReelsTimelineSegmentSchema = z
+  .object({
+    segment_id: z.string().trim().min(1).max(128),
+    role: z.enum(SOCIAL_REELS_TIMELINE_SEGMENT_ROLES),
+    source_start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
+    source_end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
+    source_start_timecode: z.string().trim().max(32).nullable(),
+    source_end_timecode: z.string().trim().max(32).nullable(),
+    utterance_ids: z.array(z.string().trim().min(1).max(128)).min(1).max(80),
+    speaker_labels: z.array(z.string().trim().min(1).max(80)).min(1).max(24),
+    transcript_excerpt: z.string().trim().min(1).max(360),
+    reason_for_placement: z.string().trim().min(1).max(360),
+  })
+  .superRefine((segment, ctx) => {
+    if (segment.source_end_seconds <= segment.source_start_seconds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["source_end_seconds"],
+        message: "source_end_seconds must be greater than source_start_seconds.",
+      });
+    }
+  });
+
 export const socialReelsCandidateSchema = z
   .object({
     candidate_id: z.string().trim().min(1).max(80),
@@ -432,6 +476,17 @@ export const socialReelsCandidateSchema = z
     subtitle_intro: z.string().trim().min(1).max(160),
     social_caption: z.string().trim().min(1).max(280),
     why_it_works: z.string().trim().min(1).max(500),
+    edit_mode: z.enum(SOCIAL_REELS_EDIT_MODES).optional().default("linear"),
+    composition_type: z.enum(SOCIAL_REELS_COMPOSITION_TYPES).optional().default("contiguous"),
+    timeline_segments: z.array(socialReelsTimelineSegmentSchema).max(4).optional().default([]),
+    display_title: safeOptionalText(120),
+    display_teaser: safeOptionalText(240),
+    opening_hook: safeOptionalText(240),
+    closing_line: safeOptionalText(240),
+    coherence_score: scoreSchema.optional().nullable(),
+    continuity_risk: z.enum(SOCIAL_REELS_CONTINUITY_RISKS).optional().nullable(),
+    edit_decision_rationale: safeOptionalText(500),
+    review_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length).optional().default([]),
     viral_atoms: z.array(z.enum(SOCIAL_REELS_VIRAL_ATOMS)).max(SOCIAL_REELS_VIRAL_ATOMS.length).optional().nullable(),
     core_question: safeOptionalText(240),
     conflict: safeOptionalText(240),
@@ -475,12 +530,38 @@ export const socialReelsCandidateSchema = z
       });
     }
 
-    const actualDuration = Math.round(candidate.end_seconds - candidate.start_seconds);
+    if (candidate.edit_mode === "story_edit") {
+      if (candidate.timeline_segments.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["timeline_segments"],
+          message: "story_edit candidates must include at least two timeline_segments.",
+        });
+      }
+
+      if (candidate.composition_type === "contiguous") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["composition_type"],
+          message: "story_edit candidates must use a non-contiguous composition_type.",
+        });
+      }
+    }
+
+    const actualDuration =
+      candidate.timeline_segments.length > 0
+        ? Math.round(
+            candidate.timeline_segments.reduce(
+              (total, segment) => total + (segment.source_end_seconds - segment.source_start_seconds),
+              0
+            )
+          )
+        : Math.round(candidate.end_seconds - candidate.start_seconds);
     if (Math.abs(actualDuration - candidate.duration_seconds) > 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["duration_seconds"],
-        message: "duration_seconds must match start_seconds/end_seconds.",
+        message: "duration_seconds must match source duration or timeline segment duration.",
       });
     }
   });
@@ -537,6 +618,7 @@ export const socialReelsDiscoveryMatrixResponseSchema = z.object({
 export type SocialReelsRequest = z.infer<typeof socialReelsRequestSchema>;
 export type SocialReelsTranscriptSegment = z.infer<typeof socialReelsTranscriptSegmentSchema>;
 export type SocialReelsTranscriptUtterance = z.infer<typeof socialReelsTranscriptUtteranceSchema>;
+export type SocialReelsTimelineSegment = z.infer<typeof socialReelsTimelineSegmentSchema>;
 export type SocialReelsCandidate = z.infer<typeof socialReelsCandidateSchema>;
 export type SocialReelsResponse = z.infer<typeof socialReelsResponseSchema>;
 export type SocialReelsDiscoveryMatrixTarget = z.infer<typeof socialReelsDiscoveryMatrixTargetSchema>;
@@ -578,6 +660,17 @@ export const openAISocialReelsResponseFormat = {
             "subtitle_intro",
             "social_caption",
             "why_it_works",
+            "edit_mode",
+            "composition_type",
+            "timeline_segments",
+            "display_title",
+            "display_teaser",
+            "opening_hook",
+            "closing_line",
+            "coherence_score",
+            "continuity_risk",
+            "edit_decision_rationale",
+            "review_flags",
             "viral_atoms",
             "core_question",
             "conflict",
@@ -613,6 +706,62 @@ export const openAISocialReelsResponseFormat = {
             subtitle_intro: { type: "string", minLength: 1, maxLength: 160 },
             social_caption: { type: "string", minLength: 1, maxLength: 280 },
             why_it_works: { type: "string", minLength: 1, maxLength: 500 },
+            edit_mode: { type: "string", enum: SOCIAL_REELS_EDIT_MODES },
+            composition_type: { type: "string", enum: SOCIAL_REELS_COMPOSITION_TYPES },
+            timeline_segments: {
+              type: "array",
+              maxItems: 4,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: [
+                  "segment_id",
+                  "role",
+                  "source_start_seconds",
+                  "source_end_seconds",
+                  "source_start_timecode",
+                  "source_end_timecode",
+                  "utterance_ids",
+                  "speaker_labels",
+                  "transcript_excerpt",
+                  "reason_for_placement",
+                ],
+                properties: {
+                  segment_id: { type: "string", minLength: 1, maxLength: 128 },
+                  role: { type: "string", enum: SOCIAL_REELS_TIMELINE_SEGMENT_ROLES },
+                  source_start_seconds: { type: "number", minimum: 0, maximum: 86400 },
+                  source_end_seconds: { type: "number", minimum: 0, maximum: 86400 },
+                  source_start_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
+                  source_end_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
+                  utterance_ids: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 80,
+                    items: { type: "string", minLength: 1, maxLength: 128 },
+                  },
+                  speaker_labels: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 24,
+                    items: { type: "string", minLength: 1, maxLength: 80 },
+                  },
+                  transcript_excerpt: { type: "string", minLength: 1, maxLength: 360 },
+                  reason_for_placement: { type: "string", minLength: 1, maxLength: 360 },
+                },
+              },
+            },
+            display_title: { anyOf: [{ type: "string", maxLength: 120 }, { type: "null" }] },
+            display_teaser: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+            opening_hook: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+            closing_line: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+            coherence_score: { anyOf: [{ type: "number", minimum: 0, maximum: 1 }, { type: "null" }] },
+            continuity_risk: { anyOf: [{ type: "string", enum: SOCIAL_REELS_CONTINUITY_RISKS }, { type: "null" }] },
+            edit_decision_rationale: { anyOf: [{ type: "string", maxLength: 500 }, { type: "null" }] },
+            review_flags: {
+              type: "array",
+              maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
+              items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
+            },
             viral_atoms: {
               type: "array",
               maxItems: SOCIAL_REELS_VIRAL_ATOMS.length,

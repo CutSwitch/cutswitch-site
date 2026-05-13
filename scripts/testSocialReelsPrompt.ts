@@ -211,8 +211,96 @@ for (const matrixPromptRule of [
   assert(promptSource.includes(matrixPromptRule), `Prompt is missing discovery matrix rule: ${matrixPromptRule}.`);
 }
 
+for (const smartStoryEditRule of [
+  "Smart Story Edit rule",
+  "prefer a linear contiguous clip when it already has a strong beginning, clear middle, and strong ending",
+  "Use story_edit only when moving a later hook or closing line to the front materially improves the reel",
+  "maximum of 3 timeline_segments",
+  "real utterance_ids",
+  "real source_start_timecode/source_end_timecode",
+  "Do not reverse meaning",
+  "Do not combine unrelated topics",
+  "Do not use a cold-open hook unless the reel clearly pays it off",
+  "The macOS app will validate and export the recipe",
+]) {
+  assert(promptSource.includes(smartStoryEditRule), `Prompt is missing Smart Story Edit rule: ${smartStoryEditRule}.`);
+}
+
 socialReelsCandidateSchema.parse(candidate(0, false));
 socialReelsCandidateSchema.parse(candidate(0, true));
+const parsedLegacyLinearCandidate = socialReelsCandidateSchema.parse(candidate(1, true));
+assert(parsedLegacyLinearCandidate.edit_mode === "linear", "Legacy candidate without timeline_segments should default to linear edit_mode.");
+assert(parsedLegacyLinearCandidate.composition_type === "contiguous", "Legacy candidate without composition_type should default to contiguous.");
+assert(parsedLegacyLinearCandidate.timeline_segments.length === 0, "Legacy candidate should parse without timeline_segments.");
+socialReelsCandidateSchema.parse({
+  ...candidate(2, true),
+  candidate_id: "story-edit-linear-schema",
+  edit_mode: "linear",
+  composition_type: "contiguous",
+  display_title: "Linear schema candidate",
+  display_teaser: "A contiguous source range remains supported.",
+  opening_hook: "A useful clip starts with a question",
+  closing_line: "lands a clean answer for the viewer",
+  coherence_score: 0.88,
+  continuity_risk: "low",
+  edit_decision_rationale: "The source range already has a strong start, middle, and ending.",
+  review_flags: [],
+});
+socialReelsCandidateSchema.parse({
+  ...candidate(3, true),
+  candidate_id: "story-edit-hook-reordered-schema",
+  edit_mode: "story_edit",
+  composition_type: "hook_reordered",
+  start_seconds: 90,
+  end_seconds: 130,
+  duration_seconds: 30,
+  timeline_segments: [
+    {
+      segment_id: "timeline-hook",
+      role: "cold_open_hook",
+      source_start_seconds: 120,
+      source_end_seconds: 127,
+      source_start_timecode: "00:02:00:00",
+      source_end_timecode: "00:02:07:00",
+      utterance_ids: ["utt-redacted-hook"],
+      speaker_labels: ["Layla"],
+      transcript_excerpt: "{{REDACTED_LATER_HOOK_EXCERPT}}",
+      reason_for_placement: "The later hook is moved first because it creates immediate curiosity.",
+    },
+    {
+      segment_id: "timeline-context",
+      role: "context",
+      source_start_seconds: 90,
+      source_end_seconds: 110,
+      source_start_timecode: "00:01:30:00",
+      source_end_timecode: "00:01:50:00",
+      utterance_ids: ["utt-redacted-context-1", "utt-redacted-context-2"],
+      speaker_labels: ["Fabienne"],
+      transcript_excerpt: "{{REDACTED_CONTEXT_EXCERPT}}",
+      reason_for_placement: "Earlier context explains the later hook without changing meaning.",
+    },
+    {
+      segment_id: "timeline-closing",
+      role: "closing_button",
+      source_start_seconds: 127,
+      source_end_seconds: 130,
+      source_start_timecode: "00:02:07:00",
+      source_end_timecode: "00:02:10:00",
+      utterance_ids: ["utt-redacted-closing"],
+      speaker_labels: ["Layla"],
+      transcript_excerpt: "{{REDACTED_CLOSING_EXCERPT}}",
+      reason_for_placement: "The closing line pays off the cold open.",
+    },
+  ],
+  display_title: "Hook reordered schema candidate",
+  display_teaser: "Later hook, earlier context, closing button.",
+  opening_hook: "{{REDACTED_LATER_HOOK_EXCERPT}}",
+  closing_line: "{{REDACTED_CLOSING_EXCERPT}}",
+  coherence_score: 0.86,
+  continuity_risk: "medium",
+  edit_decision_rationale: "The later hook honestly previews the same idea and is paid off by the context.",
+  review_flags: [],
+});
 socialReelsResponseSchema.parse({
   candidates: Array.from({ length: 30 }, (_, index) => candidate(index, true)),
   model_notes: "Schema smoke only; no provider call.",
@@ -249,6 +337,22 @@ const shortlistProperties = shortlistItemFormat.properties as Record<string, unk
 for (const field of ["viral_atoms", "core_question", "payoff", "context_dependency", "sensitivity_level"]) {
   assert(shortlistRequiredFields.includes(field), `Live shortlist schema is missing compact editorial field: ${field}.`);
   assert(field in shortlistProperties, `Live shortlist schema is missing compact editorial property: ${field}.`);
+}
+for (const field of [
+  "edit_mode",
+  "composition_type",
+  "timeline_segments",
+  "display_title",
+  "display_teaser",
+  "opening_hook",
+  "closing_line",
+  "coherence_score",
+  "continuity_risk",
+  "edit_decision_rationale",
+  "review_flags",
+]) {
+  assert(shortlistRequiredFields.includes(field), `Live shortlist schema is missing Smart Story Edit field: ${field}.`);
+  assert(field in shortlistProperties, `Live shortlist schema is missing Smart Story Edit property: ${field}.`);
 }
 assert(SOCIAL_REELS_CONTEXT_DEPENDENCIES.includes("low"), "Context dependency enum should include low.");
 assert(SOCIAL_REELS_SENSITIVITY_LEVELS.includes("sensitive_topic"), "Sensitivity enum should include sensitive_topic.");
@@ -753,6 +857,39 @@ for (const field of [
 ]) {
   assert(responseFormatRequired.includes(field), `OpenAI response format is missing required field: ${field}.`);
   assert(field in responseFormatProperties, `OpenAI response format is missing property: ${field}.`);
+}
+for (const field of [
+  "edit_mode",
+  "composition_type",
+  "timeline_segments",
+  "display_title",
+  "display_teaser",
+  "opening_hook",
+  "closing_line",
+  "coherence_score",
+  "continuity_risk",
+  "edit_decision_rationale",
+  "review_flags",
+]) {
+  assert(responseFormatRequired.includes(field), `OpenAI response format is missing Smart Story Edit required field: ${field}.`);
+  assert(field in responseFormatProperties, `OpenAI response format is missing Smart Story Edit property: ${field}.`);
+}
+const storyEditFixture = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), "artifacts/social-reels-story-edit/latest/social_reels_story_edit_response.backend_fixture.json"),
+    "utf8"
+  )
+) as { candidates: unknown[]; model_notes: string | null };
+socialReelsResponseSchema.parse({
+  candidates: storyEditFixture.candidates,
+  model_notes: storyEditFixture.model_notes,
+});
+const storyEditFixtureJson = JSON.stringify(storyEditFixture);
+assert(storyEditFixture.candidates.some((item) => (item as { composition_type?: string }).composition_type === "hook_reordered"), "Story Edit fixture should include a hook_reordered example.");
+assert(storyEditFixture.candidates.some((item) => (item as { composition_type?: string }).composition_type === "hook_setup_payoff"), "Story Edit fixture should include a hook_setup_payoff example.");
+assert(storyEditFixture.candidates.some((item) => (item as { review_flags?: string[] }).review_flags?.includes("missing_payoff")), "Story Edit fixture should include a low-confidence review example.");
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "Bearer ", "OPENAI_API_KEY"]) {
+  assert(!storyEditFixtureJson.includes(forbiddenLeak), `Story Edit fixture should not include forbidden payload detail: ${forbiddenLeak}.`);
 }
 
 const matrixRequest = socialReelsRequestSchema.parse({

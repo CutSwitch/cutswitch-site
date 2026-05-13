@@ -150,6 +150,17 @@ Limits:
       "subtitle_intro": "Exact words copied from the segment text",
       "social_caption": "Exact words copied from the segment text...",
       "why_it_works": "The moment has a clear opening anchor and payoff.",
+      "edit_mode": "linear",
+      "composition_type": "contiguous",
+      "timeline_segments": [],
+      "display_title": "Clip 1: story payoff",
+      "display_teaser": "A concise reason to watch this clip.",
+      "opening_hook": "Exact words copied from the segment text",
+      "closing_line": "A later exact phrase from the segment text",
+      "coherence_score": 0.9,
+      "continuity_risk": "low",
+      "edit_decision_rationale": "Linear is preferred because the source range already has a strong beginning, middle, and ending.",
+      "review_flags": [],
       "viral_atoms": ["question", "clear_answer", "practical_takeaway"],
       "core_question": "What question or claim makes this clip worth watching?",
       "conflict": "The tension, disagreement, confession, or emotional stakes in the clip.",
@@ -226,6 +237,10 @@ Each candidate includes:
 - `subtitle_intro`: suggested opening caption/subtitle.
 - `social_caption`: suggested post caption.
 - `why_it_works`: concise editorial rationale.
+- `edit_mode`: `linear` for one continuous source range or `story_edit` for a constructed Smart Story Edit recipe. If absent in legacy responses, clients should treat it as `linear`.
+- `composition_type`: one of `contiguous`, `hook_reordered`, `hook_setup_payoff`, `question_answer`, `callback`, or `mini_montage`.
+- `timeline_segments`: optional Smart Story Edit recipe. Each segment includes `segment_id`, `role`, source seconds/timecodes, `utterance_ids`, `speaker_labels`, `transcript_excerpt`, and `reason_for_placement`. The app validates and exports these source ranges; OpenAI must not invent timestamps, speaker names, transitions, or words.
+- `display_title`, `display_teaser`, `opening_hook`, `closing_line`, `coherence_score`, `continuity_risk`, `edit_decision_rationale`, and `review_flags`: Smart Story Edit metadata for app review/ranking.
 - `viral_atoms`: optional list of the viral atoms present in the clip.
 - `core_question`: optional question, claim, confession, or tension that opens the miniature story.
 - `conflict`: optional tension, disagreement, confession, social friction, or emotional stakes.
@@ -315,7 +330,7 @@ Rules:
 - For live shortlist requests, the backend provides OpenAI with a small set of backend-generated `duration_windows` that already fit the requested bucket. The model should select from those spans, keep `start_seconds`, `end_seconds`, and `duration_seconds` aligned to the chosen window, and place anchor quotes near the window boundary hints. This helps prevent compact moments from being mislabeled as `60s` candidates.
 - App-scale live requests use `duration_windows` as the primary search space. The backend sends only bounded window excerpts plus safe timing/window metadata, not all transcript segments as a large JSON blob.
 - A `60s` candidate is expected to be an actual `45-78` second span, not a 10-second highlight. The prompt explicitly tells the model to return fewer candidates rather than padding with compact quotes when too few duration-valid spans are available.
-- Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, compact viral metadata (`viral_atoms`, `core_question`, `payoff`), `context_dependency`, `sensitivity_level`, and risk flags. The route hydrates those into app-decodable candidate objects. Heavier fields such as `title_options` and captions are reserved for a later full/enrichment pass and are not requested from the live shortlist schema.
+- Live mode currently uses `discovery_mode: live_shortlist` and a reduced Structured Outputs schema for the first pass. The provider schema requires core app-safe fields only: ids, title/hook title, summary, concrete duration bucket, rough seconds/duration, exact anchor quotes, score/scores, clip type, topic tag, why-it-works, compact viral metadata (`viral_atoms`, `core_question`, `payoff`), `context_dependency`, `sensitivity_level`, risk flags, and compact Smart Story Edit fields (`edit_mode`, `composition_type`, `timeline_segments`, `display_title`, `display_teaser`, `opening_hook`, `closing_line`, `coherence_score`, `continuity_risk`, `edit_decision_rationale`, `review_flags`). The route hydrates those into app-decodable candidate objects. Heavier fields such as `title_options` and captions are reserved for a later full/enrichment pass and are not requested from the live shortlist schema.
 
 ## Timeout Diagnostics
 

@@ -2,11 +2,15 @@ import { z } from "zod";
 
 import {
   SOCIAL_REELS_CLIP_TYPES,
+  SOCIAL_REELS_COMPOSITION_TYPES,
   SOCIAL_REELS_CONTEXT_DEPENDENCIES,
+  SOCIAL_REELS_CONTINUITY_RISKS,
   SOCIAL_REELS_DURATION_BUCKETS,
+  SOCIAL_REELS_EDIT_MODES,
   SOCIAL_REELS_PLATFORMS,
   SOCIAL_REELS_REJECTION_RISK_FLAGS,
   SOCIAL_REELS_SENSITIVITY_LEVELS,
+  SOCIAL_REELS_TIMELINE_SEGMENT_ROLES,
   SOCIAL_REELS_VIRAL_ATOMS,
   socialReelsCandidateSchema,
   type SocialReelsCandidate,
@@ -38,10 +42,22 @@ export function durationFitsSocialReelsLiveBucket(
   return Number.isFinite(durationSeconds) && durationSeconds >= range.min && durationSeconds <= range.max;
 }
 
-export function getSocialReelsLiveDurationCompliance(candidate: Pick<SocialReelsShortlistCandidate, "duration_bucket" | "start_seconds" | "end_seconds" | "duration_seconds">) {
+export function getSocialReelsLiveDurationCompliance(
+  candidate: Pick<SocialReelsShortlistCandidate, "duration_bucket" | "start_seconds" | "end_seconds" | "duration_seconds"> &
+    Partial<Pick<SocialReelsShortlistCandidate, "edit_mode" | "timeline_segments">>
+) {
+  const timelineDuration =
+    candidate.edit_mode === "story_edit" && candidate.timeline_segments && candidate.timeline_segments.length > 0
+      ? Math.round(
+          candidate.timeline_segments.reduce(
+            (total, segment) => total + (segment.source_end_seconds - segment.source_start_seconds),
+            0
+          )
+        )
+      : null;
   const roughDuration = Math.round(candidate.end_seconds - candidate.start_seconds);
   const declaredDuration = Math.round(candidate.duration_seconds);
-  const durationSeconds = Number.isFinite(roughDuration) ? roughDuration : declaredDuration;
+  const durationSeconds = typeof timelineDuration === "number" && Number.isFinite(timelineDuration) ? timelineDuration : Number.isFinite(roughDuration) ? roughDuration : declaredDuration;
   const range = getSocialReelsLiveDurationRange(candidate.duration_bucket);
 
   return {
@@ -71,6 +87,34 @@ export const socialReelsShortlistCandidateSchema = z
     clip_type: z.enum(SOCIAL_REELS_CLIP_TYPES),
     topic_tag: z.string().trim().min(1).max(80),
     why_it_works: z.string().trim().min(1).max(360),
+    edit_mode: z.enum(SOCIAL_REELS_EDIT_MODES).optional().default("linear"),
+    composition_type: z.enum(SOCIAL_REELS_COMPOSITION_TYPES).optional().default("contiguous"),
+    timeline_segments: z
+      .array(
+        z.object({
+          segment_id: z.string().trim().min(1).max(128),
+          role: z.enum(SOCIAL_REELS_TIMELINE_SEGMENT_ROLES),
+          source_start_seconds: z.number().finite().min(0).max(24 * 60 * 60),
+          source_end_seconds: z.number().finite().min(0).max(24 * 60 * 60),
+          source_start_timecode: z.string().trim().max(32).nullable(),
+          source_end_timecode: z.string().trim().max(32).nullable(),
+          utterance_ids: z.array(z.string().trim().min(1).max(128)).min(1).max(80),
+          speaker_labels: z.array(z.string().trim().min(1).max(80)).min(1).max(24),
+          transcript_excerpt: z.string().trim().min(1).max(360),
+          reason_for_placement: z.string().trim().min(1).max(360),
+        })
+      )
+      .max(4)
+      .optional()
+      .default([]),
+    display_title: z.string().trim().max(120).nullable().optional().default(null),
+    display_teaser: z.string().trim().max(240).nullable().optional().default(null),
+    opening_hook: z.string().trim().max(240).nullable().optional().default(null),
+    closing_line: z.string().trim().max(240).nullable().optional().default(null),
+    coherence_score: scoreSchema.nullable().optional().default(null),
+    continuity_risk: z.enum(SOCIAL_REELS_CONTINUITY_RISKS).nullable().optional().default(null),
+    edit_decision_rationale: z.string().trim().max(500).nullable().optional().default(null),
+    review_flags: z.array(z.enum(SOCIAL_REELS_REJECTION_RISK_FLAGS)).max(SOCIAL_REELS_REJECTION_RISK_FLAGS.length).optional().default([]),
     viral_atoms: z.array(z.enum(SOCIAL_REELS_VIRAL_ATOMS)).max(SOCIAL_REELS_VIRAL_ATOMS.length),
     core_question: z.string().trim().max(240).nullable(),
     payoff: z.string().trim().max(240).nullable(),
@@ -99,12 +143,38 @@ export const socialReelsShortlistCandidateSchema = z
       });
     }
 
-    const actualDuration = Math.round(candidate.end_seconds - candidate.start_seconds);
+    if (candidate.edit_mode === "story_edit") {
+      if (candidate.timeline_segments.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["timeline_segments"],
+          message: "story_edit candidates must include at least two timeline_segments.",
+        });
+      }
+
+      if (candidate.composition_type === "contiguous") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["composition_type"],
+          message: "story_edit candidates must use a non-contiguous composition_type.",
+        });
+      }
+    }
+
+    const actualDuration =
+      candidate.timeline_segments.length > 0
+        ? Math.round(
+            candidate.timeline_segments.reduce(
+              (total, segment) => total + (segment.source_end_seconds - segment.source_start_seconds),
+              0
+            )
+          )
+        : Math.round(candidate.end_seconds - candidate.start_seconds);
     if (Math.abs(actualDuration - candidate.duration_seconds) > 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["duration_seconds"],
-        message: "duration_seconds must match start_seconds/end_seconds.",
+        message: "duration_seconds must match source duration or timeline segment duration.",
       });
     }
   });
@@ -175,6 +245,17 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               "clip_type",
               "topic_tag",
               "why_it_works",
+              "edit_mode",
+              "composition_type",
+              "timeline_segments",
+              "display_title",
+              "display_teaser",
+              "opening_hook",
+              "closing_line",
+              "coherence_score",
+              "continuity_risk",
+              "edit_decision_rationale",
+              "review_flags",
               "viral_atoms",
               "core_question",
               "payoff",
@@ -199,6 +280,62 @@ export function openAISocialReelsShortlistResponseFormat(candidateCount: number)
               clip_type: { type: "string", enum: SOCIAL_REELS_CLIP_TYPES },
               topic_tag: { type: "string", minLength: 1, maxLength: 80 },
               why_it_works: { type: "string", minLength: 1, maxLength: 360 },
+              edit_mode: { type: "string", enum: SOCIAL_REELS_EDIT_MODES },
+              composition_type: { type: "string", enum: SOCIAL_REELS_COMPOSITION_TYPES },
+              timeline_segments: {
+                type: "array",
+                maxItems: 4,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: [
+                    "segment_id",
+                    "role",
+                    "source_start_seconds",
+                    "source_end_seconds",
+                    "source_start_timecode",
+                    "source_end_timecode",
+                    "utterance_ids",
+                    "speaker_labels",
+                    "transcript_excerpt",
+                    "reason_for_placement",
+                  ],
+                  properties: {
+                    segment_id: { type: "string", minLength: 1, maxLength: 128 },
+                    role: { type: "string", enum: SOCIAL_REELS_TIMELINE_SEGMENT_ROLES },
+                    source_start_seconds: { type: "number", minimum: 0, maximum: 86400 },
+                    source_end_seconds: { type: "number", minimum: 0, maximum: 86400 },
+                    source_start_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
+                    source_end_timecode: { anyOf: [{ type: "string", maxLength: 32 }, { type: "null" }] },
+                    utterance_ids: {
+                      type: "array",
+                      minItems: 1,
+                      maxItems: 80,
+                      items: { type: "string", minLength: 1, maxLength: 128 },
+                    },
+                    speaker_labels: {
+                      type: "array",
+                      minItems: 1,
+                      maxItems: 24,
+                      items: { type: "string", minLength: 1, maxLength: 80 },
+                    },
+                    transcript_excerpt: { type: "string", minLength: 1, maxLength: 360 },
+                    reason_for_placement: { type: "string", minLength: 1, maxLength: 360 },
+                  },
+                },
+              },
+              display_title: { anyOf: [{ type: "string", maxLength: 120 }, { type: "null" }] },
+              display_teaser: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+              opening_hook: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+              closing_line: { anyOf: [{ type: "string", maxLength: 240 }, { type: "null" }] },
+              coherence_score: { anyOf: [{ type: "number", minimum: 0, maximum: 1 }, { type: "null" }] },
+              continuity_risk: { anyOf: [{ type: "string", enum: SOCIAL_REELS_CONTINUITY_RISKS }, { type: "null" }] },
+              edit_decision_rationale: { anyOf: [{ type: "string", maxLength: 500 }, { type: "null" }] },
+              review_flags: {
+                type: "array",
+                maxItems: SOCIAL_REELS_REJECTION_RISK_FLAGS.length,
+                items: { type: "string", enum: SOCIAL_REELS_REJECTION_RISK_FLAGS },
+              },
               viral_atoms: {
                 type: "array",
                 maxItems: SOCIAL_REELS_VIRAL_ATOMS.length,
@@ -322,6 +459,21 @@ export function hydrateSocialReelsShortlistCandidate(
     subtitle_intro: truncate(startAnchor, 160, title),
     social_caption: caption,
     why_it_works: truncate(candidate.why_it_works, 500, "The moment has a clear opening anchor and a later payoff anchor."),
+    edit_mode: candidate.edit_mode,
+    composition_type: candidate.composition_type,
+    timeline_segments: candidate.timeline_segments,
+    display_title: candidate.display_title ? truncate(candidate.display_title, 120, title) : title,
+    display_teaser: candidate.display_teaser ? truncate(candidate.display_teaser, 240, summary) : summary,
+    opening_hook: candidate.opening_hook ? truncate(candidate.opening_hook, 240, startAnchor) : startAnchor,
+    closing_line: candidate.closing_line ? truncate(candidate.closing_line, 240, endAnchor) : endAnchor,
+    coherence_score: candidate.coherence_score ?? score,
+    continuity_risk: candidate.continuity_risk,
+    edit_decision_rationale:
+      candidate.edit_decision_rationale ||
+      (candidate.edit_mode === "story_edit"
+        ? "Live shortlist story_edit recipe preserved for app validation and export."
+        : "Linear shortlist candidate preserved as a contiguous source range."),
+    review_flags: candidate.review_flags,
     viral_atoms:
       candidate.viral_atoms.length > 0
         ? candidate.viral_atoms

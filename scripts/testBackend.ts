@@ -4,6 +4,12 @@ import { resolve } from "node:path";
 import { socialReelsRequestSchema } from "../lib/socialReelsSchema";
 import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
 import { estimateSocialReelsDurationFirstCredits } from "../lib/socialReelsCreditEstimator";
+import {
+  buildSocialReelsEditAssistantPromptInput,
+  proposeSocialReelsEdit,
+  socialReelsEditAssistantRequestSchema,
+  socialReelsEditAssistantResponseSchema,
+} from "../lib/socialReelsEditAssistant";
 import { runOpenAIProbeLadder } from "./openAIProbeLadder";
 
 type ApiResult = {
@@ -319,6 +325,100 @@ function validateSocialReelsCreditEstimator() {
   }
 }
 
+function validateSocialReelsEditAssistantContract() {
+  const request = socialReelsEditAssistantRequestSchema.parse({
+    project_hash: "edit-assistant-backend-smoke",
+    moment_id: "moment-blue-balls",
+    current_edit_recipe: { edit_mode: "linear", timeline_segments: [] },
+    user_instruction: "Start with the blue balls line as the hook, then give it a cleaner ending.",
+    relevant_utterances: [
+      {
+        utterance_id: "utt-context-001",
+        speaker_label: "Layla",
+        start_seconds: 661,
+        end_seconds: 681,
+        start_timecode: "00:11:01:00",
+        end_timecode: "00:11:21:00",
+        text: "The context explains why the body needs movement before the later hook makes sense.",
+      },
+      {
+        utterance_id: "utt-hook-001",
+        speaker_label: "Layla",
+        start_seconds: 725,
+        end_seconds: 733,
+        start_timecode: "00:12:05:00",
+        end_timecode: "00:12:13:00",
+        text: "If you are not moving your energy it can feel like female blue balls.",
+      },
+      {
+        utterance_id: "utt-closing-001",
+        speaker_label: "Layla",
+        start_seconds: 755,
+        end_seconds: 760,
+        start_timecode: "00:12:35:00",
+        end_timecode: "00:12:40:00",
+        text: "That is the clean closing thought that makes the edit land.",
+      },
+    ],
+    relevant_word_refs: [
+      {
+        word_id: "word-hook-001",
+        utterance_id: "utt-hook-001",
+        start_seconds: 725,
+        end_seconds: 725.4,
+        text: "If",
+      },
+    ],
+    edit_history: [],
+  });
+
+  if (request.candidate_id !== "moment-blue-balls") {
+    markFailed("Social Reels edit assistant should accept moment_id-only requests and normalize candidate_id.");
+  }
+  if (request.relevant_words.length !== 1) {
+    markFailed("Social Reels edit assistant should accept relevant_word_refs as an alias for relevant_words.");
+  }
+
+  const prompt = buildSocialReelsEditAssistantPromptInput(request);
+  const promptText = JSON.stringify(prompt);
+  for (const required of ["Do not invent spoken words", "stateless", "relevant_word_refs", "utt-hook-001", "word-hook-001"]) {
+    if (!promptText.includes(required)) {
+      markFailed(`Social Reels edit assistant prompt should include ${required}.`);
+    }
+  }
+
+  const response = proposeSocialReelsEdit(request);
+  socialReelsEditAssistantResponseSchema.parse(response);
+  if (response.conversation_state !== "stateless" || !response.needs_user_confirmation) {
+    markFailed("Social Reels edit assistant response should be explicitly stateless and require user confirmation.");
+  }
+  if (!response.changed_segments.some((segment) => segment.role === "cold_open_hook" && segment.utterance_ids.includes("utt-hook-001"))) {
+    markFailed("Social Reels edit assistant should return a structured hook relocation patch referencing real utterance IDs.");
+  }
+  if (response.changed_segments.some((segment) => segment.source_end_seconds <= segment.source_start_seconds)) {
+    markFailed("Social Reels edit assistant changed segments should reference valid source ranges.");
+  }
+
+  const invalidPatch = socialReelsEditAssistantResponseSchema.safeParse({
+    ...response,
+    changed_segments: [
+      {
+        ...response.changed_segments[0],
+        source_end_seconds: response.changed_segments[0].source_start_seconds,
+      },
+    ],
+  });
+  if (invalidPatch.success) {
+    markFailed("Social Reels edit assistant schema should reject invalid source ranges.");
+  }
+
+  for (const forbidden of ["/Users/", "file://", "OPENAI_API_KEY", "Bearer ", "wordAlignment", "pyannote"]) {
+    if (promptText.includes(forbidden) || JSON.stringify(response).includes(forbidden)) {
+      markFailed(`Social Reels edit assistant contract should not include private data: ${forbidden}.`);
+    }
+  }
+}
+
 function safeSocialReelsResponseSummary(body: unknown) {
   const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const candidates = Array.isArray(record.candidates) ? record.candidates : [];
@@ -390,6 +490,7 @@ if (testOpenAIProbe) {
 validateTinyLiveCanaryFixture();
 validateAppScaleLiveCanaryFixture();
 validateSocialReelsCreditEstimator();
+validateSocialReelsEditAssistantContract();
 
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");

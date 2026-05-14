@@ -19,7 +19,11 @@ function safeEditPayloadShape(value: unknown) {
   const record = value as Record<string, unknown>;
   return {
     utterance_count: Array.isArray(record.relevant_utterances) ? record.relevant_utterances.length : null,
-    word_count: Array.isArray(record.relevant_words) ? record.relevant_words.length : null,
+    word_count: Array.isArray(record.relevant_words)
+      ? record.relevant_words.length
+      : Array.isArray(record.relevant_word_refs)
+        ? record.relevant_word_refs.length
+        : null,
     history_count: Array.isArray(record.edit_history) ? record.edit_history.length : null,
     instruction_length: typeof record.user_instruction === "string" ? record.user_instruction.length : null,
   };

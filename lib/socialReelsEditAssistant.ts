@@ -147,18 +147,28 @@ export const socialReelsEditAssistantRequestSchema = z
   .object({
     project_id: safeOptionalText(160),
     project_hash: safeId,
-    candidate_id: safeId,
+    candidate_id: safeOptionalText(160),
     moment_id: safeOptionalText(160),
     current_edit_recipe: z.record(z.unknown()).default({}),
     user_instruction: z.string().trim().min(1).max(2000),
     relevant_utterances: z.array(socialReelsEditRelevantUtteranceSchema).min(1).max(80),
     relevant_words: z.array(socialReelsEditRelevantWordSchema).max(2000).optional().default([]),
+    relevant_word_refs: z.array(socialReelsEditRelevantWordSchema).max(2000).optional().default([]),
     neighboring_context_window: z.record(z.unknown()).optional().default({}),
     conversation_id: safeOptionalText(160),
     previous_response_id: safeOptionalText(160),
     edit_history: z.array(z.record(z.unknown())).max(40).optional().default([]),
   })
+  .transform((request) => ({
+    ...request,
+    candidate_id: request.candidate_id ?? request.moment_id ?? "",
+    relevant_words: request.relevant_words.length > 0 ? request.relevant_words : request.relevant_word_refs,
+  }))
   .superRefine((request, ctx) => {
+    if (!request.candidate_id && !request.moment_id) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["candidate_id"], message: "candidate_id or moment_id is required." });
+    }
+
     for (const [key, value] of [
       ["project_id", request.project_id],
       ["project_hash", request.project_hash],
@@ -208,7 +218,7 @@ export const SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT = [
   "You may suggest title, teaser, opening_hook, and closing_line copy, but the timeline source ranges must reference real utterances/source time.",
   "May reorder source ranges only if coherent and meaning-preserving. If the edit would misrepresent meaning, warn and propose a safer alternative.",
   "Must not cut mid-word or mid-thought when word timing exists. Prefer clean sentence/thought endings and cleaner closing buttons.",
-  "Conversation state is explicit and stateless for this endpoint: do not assume prior app interactions. The app must send current_edit_recipe, relevant_utterances, relevant_words, neighboring_context_window, and edit_history every time.",
+  "Conversation state is explicit and stateless for this endpoint: do not assume prior app interactions. The app must send current_edit_recipe, relevant_utterances, relevant_words or relevant_word_refs, neighboring_context_window, and edit_history every time.",
   "The app applies edits only after user confirmation. Return JSON only.",
 ].join(" ");
 
@@ -307,6 +317,12 @@ export function buildSocialReelsEditAssistantPromptInput(input: SocialReelsEditA
           start_seconds: word.start_seconds,
           end_seconds: word.end_seconds,
           text: word.text,
+        })),
+        relevant_word_refs: input.relevant_words.map((word) => ({
+          word_id: word.word_id,
+          utterance_id: word.utterance_id,
+          start_seconds: word.start_seconds,
+          end_seconds: word.end_seconds,
         })),
         neighboring_context_window: input.neighboring_context_window,
         edit_history: input.edit_history,

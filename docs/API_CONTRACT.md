@@ -248,6 +248,20 @@ Key rules:
 - Does not mutate Stripe, Keygen, entitlement, subscription, usage, or credit ledgers.
 - Uses no-store responses and a small bounded request body.
 
+## POST /api/social-reels/edit
+
+Authenticated conversational Social Reel editor endpoint.
+
+Key rules:
+
+- Returns a structured non-destructive edit recipe patch, not vague editing advice.
+- The endpoint is explicitly stateless: clients must send `current_edit_recipe`, `relevant_utterances`, optional `relevant_words` / `relevant_word_refs`, and `edit_history` on each request.
+- Accepts `candidate_id` or `moment_id`; at least one is required.
+- Proposed patches reference real utterance IDs, source seconds/timecodes, and speaker labels.
+- The backend must not invent spoken words, source ranges, timestamps, speaker names, or word IDs.
+- `needs_user_confirmation` is `true`; the macOS app owns preview, word/frame validation, and applying the patch.
+- Normal logs contain request IDs and safe counts only, not transcript text, word arrays, raw request bodies, paths, bearer tokens, or provider secrets.
+
 ## Production Trial Billing Verification (2026-04-28)
 
 Verified against production with a fresh Supabase test user that had no prior Supabase subscription rows.

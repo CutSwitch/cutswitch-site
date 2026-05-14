@@ -462,7 +462,24 @@ Rules:
 
 Endpoint: `POST /api/social-reels/edit`
 
-This endpoint is explicitly stateless for now. The app must send the current edit context on every request, including `current_edit_recipe`, `user_instruction`, `relevant_utterances`, optional `relevant_words`, optional `neighboring_context_window`, and optional `edit_history`. The backend does not assume independent OpenAI calls remember prior app interactions.
+This endpoint is explicitly stateless for now. The app must send the current edit context on every request, including `current_edit_recipe`, `user_instruction`, `relevant_utterances`, optional `relevant_words` / `relevant_word_refs`, optional `neighboring_context_window`, and optional `edit_history`. The backend does not assume independent OpenAI calls remember prior app interactions.
+
+Request shape:
+
+```json
+{
+  "project_hash": "privacy-safe-project-hash",
+  "moment_id": "mom_001",
+  "candidate_id": "optional-candidate-id",
+  "current_edit_recipe": {},
+  "user_instruction": "Start with the strongest line as the hook.",
+  "relevant_utterances": [],
+  "relevant_word_refs": [],
+  "edit_history": [],
+  "conversation_id": null,
+  "previous_response_id": null
+}
+```
 
 The endpoint returns a non-destructive edit recipe patch for app preview/confirmation, not rewritten video text. It must reference real utterance IDs, source seconds/timecodes, and speaker labels. The app owns validation, word/frame boundary correction, preview, and applying the patch only after user confirmation.
 

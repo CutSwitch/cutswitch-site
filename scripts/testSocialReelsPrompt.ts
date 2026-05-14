@@ -23,6 +23,7 @@ import {
   SOCIAL_REELS_DURATION_FIRST_MAX_UNIQUE_MOMENTS,
   SOCIAL_REELS_DURATION_FIRST_SCHEMA_VERSION,
   SOCIAL_REELS_DURATION_FIRST_TARGETS,
+  openAISocialReelsDurationFirstManifestResponseFormat,
   socialReelsDurationFirstManifestSchema,
 } from "../lib/socialReelsDurationFirstManifest";
 import {
@@ -40,6 +41,7 @@ import {
   getSocialReelsWindowQualityRange,
   scoreSocialReelsDurationWindow,
   scoreSocialReelsDurationWindows,
+  selectSocialReelsDurationFirstPromptWindows,
   selectSocialReelsLiveDurationWindows,
   summarizeSocialReelsWindowQuality,
 } from "../lib/socialReelsDurationWindows";
@@ -165,6 +167,16 @@ for (const durationWindowGuidance of [
   "book_link_outro",
 ]) {
   assert(promptSource.includes(durationWindowGuidance), `Prompt is missing duration window guidance: ${durationWindowGuidance}.`);
+}
+for (const durationFirstGuidance of [
+  "Duration-first manifest mode",
+  "user selects duration buckets, not editorial style categories",
+  "Generate tags only after deciding each moment",
+  "never pad weak clips",
+  "formats, aspect ratios, caption styles, typography, and Final Cut export variants are handled by the app",
+  "cutswitch.social_reels.duration_first_manifest.v1",
+]) {
+  assert(promptSource.includes(durationFirstGuidance), `Prompt is missing duration-first guidance: ${durationFirstGuidance}.`);
 }
 for (const editorialMetadataGuidance of [
   "context_dependency",
@@ -1179,6 +1191,85 @@ socialReelsDiscoveryMatrixResponseSchema.parse({
   model_notes: "Discovery matrix schema smoke; no provider call.",
 });
 
+const durationFirstRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-duration-first-route",
+  source_duration_seconds: 900,
+  requested_duration_buckets: [
+    { duration_target: "15s", max_candidates: 20 },
+    { duration_target: "30s", max_candidates: 20 },
+    { duration_target: "60s", max_candidates: 20 },
+  ],
+  limits: {
+    dedupe_shared_moments: true,
+    return_fewer_if_weak: true,
+    max_unique_moments: 120,
+    max_total_bucket_memberships: 240,
+  },
+  episode_metadata: { title: "Duration-first route smoke" },
+  context: { platform: "social" },
+  utterances: Array.from({ length: 24 }, (_, index) => ({
+    utterance_id: `duration-first-utt-${String(index + 1).padStart(2, "0")}`,
+    speaker_label: index % 2 === 0 ? "Layla" : "Jef",
+    start_seconds: index * 35,
+    end_seconds: index * 35 + 32,
+    start_timecode: `00:${String(Math.floor((index * 35) / 60)).padStart(2, "0")}:${String((index * 35) % 60).padStart(2, "0")}:00`,
+    end_timecode: `00:${String(Math.floor((index * 35 + 32) / 60)).padStart(2, "0")}:${String((index * 35 + 32) % 60).padStart(2, "0")}:00`,
+    text: [
+      "The question is why a social clip should start with the moment of pressure instead of generic setup.",
+      "The tension is that a fast hook can become misleading unless the context actually pays it off.",
+      "The practical answer is to find the clean thought boundary, then tag the moment after it earns the label.",
+      "The reframe is that duration is the container for the story, not a style category the user had to choose first.",
+    ].join(" "),
+  })),
+});
+assert(durationFirstRequest.style === "balanced", "Duration-first request should not require user-selected editorial style.");
+assert(durationFirstRequest.layout === "vertical", "Duration-first request should default layout because formats are app/export variants.");
+assert(durationFirstRequest.caption_style === "bold", "Duration-first request should default caption_style because caption style is not a discovery bucket.");
+assert(durationFirstRequest.duration_first_manifest !== null, "Duration-first request should create duration_first_manifest metadata.");
+assert(durationFirstRequest.discovery_matrix === null, "Duration-first request should not require discovery matrix style targets.");
+assert(
+  durationFirstRequest.duration_preferences.join(",") === "15s,30s,60s",
+  "Duration-first request should derive concrete duration preferences from requested_duration_buckets."
+);
+assert(durationFirstRequest.duration_first_manifest?.max_per_duration_bucket === 20, "Duration-first request should cap per-bucket max at 20.");
+assert(durationFirstRequest.duration_first_manifest?.max_unique_moments === 120, "Duration-first request should support 120 unique moments.");
+const durationFirstWindows = buildSocialReelsLiveDurationWindows(durationFirstRequest, 60);
+const durationFirstScoredWindows = scoreSocialReelsDurationWindows(durationFirstRequest, durationFirstWindows);
+const durationFirstSelectedWindows = selectSocialReelsDurationFirstPromptWindows(
+  durationFirstScoredWindows,
+  durationFirstRequest.duration_first_manifest!.requested_duration_buckets.map((bucket) => ({
+    duration_bucket: bucket.duration_target === "5_to_10m" ? "5-10m" : bucket.duration_target,
+    max_candidates: bucket.max_candidates ?? 20,
+  }))
+);
+const durationFirstPromptWindows = buildSocialReelsLivePromptWindows(durationFirstRequest, durationFirstSelectedWindows);
+const durationFirstPromptInput = buildSocialReelsOpenAIPromptInput(durationFirstRequest, {
+  discoveryMode: "duration_first_manifest",
+  requestedCandidateCount: 30,
+  effectiveCandidateCount: 120,
+  durationWindows: durationFirstPromptWindows,
+});
+const durationFirstUserPrompt = String(durationFirstPromptInput[1].content);
+for (const expected of [
+  "duration_first_manifest",
+  "requested_duration_buckets",
+  "generated_tags",
+  "Return only JSON matching cutswitch.social_reels.duration_first_manifest.v1",
+  "must not become discovery buckets",
+  "duration_windows_only",
+]) {
+  assert(durationFirstUserPrompt.includes(expected), `Duration-first user prompt should include ${expected}.`);
+}
+for (const forbiddenStyleInput of ['"style":"educational"', '"style":"emotional"', '"style":"funny"', '"style":"controversial"']) {
+  assert(!durationFirstUserPrompt.includes(forbiddenStyleInput), `Duration-first user prompt should not force style input ${forbiddenStyleInput}.`);
+}
+const durationFirstResponseFormat = openAISocialReelsDurationFirstManifestResponseFormat(120, 20, 240);
+assert(durationFirstResponseFormat.schema.properties.moments.maxItems === 120, "Duration-first Structured Output should support 120 unique moments.");
+assert(
+  durationFirstResponseFormat.schema.properties.duration_buckets.items.properties.returned_moment_ids.maxItems === 20,
+  "Duration-first Structured Output should cap returned moment IDs at 20 per bucket."
+);
+
 const durationFirstManifest = socialReelsDurationFirstManifestSchema.parse(
   JSON.parse(readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8")) as unknown
 );
@@ -1226,6 +1317,9 @@ const durationFirstArtifactText = [
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_schema.json"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_contract_report.md"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_prompt_preview.md"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_route_contract.md"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_route_report.md"), "utf8"),
 ].join("\n");
 for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
   assert(!durationFirstArtifactText.includes(forbiddenLeak), `Duration-first manifest artifacts should not include forbidden private detail: ${forbiddenLeak}.`);

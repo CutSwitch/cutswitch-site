@@ -336,3 +336,313 @@ export type SocialReelsDurationFirstManifest = z.infer<
 export type SocialReelsDurationFirstMoment = z.infer<
   typeof socialReelsDurationFirstMomentSchema
 >;
+
+export function durationFirstTargetToBucketId(
+  target: (typeof SOCIAL_REELS_DURATION_FIRST_TARGETS)[number],
+) {
+  return `duration_${target}`;
+}
+
+export function durationFirstTargetToConcreteDurationBucket(
+  target: (typeof SOCIAL_REELS_DURATION_FIRST_TARGETS)[number],
+): "15s" | "30s" | "60s" | "90s" | "5-10m" {
+  return target === "5_to_10m" ? "5-10m" : target;
+}
+
+export function concreteDurationBucketToDurationFirstTarget(
+  bucket: string,
+): (typeof SOCIAL_REELS_DURATION_FIRST_TARGETS)[number] {
+  if (bucket === "15s" || bucket === "30s" || bucket === "60s" || bucket === "90s") return bucket;
+  return "5_to_10m";
+}
+
+export function openAISocialReelsDurationFirstManifestResponseFormat(
+  maxUniqueMoments: number,
+  maxPerDurationBucket: number,
+  maxTotalBucketMemberships: number,
+) {
+  const boundedMaxUniqueMoments = Math.min(
+    SOCIAL_REELS_DURATION_FIRST_MAX_UNIQUE_MOMENTS,
+    Math.max(1, Math.round(maxUniqueMoments)),
+  );
+  const boundedMaxPerDurationBucket = Math.min(
+    SOCIAL_REELS_DURATION_FIRST_MAX_PER_BUCKET,
+    Math.max(1, Math.round(maxPerDurationBucket)),
+  );
+  const boundedMaxTotalBucketMemberships = Math.min(
+    SOCIAL_REELS_DURATION_FIRST_MAX_TOTAL_BUCKET_MEMBERSHIPS,
+    Math.max(1, Math.round(maxTotalBucketMemberships)),
+  );
+
+  const nullableString = (maxLength: number) => ({
+    anyOf: [{ type: "string", maxLength }, { type: "null" }],
+  });
+
+  return {
+    type: "json_schema",
+    name: "social_reels_duration_first_manifest",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "schema_version",
+        "project_hash",
+        "transcript_version",
+        "generation_summary",
+        "duration_buckets",
+        "moments",
+      ],
+      properties: {
+        schema_version: {
+          type: "string",
+          enum: [SOCIAL_REELS_DURATION_FIRST_SCHEMA_VERSION],
+        },
+        project_hash: { type: "string", minLength: 1, maxLength: 160 },
+        transcript_version: nullableString(80),
+        generation_summary: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "max_per_duration_bucket",
+            "max_unique_moments",
+            "max_total_bucket_memberships",
+            "dedupe_shared_moments",
+            "return_fewer_if_weak",
+            "selected_duration_targets",
+            "generated_at",
+            "provider",
+            "model",
+          ],
+          properties: {
+            max_per_duration_bucket: {
+              type: "integer",
+              minimum: 1,
+              maximum: boundedMaxPerDurationBucket,
+            },
+            max_unique_moments: {
+              type: "integer",
+              minimum: 1,
+              maximum: boundedMaxUniqueMoments,
+            },
+            max_total_bucket_memberships: {
+              type: "integer",
+              minimum: 1,
+              maximum: boundedMaxTotalBucketMemberships,
+            },
+            dedupe_shared_moments: { type: "boolean" },
+            return_fewer_if_weak: { type: "boolean" },
+            selected_duration_targets: {
+              type: "array",
+              minItems: 1,
+              maxItems: SOCIAL_REELS_DURATION_FIRST_TARGETS.length,
+              items: {
+                type: "string",
+                enum: SOCIAL_REELS_DURATION_FIRST_TARGETS,
+              },
+            },
+            generated_at: nullableString(80),
+            provider: nullableString(80),
+            model: nullableString(120),
+          },
+        },
+        duration_buckets: {
+          type: "array",
+          minItems: 1,
+          maxItems: SOCIAL_REELS_DURATION_FIRST_TARGETS.length,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "bucket_id",
+              "duration_target",
+              "requested_max_candidates",
+              "returned_moment_ids",
+              "insufficient_reason",
+            ],
+            properties: {
+              bucket_id: { type: "string", minLength: 1, maxLength: 160 },
+              duration_target: {
+                type: "string",
+                enum: SOCIAL_REELS_DURATION_FIRST_TARGETS,
+              },
+              requested_max_candidates: {
+                type: "integer",
+                minimum: 1,
+                maximum: boundedMaxPerDurationBucket,
+              },
+              returned_moment_ids: {
+                type: "array",
+                maxItems: boundedMaxPerDurationBucket,
+                items: { type: "string", minLength: 1, maxLength: 160 },
+              },
+              insufficient_reason: nullableString(240),
+            },
+          },
+        },
+        moments: {
+          type: "array",
+          maxItems: boundedMaxUniqueMoments,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: [
+              "moment_id",
+              "edit_mode",
+              "composition_type",
+              "display_title",
+              "display_teaser",
+              "opening_hook",
+              "closing_line",
+              "score",
+              "duration_seconds",
+              "duration_bucket_memberships",
+              "generated_tags",
+              "primary_speakers",
+              "timeline_segments",
+              "reason_it_works",
+              "review_flags",
+            ],
+            properties: {
+              moment_id: { type: "string", minLength: 1, maxLength: 160 },
+              edit_mode: { type: "string", enum: SOCIAL_REELS_EDIT_MODES },
+              composition_type: {
+                type: "string",
+                enum: SOCIAL_REELS_COMPOSITION_TYPES,
+              },
+              display_title: { type: "string", minLength: 1, maxLength: 120 },
+              display_teaser: { type: "string", minLength: 1, maxLength: 240 },
+              opening_hook: { type: "string", minLength: 1, maxLength: 240 },
+              closing_line: { type: "string", minLength: 1, maxLength: 240 },
+              score: { type: "number", minimum: 0, maximum: 100 },
+              duration_seconds: { type: "number", minimum: 5, maximum: 1200 },
+              duration_bucket_memberships: {
+                type: "array",
+                minItems: 1,
+                maxItems: SOCIAL_REELS_DURATION_FIRST_TARGETS.length,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: [
+                    "bucket_id",
+                    "duration_target",
+                    "rank",
+                    "bucket_score",
+                    "why_it_fits",
+                  ],
+                  properties: {
+                    bucket_id: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 160,
+                    },
+                    duration_target: {
+                      type: "string",
+                      enum: SOCIAL_REELS_DURATION_FIRST_TARGETS,
+                    },
+                    rank: {
+                      type: "integer",
+                      minimum: 1,
+                      maximum: boundedMaxPerDurationBucket,
+                    },
+                    bucket_score: { type: "number", minimum: 0, maximum: 100 },
+                    why_it_fits: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 360,
+                    },
+                  },
+                },
+              },
+              generated_tags: {
+                type: "array",
+                minItems: 1,
+                maxItems: SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS.length,
+                items: {
+                  type: "string",
+                  enum: SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS,
+                },
+              },
+              primary_speakers: {
+                type: "array",
+                minItems: 1,
+                maxItems: 24,
+                items: { type: "string", minLength: 1, maxLength: 80 },
+              },
+              timeline_segments: {
+                type: "array",
+                minItems: 1,
+                maxItems: 4,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: [
+                    "segment_id",
+                    "role",
+                    "source_start_seconds",
+                    "source_end_seconds",
+                    "source_start_timecode",
+                    "source_end_timecode",
+                    "utterance_ids",
+                    "word_start_id",
+                    "word_end_id",
+                    "speaker_labels",
+                    "reason_for_placement",
+                  ],
+                  properties: {
+                    segment_id: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 160,
+                    },
+                    role: {
+                      type: "string",
+                      enum: SOCIAL_REELS_TIMELINE_SEGMENT_ROLES,
+                    },
+                    source_start_seconds: {
+                      type: "number",
+                      minimum: 0,
+                      maximum: 86400,
+                    },
+                    source_end_seconds: {
+                      type: "number",
+                      minimum: 0,
+                      maximum: 86400,
+                    },
+                    source_start_timecode: nullableString(32),
+                    source_end_timecode: nullableString(32),
+                    utterance_ids: {
+                      type: "array",
+                      minItems: 1,
+                      maxItems: 80,
+                      items: { type: "string", minLength: 1, maxLength: 160 },
+                    },
+                    word_start_id: nullableString(160),
+                    word_end_id: nullableString(160),
+                    speaker_labels: {
+                      type: "array",
+                      minItems: 1,
+                      maxItems: 24,
+                      items: { type: "string", minLength: 1, maxLength: 80 },
+                    },
+                    reason_for_placement: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 360,
+                    },
+                  },
+                },
+              },
+              reason_it_works: { type: "string", minLength: 1, maxLength: 500 },
+              review_flags: {
+                type: "array",
+                maxItems: 24,
+                items: { type: "string", minLength: 1, maxLength: 80 },
+              },
+            },
+          },
+        },
+      },
+    },
+  } as const;
+}

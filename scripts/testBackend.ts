@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { socialReelsRequestSchema } from "../lib/socialReelsSchema";
 import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
+import { estimateSocialReelsDurationFirstCredits } from "../lib/socialReelsCreditEstimator";
 import { runOpenAIProbeLadder } from "./openAIProbeLadder";
 
 type ApiResult = {
@@ -262,6 +263,62 @@ function validateAppScaleLiveCanaryFixture() {
   }
 }
 
+function validateSocialReelsCreditEstimator() {
+  const baseEstimate = estimateSocialReelsDurationFirstCredits({
+    duration_buckets: ["15s", "30s", "60s"],
+    episode_duration_seconds: 6287.8,
+    speaker_count: 3,
+    requested_max_per_bucket: 20,
+  }).credit_estimate;
+
+  if (baseEstimate.total_credits !== 12) {
+    markFailed("Social Reels credit estimate should match the documented base + three short-duration example.");
+  }
+
+  if (baseEstimate.billing_mode !== "estimate_only" || baseEstimate.charge_now !== false) {
+    markFailed("Social Reels credit estimate must be estimate-only and never charge credits.");
+  }
+
+  if (!baseEstimate.line_items.some((item) => item.name === "Base podcast analysis" && item.credits === 6)) {
+    markFailed("Social Reels credit estimate should include the base podcast analysis line item.");
+  }
+
+  const fewerDurations = estimateSocialReelsDurationFirstCredits({
+    duration_buckets: ["15s"],
+    episode_duration_seconds: 6287.8,
+    speaker_count: 3,
+    requested_max_per_bucket: 20,
+  }).credit_estimate;
+  if (baseEstimate.total_credits <= fewerDurations.total_credits) {
+    markFailed("Adding Social Reels duration buckets should increase the credit estimate.");
+  }
+
+  const longClipEstimate = estimateSocialReelsDurationFirstCredits({
+    duration_buckets: ["5_to_10m"],
+    episode_duration_seconds: 6287.8,
+    speaker_count: 3,
+    requested_max_per_bucket: 20,
+  }).credit_estimate;
+  const shortClipEstimate = estimateSocialReelsDurationFirstCredits({
+    duration_buckets: ["15s"],
+    episode_duration_seconds: 6287.8,
+    speaker_count: 3,
+    requested_max_per_bucket: 20,
+  }).credit_estimate;
+  const longClipItem = longClipEstimate.line_items.find((item) => item.name === "5-10m candidates");
+  const shortClipItem = shortClipEstimate.line_items.find((item) => item.name === "15s candidates");
+  if (!longClipItem || !shortClipItem || longClipItem.credits <= shortClipItem.credits) {
+    markFailed("Long Social Reels duration buckets should cost more than 15s candidates.");
+  }
+
+  const estimateJson = JSON.stringify(baseEstimate);
+  for (const forbidden of ["/Users/", "file://", "OPENAI_API_KEY", "Bearer ", "access_token", "refresh_token"]) {
+    if (estimateJson.includes(forbidden)) {
+      markFailed(`Social Reels credit estimate should not include private data: ${forbidden}.`);
+    }
+  }
+}
+
 function safeSocialReelsResponseSummary(body: unknown) {
   const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const candidates = Array.isArray(record.candidates) ? record.candidates : [];
@@ -332,6 +389,7 @@ if (testOpenAIProbe) {
 
 validateTinyLiveCanaryFixture();
 validateAppScaleLiveCanaryFixture();
+validateSocialReelsCreditEstimator();
 
 if (!email || !password) {
   markFailed("Set TEST_EMAIL and TEST_PASSWORD in .env.local or your shell.");

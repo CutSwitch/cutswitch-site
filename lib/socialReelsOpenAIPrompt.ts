@@ -1,7 +1,7 @@
 import type { SocialReelsPromptDurationWindow } from "./socialReelsDurationWindows";
 import type { SocialReelsRequest } from "./socialReelsSchema";
 
-export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix";
+export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix" | "duration_first_manifest";
 
 export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
@@ -42,7 +42,11 @@ export function buildSocialReelsOpenAIPromptInput(
     durationWindows?: SocialReelsPromptDurationWindow[];
   }
 ) {
-  const useLiveWindowInput = metadata?.discoveryMode === "live_shortlist" || metadata?.discoveryMode === "discovery_matrix";
+  const useLiveWindowInput =
+    metadata?.discoveryMode === "live_shortlist" ||
+    metadata?.discoveryMode === "discovery_matrix" ||
+    metadata?.discoveryMode === "duration_first_manifest";
+  const useDurationFirstManifest = metadata?.discoveryMode === "duration_first_manifest";
 
   return [
     {
@@ -72,8 +76,18 @@ export function buildSocialReelsOpenAIPromptInput(
                 "vertical, square, horizontal, captions, karaoke/subtitle styles, and export formats are not discovery targets. The backend discovers reusable editorial moments; the app handles caption/layout/export variants.",
             }
           : {}),
+        ...(useDurationFirstManifest && input.duration_first_manifest
+          ? {
+              duration_first_manifest: input.duration_first_manifest,
+              requested_duration_buckets: input.requested_duration_buckets,
+              duration_first_manifest_instruction:
+                "Duration-first manifest mode: the user selects duration buckets, not editorial style categories. Analyze the whole podcast and discover the best source-backed moment identities for requested_duration_buckets only; never pad weak clips. Do not ask the user to preselect editorial styles. Do not use educational, emotional, hook_first, funny, story, inspirational, or controversial as input buckets. Generate tags only after deciding each moment by assigning generated_tags after the moment is selected. Return duration_buckets with up to max_candidates per bucket, dedupe shared moments across compatible buckets, and set insufficient_reason when fewer strong moments exist. Prefer linear moments when strong; use story_edit only when hook/context/payoff reordering materially improves the reel. Do not invent word IDs, utterance IDs, timestamps, speakers, source ranges, or spoken words. Return only JSON matching cutswitch.social_reels.duration_first_manifest.v1.",
+              duration_first_export_variant_instruction:
+                "formats, aspect ratios, caption styles, typography, and Final Cut export variants are handled by the app and must not become discovery buckets.",
+            }
+          : {}),
         live_shortlist_note:
-          useLiveWindowInput
+          useLiveWindowInput && !useDurationFirstManifest
             ? "Return up to effective_candidate_count candidates using the reduced live_shortlist schema. Return compact linear candidates only; Smart Story Edit recipe fields are reserved for full enrichment or the edit assistant and are not allowed here. Preserve Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and compact fields: title, hook_title, core_question, payoff, viral_atoms, why_it_works, context_dependency, sensitivity_level, scores, risk flags. Prefer question, tension, confession, lesson, emotional turn, reframe, payoff, story beat, or specific claim. Do not choose intro/outro logistics, promotional housekeeping, book/link outro logistics, product_promo, sponsor_or_ad, meta_editing, audio_check, camera_check, mic checks, pre-show chatter, product/tasting discussion, or technical setup when better options exist. Duration compliance is mandatory: 60s means 45-78 seconds, not 8s, 12s, 16s, 22s, or 32s. Choose from duration_windows, use each window span, copy anchors near boundary hints, and return fewer candidates rather than padding."
             : null,
         duration_window_instruction:

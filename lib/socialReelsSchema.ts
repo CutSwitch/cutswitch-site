@@ -13,6 +13,7 @@ export const SOCIAL_REELS_DISCOVERY_MATRIX_STYLES = [
   "controversial",
 ] as const;
 export const SOCIAL_REELS_DISCOVERY_MATRIX_DURATIONS = [...SOCIAL_REELS_DURATION_BUCKETS, "deepCut5To10m"] as const;
+export const SOCIAL_REELS_DURATION_FIRST_TARGETS = ["15s", "30s", "60s", "90s", "5_to_10m"] as const;
 export const SOCIAL_REELS_PLATFORMS = ["instagram_reels", "tiktok", "youtube_shorts", "social"] as const;
 export const SOCIAL_REELS_STYLES = ["balanced", "educational", "funny", "dramatic", "promo", "story"] as const;
 export const SOCIAL_REELS_LAYOUTS = ["vertical", "square", "horizontal"] as const;
@@ -130,6 +131,10 @@ function normalizeMatrixDuration(value: string) {
   return normalized;
 }
 
+function durationFirstTargetToConcreteBucket(value: (typeof SOCIAL_REELS_DURATION_FIRST_TARGETS)[number]) {
+  return value === "5_to_10m" ? "5-10m" : value;
+}
+
 const socialReelsDiscoveryMatrixDurationSchema = z.preprocess(
   (value) => (typeof value === "string" ? normalizeMatrixDuration(value) : value),
   z.enum(SOCIAL_REELS_DURATION_BUCKETS)
@@ -141,6 +146,41 @@ export const socialReelsDiscoveryMatrixTargetSchema = z.object({
   duration: socialReelsDiscoveryMatrixDurationSchema,
   max_candidates: z.number().int().min(1).max(SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP).optional().nullable(),
 });
+
+export const socialReelsDurationFirstBucketRequestSchema = z.object({
+  duration_target: z.enum(SOCIAL_REELS_DURATION_FIRST_TARGETS),
+  max_candidates: z.number().int().min(1).max(SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP).optional().nullable(),
+});
+
+const socialReelsDurationFirstLimitsSchema = z
+  .object({
+    max_per_duration_bucket: z.number().int().min(1).max(SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP).optional().nullable(),
+    max_unique_moments: z.number().int().min(1).max(120).optional().nullable(),
+    max_total_bucket_memberships: z.number().int().min(1).max(240).optional().nullable(),
+    dedupe_shared_moments: z.boolean().optional().nullable(),
+    return_fewer_if_weak: z.boolean().optional().nullable(),
+  })
+  .optional()
+  .default({});
+
+function normalizeDurationFirstBuckets(
+  buckets: Array<z.input<typeof socialReelsDurationFirstBucketRequestSchema>> | undefined
+) {
+  const parsedBuckets = (buckets ?? [])
+    .map((bucket) => socialReelsDurationFirstBucketRequestSchema.safeParse(bucket))
+    .filter((result): result is z.SafeParseSuccess<z.infer<typeof socialReelsDurationFirstBucketRequestSchema>> => result.success)
+    .map((result) => result.data);
+  const seen = new Set<string>();
+  const normalized: Array<z.infer<typeof socialReelsDurationFirstBucketRequestSchema>> = [];
+
+  for (const bucket of parsedBuckets) {
+    if (seen.has(bucket.duration_target)) continue;
+    seen.add(bucket.duration_target);
+    normalized.push(bucket);
+  }
+
+  return normalized;
+}
 
 function normalizeDiscoveryMatrixTargets(
   targets: Array<z.input<typeof socialReelsDiscoveryMatrixTargetSchema>> | undefined
@@ -293,14 +333,16 @@ export const socialReelsRequestSchema = z
     duration_bucket: z.enum(SOCIAL_REELS_REQUEST_DURATION_PACKS).optional(),
     requested_candidate_count: requestedCandidateCountSchema.optional(),
     candidate_count: requestedCandidateCountSchema.optional(),
+    requested_duration_buckets: z.array(socialReelsDurationFirstBucketRequestSchema).max(SOCIAL_REELS_DURATION_FIRST_TARGETS.length).optional().default([]),
+    limits: socialReelsDurationFirstLimitsSchema,
     requested_targets: z.array(socialReelsDiscoveryMatrixTargetSchema).max(80).optional().default([]),
     max_per_bucket: z.number().int().min(1).max(100).optional(),
     max_unique_moments: z.number().int().min(1).max(1000).optional(),
     dedupe_shared_moments: z.boolean().optional(),
     custom_duration_seconds: socialReelsCustomDurationSchema.optional().nullable(),
-    style: z.enum(SOCIAL_REELS_STYLES).or(z.string().trim().min(1).max(80)),
-    layout: z.enum(SOCIAL_REELS_LAYOUTS).or(z.string().trim().min(1).max(80)),
-    caption_style: z.enum(SOCIAL_REELS_CAPTION_STYLES).or(z.string().trim().min(1).max(80)),
+    style: z.enum(SOCIAL_REELS_STYLES).or(z.string().trim().min(1).max(80)).optional().default("balanced"),
+    layout: z.enum(SOCIAL_REELS_LAYOUTS).or(z.string().trim().min(1).max(80)).optional().default("vertical"),
+    caption_style: z.enum(SOCIAL_REELS_CAPTION_STYLES).or(z.string().trim().min(1).max(80)).optional().default("bold"),
     episode_metadata: z
       .object({
         title: safeOptionalText(160),
@@ -309,7 +351,9 @@ export const socialReelsRequestSchema = z
         published_at: safeOptionalText(80),
         guest_names: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
       })
-      .passthrough(),
+      .passthrough()
+      .optional()
+      .default({}),
     metadata: z.record(z.unknown()).optional().nullable(),
     utterances: z.array(socialReelsTranscriptUtteranceSchema).max(SOCIAL_REELS_MAX_SEGMENTS).optional().default([]),
     segments: z.array(socialReelsTranscriptSegmentSchema).max(SOCIAL_REELS_MAX_SEGMENTS).optional().default([]),
@@ -326,10 +370,14 @@ export const socialReelsRequestSchema = z
     const utterances = payload.utterances ?? [];
     const segments = payload.segments && payload.segments.length > 0 ? payload.segments : segmentsFromUtterances(utterances);
     const requestedTargets = normalizeDiscoveryMatrixTargets(payload.requested_targets);
+    const requestedDurationBuckets = normalizeDurationFirstBuckets(payload.requested_duration_buckets);
     const targetDurations = requestedTargets.map((target) => target.duration);
+    const durationFirstDurations = requestedDurationBuckets.map((bucket) => durationFirstTargetToConcreteBucket(bucket.duration_target));
     const durationPreferences =
       payload.duration_preferences && payload.duration_preferences.length > 0
         ? payload.duration_preferences
+        : durationFirstDurations.length > 0
+          ? [...new Set(durationFirstDurations)]
         : targetDurations.length > 0
           ? [...new Set(targetDurations)]
           : [];
@@ -340,10 +388,28 @@ export const socialReelsRequestSchema = z
       SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP
     );
     const maxUniqueMoments = clampInteger(
-      payload.max_unique_moments,
+      payload.max_unique_moments ?? payload.limits?.max_unique_moments ?? undefined,
       SOCIAL_REELS_DISCOVERY_MATRIX_DEFAULT_MAX_UNIQUE_MOMENTS,
       1,
       SOCIAL_REELS_DISCOVERY_MATRIX_MAX_UNIQUE_MOMENTS_CAP
+    );
+    const durationFirstMaxUniqueMoments = clampInteger(
+      payload.limits?.max_unique_moments ?? payload.max_unique_moments ?? undefined,
+      120,
+      1,
+      120
+    );
+    const maxPerDurationBucket = clampInteger(
+      payload.limits?.max_per_duration_bucket ?? undefined,
+      SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP,
+      1,
+      SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP
+    );
+    const maxTotalBucketMemberships = clampInteger(
+      payload.limits?.max_total_bucket_memberships ?? undefined,
+      240,
+      1,
+      240
     );
 
     const projectDurationSeconds =
@@ -361,10 +427,15 @@ export const socialReelsRequestSchema = z
         maxEndSeconds([...segments, ...utterances]),
       duration_bucket: payload.duration_bucket ?? durationPreferences[0],
       requested_candidate_count: normalizeRequestedCandidateCount(payload.requested_candidate_count ?? payload.candidate_count),
+      requested_duration_buckets: requestedDurationBuckets,
+      limits: payload.limits ?? {},
       requested_targets: requestedTargets,
       max_per_bucket: maxPerBucket,
       max_unique_moments: maxUniqueMoments,
-      dedupe_shared_moments: payload.dedupe_shared_moments ?? requestedTargets.length > 0,
+      dedupe_shared_moments:
+        payload.dedupe_shared_moments ??
+        payload.limits?.dedupe_shared_moments ??
+        (requestedTargets.length > 0 || requestedDurationBuckets.length > 0),
       discovery_matrix:
         requestedTargets.length > 0
           ? {
@@ -372,6 +443,25 @@ export const socialReelsRequestSchema = z
               max_per_bucket: maxPerBucket,
               max_unique_moments: maxUniqueMoments,
               dedupe_shared_moments: payload.dedupe_shared_moments ?? true,
+            }
+          : null,
+      duration_first_manifest:
+        requestedDurationBuckets.length > 0
+          ? {
+              requested_duration_buckets: requestedDurationBuckets.map((bucket) => ({
+                ...bucket,
+                max_candidates: clampInteger(
+                  bucket.max_candidates ?? payload.limits?.max_per_duration_bucket ?? undefined,
+                  maxPerDurationBucket,
+                  1,
+                  SOCIAL_REELS_DISCOVERY_MATRIX_MAX_PER_BUCKET_CAP
+                ),
+              })),
+              max_per_duration_bucket: maxPerDurationBucket,
+              max_unique_moments: durationFirstMaxUniqueMoments,
+              max_total_bucket_memberships: maxTotalBucketMemberships,
+              dedupe_shared_moments: payload.limits?.dedupe_shared_moments ?? payload.dedupe_shared_moments ?? true,
+              return_fewer_if_weak: payload.limits?.return_fewer_if_weak ?? true,
             }
           : null,
     };

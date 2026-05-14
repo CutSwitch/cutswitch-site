@@ -228,12 +228,25 @@ Key billing and safety rules:
 - Live shortlist candidates may include compact editorial fields such as `viral_atoms`, `core_question`, `payoff`, `context_dependency`, and `sensitivity_level`. `sensitive_topic` is distinct from `unsafe_or_policy_risk`; the older `unsafe_or_sensitive` risk flag remains accepted for compatibility. Sexual wellness, orgasm, pleasure, intimacy, and vulnerability are not exclusion reasons by themselves.
 - Social Reels candidates may be `linear` contiguous moments or Smart Story Edits (`edit_mode: story_edit`) with `timeline_segments` that cite real utterance IDs, source seconds/timecodes, speaker labels, redacted/transcript excerpts, and placement rationale. If `timeline_segments` is absent, clients should treat the candidate as a legacy linear moment.
 - The live shortlist prompt asks only for reduced-schema linear candidate fields. Smart Story Edit recipe metadata remains supported by the full candidate/edit-assistant contracts, but is not requested from the reduced live shortlist first pass. Heavy enrichment fields such as `title_options` are reserved for a later full/enrichment pass.
-- Duration-first manifest contract `cutswitch.social_reels.duration_first_manifest.v1` is additive. It lets users choose duration targets instead of editorial style buckets, returns up to `20` moments per selected duration without padding weak candidates, and includes generated tags plus source-backed `timeline_segments` with utterance IDs, optional word IDs, seconds, and timecodes. App/export format and caption variants are not discovery buckets.
+- Duration-first manifest contract `cutswitch.social_reels.duration_first_manifest.v1` is additive. `/api/social-reels/discover` accepts `requested_duration_buckets[]` plus `limits`, lets users choose duration targets instead of editorial style buckets, returns up to `20` moments per selected duration without padding weak candidates, and includes generated tags plus source-backed `timeline_segments` with utterance IDs, optional word IDs, seconds, and timecodes. App/export format and caption variants are not discovery buckets.
 - If OpenAI returns malformed or schema-invalid output, the route returns a sanitized recoverable `openai_invalid_response` provider error with `reason_code` and `retry_allowed`; raw model output and transcript text are never returned.
 - Returns privacy-safe timing diagnostics, including `request_id`, elapsed timings, provider/model when available, and timeout stage on failures.
 - Does not store raw transcript text, local file paths, FCPXML, tokens, emails, or provider secrets.
 - Normal `Different Moments` regeneration should be local from the cached candidate pool and should not call the backend.
 - Direct OpenAI model/schema probe ladder is available behind `TEST_OPENAI_PROBE=1 npm run test:backend`; it uses synthetic safe text only and does not run during normal tests.
+
+## POST /api/social-reels/estimate
+
+Estimate-only Social Reels duration-first credit preview endpoint.
+
+Key rules:
+
+- Accepts `duration_buckets`, `episode_duration_seconds`, `speaker_count`, and `requested_max_per_bucket`.
+- Returns deterministic `credit_estimate` line items such as `Base podcast analysis`, `15s candidates`, and `5-10m candidates`.
+- `billing_mode` is always `estimate_only` and `charge_now` is always `false`.
+- Does not call OpenAI.
+- Does not mutate Stripe, Keygen, entitlement, subscription, usage, or credit ledgers.
+- Uses no-store responses and a small bounded request body.
 
 ## Production Trial Billing Verification (2026-04-28)
 

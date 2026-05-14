@@ -1,7 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "cutswitch.social_reels.duration_first_manifest.v1",
-  "title": "CutSwitch Social Reels Duration-First Candidate Manifest v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,20 +11,26 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "cutswitch.social_reels.duration_first_manifest.v1"
+      "type": "string",
+      "enum": [
+        "cutswitch.social_reels.duration_first_manifest.v1"
+      ]
     },
     "project_hash": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 160,
-      "description": "Privacy-safe hash only; never a local path."
+      "maxLength": 160
     },
     "transcript_version": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "maxLength": 80
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 80
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "generation_summary": {
       "type": "object",
@@ -38,7 +41,10 @@
         "max_total_bucket_memberships",
         "dedupe_shared_moments",
         "return_fewer_if_weak",
-        "selected_duration_targets"
+        "selected_duration_targets",
+        "generated_at",
+        "provider",
+        "model"
       ],
       "properties": {
         "max_per_duration_bucket": {
@@ -64,7 +70,10 @@
         },
         "selected_duration_targets": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
           "items": {
+            "type": "string",
             "enum": [
               "15s",
               "30s",
@@ -72,30 +81,40 @@
               "90s",
               "5_to_10m"
             ]
-          },
-          "minItems": 1,
-          "maxItems": 5
+          }
         },
         "generated_at": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 80
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "provider": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 80
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "model": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 120
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -120,6 +139,7 @@
             "maxLength": 160
           },
           "duration_target": {
+            "type": "string",
             "enum": [
               "15s",
               "30s",
@@ -135,19 +155,23 @@
           },
           "returned_moment_ids": {
             "type": "array",
+            "maxItems": 20,
             "items": {
               "type": "string",
               "minLength": 1,
               "maxLength": 160
-            },
-            "maxItems": 20
+            }
           },
           "insufficient_reason": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 240
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }
@@ -182,12 +206,14 @@
             "maxLength": 160
           },
           "edit_mode": {
+            "type": "string",
             "enum": [
               "linear",
               "story_edit"
             ]
           },
           "composition_type": {
+            "type": "string",
             "enum": [
               "contiguous",
               "hook_reordered",
@@ -248,6 +274,7 @@
                   "maxLength": 160
                 },
                 "duration_target": {
+                  "type": "string",
                   "enum": [
                     "15s",
                     "30s",
@@ -276,7 +303,10 @@
           },
           "generated_tags": {
             "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
             "items": {
+              "type": "string",
               "enum": [
                 "strong_hook",
                 "hook_first",
@@ -295,19 +325,17 @@
                 "client_review",
                 "long_clip"
               ]
-            },
-            "minItems": 1,
-            "maxItems": 16
+            }
           },
           "primary_speakers": {
             "type": "array",
+            "minItems": 1,
+            "maxItems": 24,
             "items": {
               "type": "string",
               "minLength": 1,
               "maxLength": 80
-            },
-            "minItems": 1,
-            "maxItems": 24
+            }
           },
           "timeline_segments": {
             "type": "array",
@@ -336,6 +364,7 @@
                   "maxLength": 160
                 },
                 "role": {
+                  "type": "string",
                   "enum": [
                     "cold_open_hook",
                     "setup",
@@ -358,52 +387,68 @@
                   "maximum": 86400
                 },
                 "source_start_timecode": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "maxLength": 32
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 32
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "source_end_timecode": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "maxLength": 32
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 32
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "utterance_ids": {
                   "type": "array",
+                  "minItems": 1,
+                  "maxItems": 80,
                   "items": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
-                  },
-                  "minItems": 1,
-                  "maxItems": 80
+                  }
                 },
                 "word_start_id": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "maxLength": 160
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 160
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "word_end_id": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "maxLength": 160
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 160
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "speaker_labels": {
                   "type": "array",
+                  "minItems": 1,
+                  "maxItems": 24,
                   "items": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 80
-                  },
-                  "minItems": 1,
-                  "maxItems": 24
+                  }
                 },
                 "reason_for_placement": {
                   "type": "string",
@@ -420,12 +465,12 @@
           },
           "review_flags": {
             "type": "array",
+            "maxItems": 24,
             "items": {
               "type": "string",
               "minLength": 1,
               "maxLength": 80
-            },
-            "maxItems": 24
+            }
           }
         }
       }

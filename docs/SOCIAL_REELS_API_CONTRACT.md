@@ -34,6 +34,48 @@ Entitlement and rediscovery policy:
 - Failed OpenAI/provider calls do not consume editing time.
 - Exports consume `0` editing time and do not use this endpoint.
 
+## Duration-First Credit Estimate
+
+`POST /api/social-reels/estimate`
+
+Estimate-only endpoint for showing users that selecting more duration buckets uses more credits. This endpoint does not call OpenAI and does not charge credits.
+
+Request:
+
+```json
+{
+  "duration_buckets": ["15s", "30s", "60s"],
+  "episode_duration_seconds": 6287.8,
+  "speaker_count": 3,
+  "requested_max_per_bucket": 20
+}
+```
+
+Response:
+
+```json
+{
+  "credit_estimate": {
+    "total_credits": 12,
+    "line_items": [
+      { "name": "Base podcast analysis", "credits": 6 },
+      { "name": "15s candidates", "credits": 2 },
+      { "name": "30s candidates", "credits": 2 },
+      { "name": "60s candidates", "credits": 2 }
+    ],
+    "billing_mode": "estimate_only",
+    "charge_now": false
+  }
+}
+```
+
+Rules:
+
+- Deterministic and independent of live OpenAI.
+- Short duration buckets are lower cost than long clips.
+- `5_to_10m` is more expensive than short-form buckets.
+- No Stripe, Keygen, entitlement, or usage ledger mutation occurs in this slice.
+
 ## Duration-First Candidate Manifest
 
 Future duration-first discovery responses may use the additive manifest schema:
@@ -41,6 +83,26 @@ Future duration-first discovery responses may use the additive manifest schema:
 `cutswitch.social_reels.duration_first_manifest.v1`
 
 This contract removes the need for the user to pre-pick editorial style categories such as `educational`, `emotional`, or `hook-first`. The user chooses duration targets to analyze, and the backend/OpenAI returns the strongest moments for those durations with generated editorial tags and source-backed edit recipes.
+
+Request additions:
+
+```json
+{
+  "requested_duration_buckets": [
+    { "duration_target": "15s", "max_candidates": 20 },
+    { "duration_target": "30s", "max_candidates": 20 },
+    { "duration_target": "60s", "max_candidates": 20 }
+  ],
+  "limits": {
+    "dedupe_shared_moments": true,
+    "return_fewer_if_weak": true,
+    "max_unique_moments": 120,
+    "max_total_bucket_memberships": 240
+  }
+}
+```
+
+When `requested_duration_buckets` is present, `/api/social-reels/discover` uses `response_schema: "duration_first_manifest"` and returns `schema_version`, `generation_summary`, `duration_buckets`, and `duration_first_moments`. Existing `candidates` and discovery-matrix responses remain supported for legacy clients.
 
 Top-level shape:
 

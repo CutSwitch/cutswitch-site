@@ -740,6 +740,30 @@ export function selectSocialReelsLiveDurationWindows(
   return selectBestSpreadWindows(pool, targetCount);
 }
 
+export function selectSocialReelsDurationFirstPromptWindows(
+  windows: Array<SocialReelsDurationWindow | SocialReelsScoredDurationWindow>,
+  requestedBuckets: Array<{ duration_bucket: ConcreteDurationBucket; max_candidates: number }>,
+  input?: SocialReelsRequest
+): SocialReelsScoredDurationWindow[] {
+  const scored = input ? scoreSocialReelsDurationWindows(input, windows) : windows.map(toScoredWindow);
+  const selected = new Map<string, SocialReelsScoredDurationWindow>();
+
+  for (const requestedBucket of requestedBuckets) {
+    const targetCount = Math.min(20, Math.max(1, Math.round(requestedBucket.max_candidates)));
+    const bucketWindows = scored.filter((window) => window.duration_bucket === requestedBucket.duration_bucket);
+    const qualityPool = bucketWindows.filter((window) => !window.window_exclusion_reason);
+    const strongQualityPool = qualityPool.filter((window) => window.window_quality_score >= 0.78);
+    const pool = strongQualityPool.length >= targetCount ? strongQualityPool : qualityPool.length >= targetCount ? qualityPool : bucketWindows;
+    const bucketSelected = selectBestSpreadWindows(pool, targetCount).slice(0, targetCount);
+
+    for (const window of bucketSelected) {
+      selected.set(window.window_id, window);
+    }
+  }
+
+  return [...selected.values()].sort((a, b) => a.start_seconds - b.start_seconds || a.window_id.localeCompare(b.window_id));
+}
+
 function findSegment(input: SocialReelsRequest, segmentId: string) {
   return input.segments.find((segment) => segment.id === segmentId || segment.segment_id === segmentId) || null;
 }

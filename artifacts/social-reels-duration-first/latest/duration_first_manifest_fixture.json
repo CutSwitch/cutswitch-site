@@ -1,0 +1,367 @@
+{
+  "schema_version": "cutswitch.social_reels.duration_first_manifest.v1",
+  "project_hash": "proj_hash_duration_first_demo_001",
+  "transcript_version": "transcript_v2",
+  "generation_summary": {
+    "max_per_duration_bucket": 20,
+    "max_unique_moments": 120,
+    "max_total_bucket_memberships": 240,
+    "dedupe_shared_moments": true,
+    "return_fewer_if_weak": true,
+    "selected_duration_targets": [
+      "15s",
+      "30s",
+      "60s",
+      "90s",
+      "5_to_10m"
+    ],
+    "generated_at": "2026-05-14T00:00:00Z",
+    "provider": "mock_contract",
+    "model": "duration-first-fixture"
+  },
+  "duration_buckets": [
+    {
+      "bucket_id": "duration_15s",
+      "duration_target": "15s",
+      "requested_max_candidates": 20,
+      "returned_moment_ids": [
+        "mom_015_hook"
+      ],
+      "insufficient_reason": null
+    },
+    {
+      "bucket_id": "duration_30s",
+      "duration_target": "30s",
+      "requested_max_candidates": 20,
+      "returned_moment_ids": [
+        "mom_030_story_edit"
+      ],
+      "insufficient_reason": null
+    },
+    {
+      "bucket_id": "duration_60s",
+      "duration_target": "60s",
+      "requested_max_candidates": 20,
+      "returned_moment_ids": [
+        "mom_060_090_shared"
+      ],
+      "insufficient_reason": null
+    },
+    {
+      "bucket_id": "duration_90s",
+      "duration_target": "90s",
+      "requested_max_candidates": 20,
+      "returned_moment_ids": [
+        "mom_060_090_shared",
+        "mom_090_story"
+      ],
+      "insufficient_reason": null
+    },
+    {
+      "bucket_id": "duration_5_to_10m",
+      "duration_target": "5_to_10m",
+      "requested_max_candidates": 20,
+      "returned_moment_ids": [
+        "mom_long_deep_cut"
+      ],
+      "insufficient_reason": null
+    }
+  ],
+  "moments": [
+    {
+      "moment_id": "mom_015_hook",
+      "edit_mode": "linear",
+      "composition_type": "contiguous",
+      "display_title": "The One-Line Hook",
+      "display_teaser": "A compact claim that starts cleanly and lands fast.",
+      "opening_hook": "Here is the idea in one sentence.",
+      "closing_line": "That is why the moment works.",
+      "score": 88,
+      "duration_seconds": 15.2,
+      "duration_bucket_memberships": [
+        {
+          "bucket_id": "duration_15s",
+          "duration_target": "15s",
+          "rank": 1,
+          "bucket_score": 88,
+          "why_it_fits": "It fits as a compact hook with a complete thought."
+        }
+      ],
+      "generated_tags": [
+        "strong_hook",
+        "quoteable"
+      ],
+      "primary_speakers": [
+        "Mama"
+      ],
+      "timeline_segments": [
+        {
+          "segment_id": "seg_015_001",
+          "role": "context",
+          "source_start_seconds": 120.0,
+          "source_end_seconds": 135.2,
+          "source_start_timecode": "00:02:00:00",
+          "source_end_timecode": "00:02:15:05",
+          "utterance_ids": [
+            "utt_015_001"
+          ],
+          "word_start_id": "w_015_001",
+          "word_end_id": "w_015_044",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Continuous thought already starts and ends cleanly."
+        }
+      ],
+      "reason_it_works": "The moment has a direct opening claim and a clean closing line without needing prior context.",
+      "review_flags": []
+    },
+    {
+      "moment_id": "mom_030_story_edit",
+      "edit_mode": "story_edit",
+      "composition_type": "hook_reordered",
+      "display_title": "Start With The Strongest Line",
+      "display_teaser": "A later line becomes the cold open, then the clip returns to context and closes cleanly.",
+      "opening_hook": "This is the line that should open the reel.",
+      "closing_line": "Now the earlier setup finally pays off.",
+      "score": 92,
+      "duration_seconds": 31.4,
+      "duration_bucket_memberships": [
+        {
+          "bucket_id": "duration_30s",
+          "duration_target": "30s",
+          "rank": 1,
+          "bucket_score": 92,
+          "why_it_fits": "The assembled hook/context/payoff recipe fits the 30s target without padding."
+        }
+      ],
+      "generated_tags": [
+        "strong_hook",
+        "hook_first",
+        "educational",
+        "practical_tip"
+      ],
+      "primary_speakers": [
+        "Mama"
+      ],
+      "timeline_segments": [
+        {
+          "segment_id": "seg_030_hook",
+          "role": "cold_open_hook",
+          "source_start_seconds": 725.0,
+          "source_end_seconds": 733.0,
+          "source_start_timecode": "00:12:05:00",
+          "source_end_timecode": "00:12:13:00",
+          "utterance_ids": [
+            "utt_030_hook"
+          ],
+          "word_start_id": "w_030_110",
+          "word_end_id": "w_030_139",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Later hook is moved first because it creates immediate curiosity."
+        },
+        {
+          "segment_id": "seg_030_context",
+          "role": "context",
+          "source_start_seconds": 661.0,
+          "source_end_seconds": 681.0,
+          "source_start_timecode": "00:11:01:00",
+          "source_end_timecode": "00:11:21:00",
+          "utterance_ids": [
+            "utt_030_context"
+          ],
+          "word_start_id": "w_030_001",
+          "word_end_id": "w_030_082",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Earlier explanation supplies source-true context after the cold open."
+        },
+        {
+          "segment_id": "seg_030_close",
+          "role": "closing_button",
+          "source_start_seconds": 755.0,
+          "source_end_seconds": 758.4,
+          "source_start_timecode": "00:12:35:00",
+          "source_end_timecode": "00:12:38:10",
+          "utterance_ids": [
+            "utt_030_close"
+          ],
+          "word_start_id": "w_030_180",
+          "word_end_id": "w_030_194",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Short closing button completes the thought without inventing words."
+        }
+      ],
+      "reason_it_works": "The edit uses a stronger later hook, then preserves original context and a source-true closing line.",
+      "review_flags": [
+        "word_boundary_review_needed"
+      ]
+    },
+    {
+      "moment_id": "mom_060_090_shared",
+      "edit_mode": "linear",
+      "composition_type": "contiguous",
+      "display_title": "The Overlap Window",
+      "display_teaser": "A 72-second explanation that can serve either a long 60s cut or a tight 90s cut.",
+      "opening_hook": "The real answer takes more than a quote.",
+      "closing_line": "That is the reframe viewers can remember.",
+      "score": 90,
+      "duration_seconds": 72.0,
+      "duration_bucket_memberships": [
+        {
+          "bucket_id": "duration_60s",
+          "duration_target": "60s",
+          "rank": 1,
+          "bucket_score": 90,
+          "why_it_fits": "A 72s span sits inside the accepted 60s compliance band."
+        },
+        {
+          "bucket_id": "duration_90s",
+          "duration_target": "90s",
+          "rank": 2,
+          "bucket_score": 86,
+          "why_it_fits": "The same source-true identity can also be offered as a short 90s candidate without duplication."
+        }
+      ],
+      "generated_tags": [
+        "deep_insight",
+        "practical_tip",
+        "educational"
+      ],
+      "primary_speakers": [
+        "Mama"
+      ],
+      "timeline_segments": [
+        {
+          "segment_id": "seg_060_090_001",
+          "role": "context",
+          "source_start_seconds": 300.0,
+          "source_end_seconds": 372.0,
+          "source_start_timecode": "00:05:00:00",
+          "source_end_timecode": "00:06:12:00",
+          "utterance_ids": [
+            "utt_060_001",
+            "utt_060_002"
+          ],
+          "word_start_id": "w_060_001",
+          "word_end_id": "w_060_210",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Continuous explanation has enough room for hook, answer, and reframe."
+        }
+      ],
+      "reason_it_works": "The moment is deduped across compatible duration buckets while preserving one stable moment identity.",
+      "review_flags": []
+    },
+    {
+      "moment_id": "mom_090_story",
+      "edit_mode": "linear",
+      "composition_type": "contiguous",
+      "display_title": "A Full Story Beat",
+      "display_teaser": "A ninety-second idea with context, escalation, and a satisfying ending.",
+      "opening_hook": "The mistake starts before anyone notices it.",
+      "closing_line": "The fix is to slow down enough for the answer to land.",
+      "score": 84,
+      "duration_seconds": 91.5,
+      "duration_bucket_memberships": [
+        {
+          "bucket_id": "duration_90s",
+          "duration_target": "90s",
+          "rank": 1,
+          "bucket_score": 84,
+          "why_it_fits": "The source range carries a complete story beat in the 90s target."
+        }
+      ],
+      "generated_tags": [
+        "story",
+        "emotional",
+        "deep_insight"
+      ],
+      "primary_speakers": [
+        "Mama",
+        "Guest"
+      ],
+      "timeline_segments": [
+        {
+          "segment_id": "seg_090_001",
+          "role": "context",
+          "source_start_seconds": 900.0,
+          "source_end_seconds": 991.5,
+          "source_start_timecode": "00:15:00:00",
+          "source_end_timecode": "00:16:31:15",
+          "utterance_ids": [
+            "utt_090_001",
+            "utt_090_002",
+            "utt_090_003"
+          ],
+          "word_start_id": "w_090_001",
+          "word_end_id": "w_090_260",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Continuous multi-speaker exchange starts and ends on clear thought boundaries."
+        }
+      ],
+      "reason_it_works": "The candidate has a clear beginning, tension, answer, and closing reframe across a full story beat.",
+      "review_flags": []
+    },
+    {
+      "moment_id": "mom_long_deep_cut",
+      "edit_mode": "linear",
+      "composition_type": "contiguous",
+      "display_title": "The Deep Cut Explanation",
+      "display_teaser": "A longer highlight for viewers who want the full framework, not just the hook.",
+      "opening_hook": "The framework only makes sense if we take it step by step.",
+      "closing_line": "That is the complete map for applying it later.",
+      "score": 82,
+      "duration_seconds": 420.0,
+      "duration_bucket_memberships": [
+        {
+          "bucket_id": "duration_5_to_10m",
+          "duration_target": "5_to_10m",
+          "rank": 1,
+          "bucket_score": 82,
+          "why_it_fits": "The source range is a complete long-form explanation inside the 5-10m target."
+        }
+      ],
+      "generated_tags": [
+        "long_clip",
+        "educational",
+        "deep_insight"
+      ],
+      "primary_speakers": [
+        "Mama"
+      ],
+      "timeline_segments": [
+        {
+          "segment_id": "seg_long_001",
+          "role": "context",
+          "source_start_seconds": 1800.0,
+          "source_end_seconds": 2220.0,
+          "source_start_timecode": "00:30:00:00",
+          "source_end_timecode": "00:37:00:00",
+          "utterance_ids": [
+            "utt_long_001",
+            "utt_long_002",
+            "utt_long_003",
+            "utt_long_004"
+          ],
+          "word_start_id": "w_long_001",
+          "word_end_id": "w_long_980",
+          "speaker_labels": [
+            "Mama"
+          ],
+          "reason_for_placement": "Continuous chapter-length explanation supports a complete long clip."
+        }
+      ],
+      "reason_it_works": "The moment is useful as a deep cut because the whole framework resolves within one continuous source range.",
+      "review_flags": []
+    }
+  ]
+}

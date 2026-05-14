@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cutswitch.social_reels.duration_first_manifest.v1",
+  "title": "CutSwitch Social Reels Duration-First Candidate Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_hash",
+    "transcript_version",
+    "generation_summary",
+    "duration_buckets",
+    "moments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cutswitch.social_reels.duration_first_manifest.v1"
+    },
+    "project_hash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "Privacy-safe hash only; never a local path."
+    },
+    "transcript_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 80
+    },
+    "generation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_per_duration_bucket",
+        "max_unique_moments",
+        "max_total_bucket_memberships",
+        "dedupe_shared_moments",
+        "return_fewer_if_weak",
+        "selected_duration_targets"
+      ],
+      "properties": {
+        "max_per_duration_bucket": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "max_unique_moments": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "max_total_bucket_memberships": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240
+        },
+        "dedupe_shared_moments": {
+          "type": "boolean"
+        },
+        "return_fewer_if_weak": {
+          "type": "boolean"
+        },
+        "selected_duration_targets": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "15s",
+              "30s",
+              "60s",
+              "90s",
+              "5_to_10m"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "generated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        }
+      }
+    },
+    "duration_buckets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bucket_id",
+          "duration_target",
+          "requested_max_candidates",
+          "returned_moment_ids",
+          "insufficient_reason"
+        ],
+        "properties": {
+          "bucket_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "duration_target": {
+            "enum": [
+              "15s",
+              "30s",
+              "60s",
+              "90s",
+              "5_to_10m"
+            ]
+          },
+          "requested_max_candidates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "returned_moment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "maxItems": 20
+          },
+          "insufficient_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 240
+          }
+        }
+      }
+    },
+    "moments": {
+      "type": "array",
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "moment_id",
+          "edit_mode",
+          "composition_type",
+          "display_title",
+          "display_teaser",
+          "opening_hook",
+          "closing_line",
+          "score",
+          "duration_seconds",
+          "duration_bucket_memberships",
+          "generated_tags",
+          "primary_speakers",
+          "timeline_segments",
+          "reason_it_works",
+          "review_flags"
+        ],
+        "properties": {
+          "moment_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "edit_mode": {
+            "enum": [
+              "linear",
+              "story_edit"
+            ]
+          },
+          "composition_type": {
+            "enum": [
+              "contiguous",
+              "hook_reordered",
+              "hook_setup_payoff",
+              "question_answer",
+              "callback",
+              "mini_montage"
+            ]
+          },
+          "display_title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "display_teaser": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "opening_hook": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "closing_line": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "duration_seconds": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 1200
+          },
+          "duration_bucket_memberships": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bucket_id",
+                "duration_target",
+                "rank",
+                "bucket_score",
+                "why_it_fits"
+              ],
+              "properties": {
+                "bucket_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "duration_target": {
+                  "enum": [
+                    "15s",
+                    "30s",
+                    "60s",
+                    "90s",
+                    "5_to_10m"
+                  ]
+                },
+                "rank": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                "bucket_score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "why_it_fits": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 360
+                }
+              }
+            }
+          },
+          "generated_tags": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "strong_hook",
+                "hook_first",
+                "emotional",
+                "educational",
+                "funny",
+                "controversial",
+                "story",
+                "inspirational",
+                "practical_tip",
+                "quoteable",
+                "vulnerable",
+                "contrarian",
+                "high_energy",
+                "deep_insight",
+                "client_review",
+                "long_clip"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 16
+          },
+          "primary_speakers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "minItems": 1,
+            "maxItems": 24
+          },
+          "timeline_segments": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "segment_id",
+                "role",
+                "source_start_seconds",
+                "source_end_seconds",
+                "source_start_timecode",
+                "source_end_timecode",
+                "utterance_ids",
+                "word_start_id",
+                "word_end_id",
+                "speaker_labels",
+                "reason_for_placement"
+              ],
+              "properties": {
+                "segment_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "role": {
+                  "enum": [
+                    "cold_open_hook",
+                    "setup",
+                    "context",
+                    "evidence",
+                    "escalation",
+                    "payoff",
+                    "closing_button",
+                    "bridge"
+                  ]
+                },
+                "source_start_seconds": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "source_end_seconds": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 86400
+                },
+                "source_start_timecode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 32
+                },
+                "source_end_timecode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 32
+                },
+                "utterance_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "minItems": 1,
+                  "maxItems": 80
+                },
+                "word_start_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 160
+                },
+                "word_end_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 160
+                },
+                "speaker_labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "minItems": 1,
+                  "maxItems": 24
+                },
+                "reason_for_placement": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 360
+                }
+              }
+            }
+          },
+          "reason_it_works": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "review_flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "maxItems": 24
+          }
+        }
+      }
+    }
+  }
+}

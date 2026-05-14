@@ -17,6 +17,15 @@ import {
 import { summarizeSocialReelsOutputShape } from "../lib/socialReelsDiagnostics";
 import { buildSocialReelsOpenAIPromptInput } from "../lib/socialReelsOpenAIPrompt";
 import {
+  SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS,
+  SOCIAL_REELS_DURATION_FIRST_MAX_PER_BUCKET,
+  SOCIAL_REELS_DURATION_FIRST_MAX_TOTAL_BUCKET_MEMBERSHIPS,
+  SOCIAL_REELS_DURATION_FIRST_MAX_UNIQUE_MOMENTS,
+  SOCIAL_REELS_DURATION_FIRST_SCHEMA_VERSION,
+  SOCIAL_REELS_DURATION_FIRST_TARGETS,
+  socialReelsDurationFirstManifestSchema,
+} from "../lib/socialReelsDurationFirstManifest";
+import {
   SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
   buildSocialReelsEditAssistantPromptInput,
   proposeSocialReelsEdit,
@@ -1169,6 +1178,62 @@ socialReelsDiscoveryMatrixResponseSchema.parse({
   ],
   model_notes: "Discovery matrix schema smoke; no provider call.",
 });
+
+const durationFirstManifest = socialReelsDurationFirstManifestSchema.parse(
+  JSON.parse(readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8")) as unknown
+);
+assert(durationFirstManifest.schema_version === SOCIAL_REELS_DURATION_FIRST_SCHEMA_VERSION, "Duration-first manifest should use the v1 schema version.");
+assert(
+  durationFirstManifest.generation_summary.max_per_duration_bucket === SOCIAL_REELS_DURATION_FIRST_MAX_PER_BUCKET,
+  "Duration-first manifest should cap max_per_duration_bucket at 20."
+);
+assert(
+  durationFirstManifest.generation_summary.max_unique_moments === SOCIAL_REELS_DURATION_FIRST_MAX_UNIQUE_MOMENTS,
+  "Duration-first manifest should support 120 unique moments."
+);
+assert(
+  durationFirstManifest.generation_summary.max_total_bucket_memberships === SOCIAL_REELS_DURATION_FIRST_MAX_TOTAL_BUCKET_MEMBERSHIPS,
+  "Duration-first manifest should support 240 total bucket memberships."
+);
+for (const target of SOCIAL_REELS_DURATION_FIRST_TARGETS) {
+  assert(durationFirstManifest.duration_buckets.some((bucket) => bucket.duration_target === target), `Duration-first manifest fixture should include ${target} bucket.`);
+}
+assert(
+  durationFirstManifest.duration_buckets.every((bucket) => bucket.requested_max_candidates <= SOCIAL_REELS_DURATION_FIRST_MAX_PER_BUCKET),
+  "Duration-first manifest buckets should never request more than 20 candidates."
+);
+assert(
+  durationFirstManifest.moments.some((moment) => moment.edit_mode === "linear" && moment.composition_type === "contiguous"),
+  "Duration-first manifest should validate a linear contiguous candidate."
+);
+assert(
+  durationFirstManifest.moments.some((moment) => moment.edit_mode === "story_edit" && moment.timeline_segments.length >= 2 && moment.timeline_segments.length <= 4),
+  "Duration-first manifest should validate a story_edit candidate with 2-4 timeline segments."
+);
+assert(
+  durationFirstManifest.moments.some((moment) => moment.duration_bucket_memberships.length > 1),
+  "Duration-first manifest should support deduped shared moments across compatible duration buckets."
+);
+assert(
+  durationFirstManifest.moments.every((moment) => moment.generated_tags.every((tag) => SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS.includes(tag))),
+  "Duration-first manifest should use backend-generated editorial tags instead of user preselected style buckets."
+);
+assert(
+  durationFirstManifest.moments.some((moment) => moment.timeline_segments.some((segment) => segment.word_start_id && segment.word_end_id)),
+  "Duration-first manifest should support word_start_id and word_end_id."
+);
+const durationFirstArtifactText = [
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_schema.json"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_contract_report.md"), "utf8"),
+].join("\n");
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
+  assert(!durationFirstArtifactText.includes(forbiddenLeak), `Duration-first manifest artifacts should not include forbidden private detail: ${forbiddenLeak}.`);
+}
+assert(
+  socialReelsCandidateSchema.safeParse(candidate(9, true)).success,
+  "Legacy compact candidate response should remain compatible after adding duration-first manifest contract."
+);
 
 if (!failed) {
   console.log("PASS: social reels prompt/schema smoke passed without a live OpenAI call.");

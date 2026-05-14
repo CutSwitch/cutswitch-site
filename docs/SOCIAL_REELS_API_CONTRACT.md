@@ -34,6 +34,69 @@ Entitlement and rediscovery policy:
 - Failed OpenAI/provider calls do not consume editing time.
 - Exports consume `0` editing time and do not use this endpoint.
 
+## Duration-First Candidate Manifest
+
+Future duration-first discovery responses may use the additive manifest schema:
+
+`cutswitch.social_reels.duration_first_manifest.v1`
+
+This contract removes the need for the user to pre-pick editorial style categories such as `educational`, `emotional`, or `hook-first`. The user chooses duration targets to analyze, and the backend/OpenAI returns the strongest moments for those durations with generated editorial tags and source-backed edit recipes.
+
+Top-level shape:
+
+```json
+{
+  "schema_version": "cutswitch.social_reels.duration_first_manifest.v1",
+  "project_hash": "privacy-safe-project-hash",
+  "transcript_version": "transcript_v2",
+  "generation_summary": {
+    "max_per_duration_bucket": 20,
+    "max_unique_moments": 120,
+    "max_total_bucket_memberships": 240,
+    "dedupe_shared_moments": true,
+    "return_fewer_if_weak": true,
+    "selected_duration_targets": ["15s", "30s", "60s", "90s", "5_to_10m"]
+  },
+  "duration_buckets": [],
+  "moments": []
+}
+```
+
+Duration targets:
+
+- `15s`
+- `30s`
+- `60s`
+- `90s`
+- `5_to_10m`
+
+Future gated duration targets:
+
+- `10_to_20m`
+- `custom_long`
+
+Each selected duration target gets one bucket. Buckets return up to `20` moment IDs and should use `insufficient_reason` rather than padding weak candidates.
+
+```json
+{
+  "bucket_id": "duration_30s",
+  "duration_target": "30s",
+  "requested_max_candidates": 20,
+  "returned_moment_ids": ["mom_001"],
+  "insufficient_reason": null
+}
+```
+
+Moments may be linear or Smart Story Edit recipes. `timeline_segments` must cite real source seconds, source timecodes, `utterance_ids`, optional `word_start_id` / `word_end_id`, and speaker labels. The app owns final word/frame validation and export.
+
+Generated tags are model-assigned after analysis, not user-selected discovery buckets. Allowed tags: `strong_hook`, `hook_first`, `emotional`, `educational`, `funny`, `controversial`, `story`, `inspirational`, `practical_tip`, `quoteable`, `vulnerable`, `contrarian`, `high_energy`, `deep_insight`, `client_review`, `long_clip`.
+
+Artifact references:
+
+- `artifacts/social-reels-duration-first/latest/duration_first_manifest_schema.json`
+- `artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json`
+- `artifacts/social-reels-duration-first/latest/duration_first_contract_report.md`
+
 ## Request
 
 ```json

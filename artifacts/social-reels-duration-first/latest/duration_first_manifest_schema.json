@@ -191,9 +191,13 @@
           "opening_hook",
           "closing_line",
           "score",
+          "coherence_score",
+          "continuity_risk",
           "duration_seconds",
           "duration_bucket_memberships",
+          "bucket_memberships",
           "generated_tags",
+          "topic_tags",
           "primary_speakers",
           "timeline_segments",
           "reason_it_works",
@@ -248,12 +252,73 @@
             "minimum": 0,
             "maximum": 100
           },
+          "coherence_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "continuity_risk": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
           "duration_seconds": {
             "type": "number",
             "minimum": 5,
             "maximum": 1200
           },
           "duration_bucket_memberships": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bucket_id",
+                "duration_target",
+                "rank",
+                "bucket_score",
+                "why_it_fits"
+              ],
+              "properties": {
+                "bucket_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "duration_target": {
+                  "type": "string",
+                  "enum": [
+                    "15s",
+                    "30s",
+                    "60s",
+                    "90s",
+                    "5_to_10m"
+                  ]
+                },
+                "rank": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                "bucket_score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "why_it_fits": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 360
+                }
+              }
+            }
+          },
+          "bucket_memberships": {
             "type": "array",
             "minItems": 1,
             "maxItems": 5,
@@ -325,6 +390,16 @@
                 "client_review",
                 "long_clip"
               ]
+            }
+          },
+          "topic_tags": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
             }
           },
           "primary_speakers": {

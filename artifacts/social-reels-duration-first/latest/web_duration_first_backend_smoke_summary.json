@@ -1,0 +1,18 @@
+{
+  "live_openai_call_made": false,
+  "duration_first_contract_exists": true,
+  "schema_version": "cutswitch.social_reels.duration_first_manifest.v1",
+  "response_schema": "duration_first_manifest",
+  "strict_structured_outputs": true,
+  "user_style_prompt_required": false,
+  "requested_duration_buckets_tested": ["15s", "30s"],
+  "fixture_duration_buckets": ["15s", "30s", "60s", "90s", "5_to_10m"],
+  "fixture_moment_count": 5,
+  "fixture_duration_bucket_count": 5,
+  "fixture_linear_candidate_count": 4,
+  "fixture_story_edit_candidate_count": 1,
+  "shared_moment_across_buckets": true,
+  "formats_caption_styles_are_export_variants": true,
+  "invalid_provider_error_fields": ["stage", "reason_code", "request_id", "retry_allowed"],
+  "no_raw_private_data": true
+}

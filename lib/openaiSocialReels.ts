@@ -48,6 +48,12 @@ import {
   type SocialReelsDurationFirstManifest,
 } from "@/lib/socialReelsDurationFirstManifest";
 import {
+  SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
+  openAISocialReelsEditorialWordIdResponseFormat,
+  socialReelsEditorialWordIdResponseSchema,
+  type SocialReelsEditorialWordIdResponse,
+} from "@/lib/socialReelsEditorialWordId";
+import {
   getEffectiveLiveShortlistCandidateCount,
   getSocialReelsDurationSecondsRange,
   hydrateSocialReelsShortlistResponse,
@@ -120,7 +126,7 @@ export type DiscoverSocialReelsOptions = {
   model?: string;
 };
 
-export type SocialReelsDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix" | "duration_first_manifest";
+export type SocialReelsDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix" | "duration_first_manifest" | "editorial_word_id";
 
 export type SocialReelsServiceDiagnostics = {
   mode: "mock" | "live";
@@ -153,7 +159,7 @@ export type SocialReelsInvalidResponseDiagnostics = {
   provider_response_id: string | null;
   openai_status: number | null;
   elapsed_ms: number | null;
-  schema_mode: "live_shortlist_reduced" | "discovery_matrix" | "duration_first_manifest";
+  schema_mode: "live_shortlist_reduced" | "discovery_matrix" | "duration_first_manifest" | "editorial_word_id";
   effective_candidate_count: number;
   duration_preferences: string[];
   segment_count: number;
@@ -180,6 +186,7 @@ export type DiscoverSocialReelsResult = {
   response: SocialReelsResponse | null;
   matrixResponse: SocialReelsDiscoveryMatrixResponse | null;
   durationFirstManifest: SocialReelsDurationFirstManifest | null;
+  editorialWordIdResponse: SocialReelsEditorialWordIdResponse | null;
   usage: OpenAIUsage | null;
   providerResponseId: string | null;
   model: string;
@@ -736,6 +743,7 @@ function buildMockDurationFirstManifest(input: SocialReelsRequest): SocialReelsD
 
     if (existing) {
       existing.duration_bucket_memberships.push(membership);
+      existing.bucket_memberships.push(membership);
       durationBuckets.push({
         bucket_id: bucketId,
         duration_target: target,
@@ -755,9 +763,13 @@ function buildMockDurationFirstManifest(input: SocialReelsRequest): SocialReelsD
       opening_hook: "A concise source-backed hook from the selected duration window.",
       closing_line: "A clean closing line that lands the thought.",
       score: target === "5_to_10m" ? 88 : 92,
+      coherence_score: target === "30s" ? 0.84 : 0.9,
+      continuity_risk: target === "30s" ? "medium" : "low",
       duration_seconds: target === "30s" ? 30 : duration,
       duration_bucket_memberships: [membership],
+      bucket_memberships: [membership],
       generated_tags: target === "5_to_10m" ? ["long_clip", "deep_insight"] : ["strong_hook", "educational"],
+      topic_tags: target === "5_to_10m" ? ["deep insight", "long clip"] : ["source backed hook", "editorial lesson"],
       primary_speakers: source.speakers.length > 0 ? source.speakers : [source.speaker || "Speaker"],
       timeline_segments:
         target === "30s"
@@ -847,6 +859,65 @@ function buildMockDurationFirstManifest(input: SocialReelsRequest): SocialReelsD
     },
     duration_buckets: durationBuckets,
     moments,
+  });
+}
+
+function buildMockEditorialWordIdResponse(input: SocialReelsRequest): SocialReelsEditorialWordIdResponse {
+  const words = input.words.slice(0, 90);
+  const first = words[0];
+  const hookStart = words[0] ?? first;
+  const hookEnd = words[Math.min(5, words.length - 1)] ?? first;
+  const contextStart = words[Math.min(6, words.length - 1)] ?? first;
+  const contextEnd = words[Math.min(18, words.length - 1)] ?? first;
+  const payoffStart = words[Math.min(19, words.length - 1)] ?? contextStart;
+  const payoffEnd = words[Math.min(29, words.length - 1)] ?? contextEnd;
+
+  const quote = (startIndex: number, endIndex: number, fallback: string) =>
+    words.slice(startIndex, endIndex + 1).map((word) => word.text).join(" ").trim().slice(0, 360) || fallback;
+
+  return socialReelsEditorialWordIdResponseSchema.parse({
+    version: SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
+    reels: [
+      {
+        clientMomentId: "mock-editorial-word-id-001",
+        title: "The Strongest Idea Starts Here",
+        durationTargetSeconds: input.editorial_word_id?.duration_targets_seconds[0] ?? 30,
+        openingLine: quote(0, 5, "A source-backed opening line."),
+        closingLine: quote(19, 29, "A source-backed closing line."),
+        editorialStatus: "ready",
+        segments: [
+          {
+            role: "hook",
+            startWordId: hookStart.word_id,
+            endWordId: hookEnd.word_id,
+            quote: quote(0, 5, "A source-backed hook."),
+            reason: "Starts on the strongest available idea instead of conversational setup.",
+          },
+          {
+            role: "context",
+            startWordId: contextStart.word_id,
+            endWordId: contextEnd.word_id,
+            quote: quote(6, 18, "Source-backed context."),
+            reason: "Adds enough context for the hook to make sense.",
+          },
+          {
+            role: "payoff",
+            startWordId: payoffStart.word_id,
+            endWordId: payoffEnd.word_id,
+            quote: quote(19, 29, "Source-backed payoff."),
+            reason: "Ends after the idea lands instead of on an unanswered question.",
+          },
+        ],
+        editorialScores: {
+          hook: 8.6,
+          selfContained: 8.2,
+          payoff: 8.4,
+          captionClarity: 8.1,
+          overall: 8.4,
+        },
+        notes: ["Mock editorial word-ID response generated locally without OpenAI."],
+      },
+    ],
   });
 }
 
@@ -958,12 +1029,62 @@ export async function discoverSocialReelsCandidates(
   const model = options.model || getSocialReelsOpenAIModel();
 
   if (shouldUseMock(options)) {
+    if (input.editorial_word_id) {
+      const editorialWordIdResponse = buildMockEditorialWordIdResponse(input);
+      return {
+        response: null,
+        matrixResponse: null,
+        durationFirstManifest: null,
+        editorialWordIdResponse,
+        usage: null,
+        providerResponseId: null,
+        model: "mock",
+        mock: true,
+        requestedCandidateCount: input.requested_candidate_count,
+        effectiveCandidateCount: input.editorial_word_id.max_reels,
+        returnedCandidateCount: editorialWordIdResponse.reels.length,
+        filteredCandidateCount: 0,
+        eligibleDurationWindowCount: null,
+        windowsAfterQualityFilter: null,
+        excludedWindowReasonCounts: null,
+        averageWindowQualityScore: null,
+        demotedWindowReasonCounts: null,
+        selectedWindowQualityRange: null,
+        selectedWindowQualityDistribution: null,
+        selectedWindowReasonCounts: null,
+        durationWindowCountSentToModel: null,
+        promptContextCharCountSentToModel: null,
+        liveFilterReasons: { duration_outside_bucket: 0 },
+        returnedDurationSecondsRange: { min: null, max: null },
+        discoveryMode: "editorial_word_id",
+        diagnostics: {
+          mode: "mock",
+          openaiRequestStartedAt: null,
+          openaiElapsedMs: null,
+          responseParseMs: null,
+          provider: "mock",
+          model: "mock",
+          providerResponseId: null,
+          durationWindowCountSentToModel: null,
+          promptContextCharCountSentToModel: null,
+          windowsAfterQualityFilter: null,
+          excludedWindowReasonCounts: null,
+          averageWindowQualityScore: null,
+          demotedWindowReasonCounts: null,
+          selectedWindowQualityRange: null,
+          selectedWindowQualityDistribution: null,
+          selectedWindowReasonCounts: null,
+        },
+      };
+    }
+
     if (input.duration_first_manifest) {
       const durationFirstManifest = buildMockDurationFirstManifest(input);
       return {
         response: null,
         matrixResponse: null,
         durationFirstManifest,
+        editorialWordIdResponse: null,
         usage: null,
         providerResponseId: null,
         model: "mock",
@@ -1012,6 +1133,7 @@ export async function discoverSocialReelsCandidates(
         response: null,
         matrixResponse,
         durationFirstManifest: null,
+        editorialWordIdResponse: null,
         usage: null,
         providerResponseId: null,
         model: "mock",
@@ -1059,6 +1181,7 @@ export async function discoverSocialReelsCandidates(
       response,
       matrixResponse: null,
       durationFirstManifest: null,
+      editorialWordIdResponse: null,
       usage: null,
       providerResponseId: null,
       model: "mock",
@@ -1113,9 +1236,12 @@ export async function discoverSocialReelsCandidates(
   const reasoningEffort = getSocialReelsOpenAIReasoningEffort();
   const serviceTier = getSocialReelsOpenAIServiceTier();
   const requestedCandidateCount = input.requested_candidate_count;
+  const isEditorialWordId = Boolean(input.editorial_word_id);
   const isDiscoveryMatrix = Boolean(input.discovery_matrix);
   const isDurationFirstManifest = Boolean(input.duration_first_manifest);
-  const effectiveCandidateCount = isDurationFirstManifest
+  const effectiveCandidateCount = isEditorialWordId
+    ? input.editorial_word_id?.max_reels ?? requestedCandidateCount
+    : isDurationFirstManifest
     ? input.duration_first_manifest?.max_unique_moments ?? requestedCandidateCount
     : getSocialReelsLiveCandidateCount(requestedCandidateCount);
   const liveShortlistInput: SocialReelsRequest = {
@@ -1144,7 +1270,7 @@ export async function discoverSocialReelsCandidates(
   const openaiRequestStartedAt = new Date(openaiStartedMs).toISOString();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const promptInput = buildSocialReelsOpenAIPromptInput(liveShortlistInput, {
-    discoveryMode: isDurationFirstManifest ? "duration_first_manifest" : isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist",
+    discoveryMode: isEditorialWordId ? "editorial_word_id" : isDurationFirstManifest ? "duration_first_manifest" : isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist",
     requestedCandidateCount,
     effectiveCandidateCount,
     durationWindows: promptDurationWindows,
@@ -1162,6 +1288,8 @@ export async function discoverSocialReelsCandidates(
             input.duration_first_manifest.max_per_duration_bucket,
             input.duration_first_manifest.max_total_bucket_memberships
           )
+        : isEditorialWordId && input.editorial_word_id
+          ? openAISocialReelsEditorialWordIdResponseFormat(input.editorial_word_id.max_reels)
         : isDiscoveryMatrix
           ? openAISocialReelsDiscoveryMatrixResponseFormat(input.max_unique_moments, input.max_per_bucket)
           : openAISocialReelsShortlistResponseFormat(effectiveCandidateCount),
@@ -1221,6 +1349,57 @@ export async function discoverSocialReelsCandidates(
     }
 
     const parsedOutput = JSON.parse(outputText) as unknown;
+    if (isEditorialWordId) {
+      const editorialWordIdResponse = socialReelsEditorialWordIdResponseSchema.parse(parsedOutput);
+      const responseParseMs = Date.now() - responseParseStartedMs;
+
+      return {
+        response: null,
+        matrixResponse: null,
+        durationFirstManifest: null,
+        editorialWordIdResponse,
+        usage: body.usage || null,
+        providerResponseId: body.id || null,
+        model: body.model || model,
+        mock: false,
+        requestedCandidateCount,
+        effectiveCandidateCount: input.editorial_word_id?.max_reels ?? effectiveCandidateCount,
+        returnedCandidateCount: editorialWordIdResponse.reels.length,
+        filteredCandidateCount: 0,
+        eligibleDurationWindowCount: durationWindows.length,
+        windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
+        excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
+        averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+        demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+        selectedWindowQualityRange,
+        selectedWindowQualityDistribution,
+        selectedWindowReasonCounts,
+        durationWindowCountSentToModel,
+        promptContextCharCountSentToModel,
+        liveFilterReasons: { duration_outside_bucket: 0 },
+        returnedDurationSecondsRange: { min: null, max: null },
+        discoveryMode: "editorial_word_id",
+        diagnostics: {
+          mode: "live",
+          openaiRequestStartedAt,
+          openaiElapsedMs,
+          responseParseMs,
+          provider: "openai",
+          model: body.model || model,
+          providerResponseId: body.id || null,
+          durationWindowCountSentToModel,
+          promptContextCharCountSentToModel,
+          windowsAfterQualityFilter: windowQualitySummary.windows_after_quality_filter,
+          excludedWindowReasonCounts: windowQualitySummary.excluded_window_reason_counts,
+          averageWindowQualityScore: windowQualitySummary.average_window_quality_score,
+          demotedWindowReasonCounts: windowQualitySummary.demoted_window_reason_counts,
+          selectedWindowQualityRange,
+          selectedWindowQualityDistribution,
+          selectedWindowReasonCounts,
+        },
+      };
+    }
+
     if (isDurationFirstManifest) {
       const durationFirstManifest = socialReelsDurationFirstManifestSchema.parse(parsedOutput);
       const responseParseMs = Date.now() - responseParseStartedMs;
@@ -1229,6 +1408,7 @@ export async function discoverSocialReelsCandidates(
         response: null,
         matrixResponse: null,
         durationFirstManifest,
+        editorialWordIdResponse: null,
         usage: body.usage || null,
         providerResponseId: body.id || null,
         model: body.model || model,
@@ -1279,6 +1459,7 @@ export async function discoverSocialReelsCandidates(
         response: null,
         matrixResponse,
         durationFirstManifest: null,
+        editorialWordIdResponse: null,
         usage: body.usage || null,
         providerResponseId: body.id || null,
         model: body.model || model,
@@ -1329,6 +1510,7 @@ export async function discoverSocialReelsCandidates(
       response: hydratedShortlist.response,
       matrixResponse: null,
       durationFirstManifest: null,
+      editorialWordIdResponse: null,
       usage: body.usage || null,
       providerResponseId: body.id || null,
       model: body.model || model,
@@ -1379,11 +1561,13 @@ export async function discoverSocialReelsCandidates(
       const outputText = extractOutputText(body);
       if (outputText) {
         parsedOutput = JSON.parse(outputText) as unknown;
-        const responseResult = isDurationFirstManifest
-          ? socialReelsDurationFirstManifestSchema.safeParse(parsedOutput)
-          : isDiscoveryMatrix
-            ? socialReelsDiscoveryMatrixResponseSchema.safeParse(parsedOutput)
-            : socialReelsShortlistResponseSchema.safeParse(parsedOutput);
+        const responseResult = isEditorialWordId
+          ? socialReelsEditorialWordIdResponseSchema.safeParse(parsedOutput)
+          : isDurationFirstManifest
+            ? socialReelsDurationFirstManifestSchema.safeParse(parsedOutput)
+            : isDiscoveryMatrix
+              ? socialReelsDiscoveryMatrixResponseSchema.safeParse(parsedOutput)
+              : socialReelsShortlistResponseSchema.safeParse(parsedOutput);
         if (!responseResult.success) zodError = responseResult.error;
       } else {
         parseError = new Error("missing_output_text");
@@ -1417,7 +1601,7 @@ export async function discoverSocialReelsCandidates(
         selectedWindowQualityRange,
         selectedWindowQualityDistribution,
         selectedWindowReasonCounts,
-        schemaMode: isDurationFirstManifest ? "duration_first_manifest" : isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist_reduced",
+        schemaMode: isEditorialWordId ? "editorial_word_id" : isDurationFirstManifest ? "duration_first_manifest" : isDiscoveryMatrix ? "discovery_matrix" : "live_shortlist_reduced",
       }),
     });
   }

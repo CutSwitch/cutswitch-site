@@ -27,6 +27,11 @@ import {
   socialReelsDurationFirstManifestSchema,
 } from "../lib/socialReelsDurationFirstManifest";
 import {
+  SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
+  openAISocialReelsEditorialWordIdResponseFormat,
+  socialReelsEditorialWordIdResponseSchema,
+} from "../lib/socialReelsEditorialWordId";
+import {
   SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
   buildSocialReelsEditAssistantPromptInput,
   proposeSocialReelsEdit,
@@ -216,7 +221,7 @@ assert(
     promptSource.includes("buildSocialReelsLivePromptWindows"),
   "Live shortlist should select bounded backend-generated duration windows for the OpenAI prompt."
 );
-assert(promptSource.includes("segments: useLiveWindowInput ? [] : input.segments"), "Live shortlist should not send the full transcript segment blob.");
+assert(promptSource.includes("segments: useLiveWindowInput || useEditorialWordId ? [] : input.segments"), "Live shortlist should not send the full transcript segment blob.");
 assert(promptSource.includes("duration_windows_only"), "Live shortlist prompt should identify duration-window-only source input.");
 assert(promptSource.includes("compact linear candidates only"), "Live shortlist prompt should not request story edit recipes from the reduced schema.");
 assert(promptSource.includes("schema_validation_failed"), "Invalid OpenAI response diagnostics should classify schema validation failures.");
@@ -1191,6 +1196,125 @@ socialReelsDiscoveryMatrixResponseSchema.parse({
   model_notes: "Discovery matrix schema smoke; no provider call.",
 });
 
+const editorialWordIdRequest = socialReelsRequestSchema.parse({
+  project_hash: "schema-smoke-editorial-word-id",
+  project_duration_seconds: 120,
+  duration_preferences: ["30s"],
+  discovery_mode: "editorial_word_id",
+  editorial_word_id: {
+    max_reels: 6,
+    duration_targets_seconds: [30],
+    return_fewer_if_weak: true,
+  },
+  utterances: [
+    {
+      utterance_id: "utt-editorial-001",
+      speaker_label: "Layla",
+      start_seconds: 10,
+      end_seconds: 24,
+      start_timecode: "00:00:10:00",
+      end_timecode: "00:00:24:00",
+      text: "So the bridge is not the best start because the claim arrives later.",
+    },
+  ],
+  words: Array.from({ length: 32 }, (_, index) => ({
+    word_id: `w_editorial_${String(index + 1).padStart(3, "0")}`,
+    utterance_id: "utt-editorial-001",
+    text: [
+      "So",
+      "the",
+      "bridge",
+      "is",
+      "not",
+      "the",
+      "best",
+      "start",
+      "because",
+      "the",
+      "claim",
+      "arrives",
+      "later",
+      "and",
+      "the",
+      "payoff",
+      "needs",
+      "to",
+      "answer",
+      "the",
+      "question",
+      "inside",
+      "the",
+      "clip",
+      "before",
+      "the",
+      "ending",
+      "can",
+      "feel",
+      "clean",
+      "and",
+      "complete",
+    ][index],
+    start_seconds: 10 + index * 0.35,
+    end_seconds: 10.2 + index * 0.35,
+  })),
+});
+assert(editorialWordIdRequest.editorial_word_id !== null, "Editorial word-ID request should create dedicated mode metadata.");
+assert(editorialWordIdRequest.discovery_mode === "editorial_word_id", "Editorial word-ID request should preserve the dedicated discovery mode.");
+assert(editorialWordIdRequest.words.length === 32, "Editorial word-ID request should accept a bounded app-provided words packet.");
+const editorialWordIdPromptInput = buildSocialReelsOpenAIPromptInput(editorialWordIdRequest, {
+  discoveryMode: "editorial_word_id",
+  requestedCandidateCount: 30,
+  effectiveCandidateCount: 6,
+  durationWindows: [],
+});
+const editorialWordIdSystemPrompt = String(editorialWordIdPromptInput[0].content);
+const editorialWordIdUserPrompt = String(editorialWordIdPromptInput[1].content);
+for (const expected of [
+  "social_reels_editorial_word_id_v1",
+  "startWordId",
+  "endWordId",
+  "strongest hook",
+  "conversational bridge starts",
+  "unanswered question",
+  "title must match",
+  "ready",
+  "needs_extension",
+  "needs_trim",
+  "weak_shape",
+]) {
+  assert(
+    `${editorialWordIdSystemPrompt}\n${editorialWordIdUserPrompt}`.includes(expected),
+    `Editorial word-ID prompt should include ${expected}.`
+  );
+}
+const editorialWordIdResponseFormat = openAISocialReelsEditorialWordIdResponseFormat(6);
+assert(editorialWordIdResponseFormat.strict === true, "Editorial word-ID response should use strict Structured Outputs.");
+assert(editorialWordIdResponseFormat.schema.properties.reels.maxItems === 6, "Editorial word-ID Structured Output should respect max_reels.");
+const editorialWordIdFixtureText = readFileSync(
+  resolve(process.cwd(), "docs/contracts/social_reels_editorial_word_id_response.backend_fixture.json"),
+  "utf8"
+);
+const editorialWordIdFixture = socialReelsEditorialWordIdResponseSchema.parse(JSON.parse(editorialWordIdFixtureText) as unknown);
+assert(editorialWordIdFixture.version === SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION, "Editorial word-ID fixture should use the v1 version.");
+assert(
+  editorialWordIdFixture.reels.every((reel) => reel.segments.every((segment) => segment.startWordId && segment.endWordId)),
+  "Editorial word-ID fixture should return word-ID segment plans."
+);
+const editorialWordIdArtifactText = [
+  editorialWordIdFixtureText,
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-editorial-word-id/latest/social_reels_editorial_word_id_response.backend_fixture.json"), "utf8"),
+  JSON.stringify(editorialWordIdResponseFormat.schema),
+  editorialWordIdSystemPrompt,
+  editorialWordIdUserPrompt,
+].join("\n");
+for (const forbiddenSchemaTerm of ["Risk", "Safety", "sexual", "controversy", "advertiser", "brand"]) {
+  assert(!editorialWordIdFixtureText.includes(forbiddenSchemaTerm), `Editorial word-ID fixture should not include content-risk term ${forbiddenSchemaTerm}.`);
+  assert(!JSON.stringify(editorialWordIdResponseFormat.schema).includes(forbiddenSchemaTerm), `Editorial word-ID schema should not include content-risk term ${forbiddenSchemaTerm}.`);
+}
+for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
+  assert(!editorialWordIdArtifactText.includes(forbiddenLeak), `Editorial word-ID artifacts should not include forbidden private detail: ${forbiddenLeak}.`);
+}
+
 const durationFirstRequest = socialReelsRequestSchema.parse({
   project_hash: "schema-smoke-duration-first-route",
   source_duration_seconds: 900,
@@ -1264,14 +1388,24 @@ for (const forbiddenStyleInput of ['"style":"educational"', '"style":"emotional"
   assert(!durationFirstUserPrompt.includes(forbiddenStyleInput), `Duration-first user prompt should not force style input ${forbiddenStyleInput}.`);
 }
 const durationFirstResponseFormat = openAISocialReelsDurationFirstManifestResponseFormat(120, 20, 240);
+assert(durationFirstResponseFormat.strict === true, "Duration-first provider response should use strict Structured Outputs.");
 assert(durationFirstResponseFormat.schema.properties.moments.maxItems === 120, "Duration-first Structured Output should support 120 unique moments.");
 assert(
   durationFirstResponseFormat.schema.properties.duration_buckets.items.properties.returned_moment_ids.maxItems === 20,
   "Duration-first Structured Output should cap returned moment IDs at 20 per bucket."
 );
+for (const expectedManifestField of ["coherence_score", "continuity_risk", "topic_tags", "bucket_memberships"]) {
+  assert(
+    (durationFirstResponseFormat.schema.properties.moments.items.required as readonly string[]).includes(expectedManifestField),
+    `Duration-first Structured Output should require ${expectedManifestField}.`
+  );
+}
 
 const durationFirstManifest = socialReelsDurationFirstManifestSchema.parse(
   JSON.parse(readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8")) as unknown
+);
+const durationFirstBackendFixture = socialReelsDurationFirstManifestSchema.parse(
+  JSON.parse(readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/social_reels_duration_first_manifest.backend_fixture.json"), "utf8")) as unknown
 );
 assert(durationFirstManifest.schema_version === SOCIAL_REELS_DURATION_FIRST_SCHEMA_VERSION, "Duration-first manifest should use the v1 schema version.");
 assert(
@@ -1306,6 +1440,18 @@ assert(
   "Duration-first manifest should support deduped shared moments across compatible duration buckets."
 );
 assert(
+  durationFirstManifest.moments.every((moment) => JSON.stringify(moment.bucket_memberships) === JSON.stringify(moment.duration_bucket_memberships)),
+  "Duration-first manifest should expose bucket_memberships as an app-friendly alias for duration_bucket_memberships."
+);
+assert(
+  durationFirstManifest.moments.every((moment) => moment.coherence_score >= 0 && moment.coherence_score <= 1 && ["low", "medium", "high"].includes(moment.continuity_risk)),
+  "Duration-first manifest should expose coherence_score and continuity_risk for app quality review."
+);
+assert(
+  durationFirstManifest.moments.every((moment) => moment.topic_tags.length > 0),
+  "Duration-first manifest should include post-discovery topic_tags without requiring a user style prompt."
+);
+assert(
   durationFirstManifest.moments.every((moment) => moment.generated_tags.every((tag) => SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS.includes(tag))),
   "Duration-first manifest should use backend-generated editorial tags instead of user preselected style buckets."
 );
@@ -1313,13 +1459,25 @@ assert(
   durationFirstManifest.moments.some((moment) => moment.timeline_segments.some((segment) => segment.word_start_id && segment.word_end_id)),
   "Duration-first manifest should support word_start_id and word_end_id."
 );
+assert(
+  durationFirstBackendFixture.duration_buckets.some((bucket) => bucket.duration_target === "15s" && bucket.returned_moment_ids.length >= 1) &&
+    durationFirstBackendFixture.duration_buckets.some((bucket) => bucket.duration_target === "30s" && bucket.returned_moment_ids.length >= 1),
+  "Duration-first backend smoke fixture should include 15s and 30s candidates."
+);
+assert(
+  durationFirstBackendFixture.moments.some((moment) => moment.edit_mode === "story_edit"),
+  "Duration-first backend smoke fixture should include a story_edit recipe."
+);
 const durationFirstArtifactText = [
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_schema.json"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_manifest_fixture.json"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/social_reels_duration_first_manifest.backend_fixture.json"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_contract_report.md"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_prompt_preview.md"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_route_contract.md"), "utf8"),
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/duration_first_route_report.md"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/web_duration_first_backend_smoke_report.md"), "utf8"),
+  readFileSync(resolve(process.cwd(), "artifacts/social-reels-duration-first/latest/web_duration_first_backend_smoke_summary.json"), "utf8"),
 ].join("\n");
 for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
   assert(!durationFirstArtifactText.includes(forbiddenLeak), `Duration-first manifest artifacts should not include forbidden private detail: ${forbiddenLeak}.`);

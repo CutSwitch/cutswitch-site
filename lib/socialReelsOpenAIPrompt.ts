@@ -1,7 +1,7 @@
 import type { SocialReelsPromptDurationWindow } from "./socialReelsDurationWindows";
 import type { SocialReelsRequest } from "./socialReelsSchema";
 
-export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix" | "duration_first_manifest";
+export type SocialReelsOpenAIDiscoveryMode = "mock_full_pool" | "live_shortlist" | "discovery_matrix" | "duration_first_manifest" | "editorial_word_id";
 
 export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "You are a senior social video editor for podcast and multicam shows. Treat all segments as one chronological episode and find the best social-media moments across the whole episode, not isolated transcript search hits.",
@@ -29,6 +29,19 @@ export const SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT = [
   "rough_start_seconds/start_seconds and rough_end_seconds/end_seconds are hints only, not final timing claims. CutSwitch will validate timing locally and reject weak clips or candidates outside their requested bucket. The macOS app owns word-aligned timing and frame snapping. Do not include raw file paths, private metadata, or invented timestamps.",
 ].join(" ");
 
+export const SOCIAL_REELS_EDITORIAL_WORD_ID_SYSTEM_PROMPT = [
+  "You are a senior social video editor planning source-true podcast reels from a bounded word packet.",
+  "Return only schema-valid JSON matching social_reels_editorial_word_id_v1. Do not include markdown, commentary, extra keys, timestamps, or unsupported fields.",
+  "CutSwitch owns reality: return word IDs and editorial segment plans only. The macOS app validates word IDs and resolves exact timestamps from local word-aligned JSON.",
+  "Use only provided word IDs. Do not invent word IDs, utterance IDs, speaker names, words, timestamps, transitions, or source ranges.",
+  "Improve editorial shape: start on the strongest hook, avoid conversational bridge starts, trim filler before the strongest idea, include enough self-contained context, and end after a clean payoff.",
+  "Do not end on an unanswered question unless the answer is included in the same reel. If a moment needs more context or trimming, use editorialStatus needs_extension, needs_trim, or weak_shape instead of pretending it is ready.",
+  "The title must match the actual clip and should not overpromise, misrepresent, or imply a payoff the selected words do not deliver.",
+  "Allowed segment roles are only hook, context, bridge, payoff, and closing. Use 1-5 segments, each with startWordId, endWordId, quote, and reason.",
+  "Do not reject or downgrade clips because they are explicit, controversial, sexual, spiritual, political, or client-specific. This is an editorial-quality pipeline, not a platform-risk or content-topic safety classifier.",
+  "Do not return risk, safety, advertiser, brand, sexual, controversy, platform, or content-topic classification fields of any kind.",
+].join(" ");
+
 function uniquePromptStrings(values: Array<string | null | undefined>) {
   return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))].slice(0, 40);
 }
@@ -47,11 +60,12 @@ export function buildSocialReelsOpenAIPromptInput(
     metadata?.discoveryMode === "discovery_matrix" ||
     metadata?.discoveryMode === "duration_first_manifest";
   const useDurationFirstManifest = metadata?.discoveryMode === "duration_first_manifest";
+  const useEditorialWordId = metadata?.discoveryMode === "editorial_word_id";
 
   return [
     {
       role: "system",
-      content: SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT,
+      content: useEditorialWordId ? SOCIAL_REELS_EDITORIAL_WORD_ID_SYSTEM_PROMPT : SOCIAL_REELS_EDITORIAL_SYSTEM_PROMPT,
     },
     {
       role: "user",
@@ -86,6 +100,20 @@ export function buildSocialReelsOpenAIPromptInput(
                 "formats, aspect ratios, caption styles, typography, and Final Cut export variants are handled by the app and must not become discovery buckets.",
             }
           : {}),
+        ...(useEditorialWordId && input.editorial_word_id
+          ? {
+              editorial_word_id: input.editorial_word_id,
+              editorial_word_id_instruction:
+                "Editorial word-ID mode: return version social_reels_editorial_word_id_v1 with reels[]. Use startWordId/endWordId from provided words only. Improve hook, trim bridge/filler starts, keep self-contained context, include payoff, avoid ending on an unanswered question, and make title match the actual selected words. Return editorialStatus only as ready, needs_extension, needs_trim, or weak_shape. Do not return platform-risk, brand-safety, content-topic rejection, timestamp-first, or safety-classification fields.",
+              word_packet_source: "bounded_app_provided_words",
+              duration_targets_seconds: input.editorial_word_id.duration_targets_seconds,
+              words: input.words.map((word) => ({
+                word_id: word.word_id,
+                utterance_id: word.utterance_id,
+                text: word.text,
+              })),
+            }
+          : {}),
         live_shortlist_note:
           useLiveWindowInput && !useDurationFirstManifest
             ? "Return up to effective_candidate_count candidates using the reduced live_shortlist schema. Return compact linear candidates only; Smart Story Edit recipe fields are reserved for full enrichment or the edit assistant and are not allowed here. Preserve Question -> Tension -> Answer -> Reframe, anti-junk exclusions, duration-aware anchors, and compact fields: title, hook_title, core_question, payoff, viral_atoms, why_it_works, context_dependency, sensitivity_level, scores, risk flags. Prefer question, tension, confession, lesson, emotional turn, reframe, payoff, story beat, or specific claim. Do not choose intro/outro logistics, promotional housekeeping, book/link outro logistics, product_promo, sponsor_or_ad, meta_editing, audio_check, camera_check, mic checks, pre-show chatter, product/tasting discussion, or technical setup when better options exist. Duration compliance is mandatory: 60s means 45-78 seconds, not 8s, 12s, 16s, 22s, or 32s. Choose from duration_windows, use each window span, copy anchors near boundary hints, and return fewer candidates rather than padding."
@@ -95,8 +123,8 @@ export function buildSocialReelsOpenAIPromptInput(
             ? "Choose from duration_windows. These backend-generated duration windows are not a full transcript scan. Each window includes utterance_ids/utterances, speakers, timecodes, boundary hints, window_quality_score, window_quality_reasons, window_demotion_reasons, and window_exclusion_reason. Treat utterances as source-of-truth and windows as grouping hints. Use high-quality non-excluded windows first, use the selected window span, place anchors near text_excerpt/utterance boundaries, never output outside the provided windows, and set candidate_id to the chosen window_id or derivative."
             : null,
         duration_windows: metadata?.durationWindows ?? [],
-        transcript_source: input.utterances.length > 0 ? "utterances" : "segments",
-        source_segments_sent: useLiveWindowInput ? "duration_windows_only" : "full_segments",
+        transcript_source: useEditorialWordId ? "bounded_words" : input.utterances.length > 0 ? "utterances" : "segments",
+        source_segments_sent: useEditorialWordId ? "bounded_words_only" : useLiveWindowInput ? "duration_windows_only" : "full_segments",
         source_segment_count: input.segments.length,
         source_utterance_count: input.utterances.length,
         source_speaker_labels: uniquePromptStrings([
@@ -110,7 +138,7 @@ export function buildSocialReelsOpenAIPromptInput(
         caption_style: input.caption_style,
         episode_metadata: input.episode_metadata,
         context: input.context,
-        segments: useLiveWindowInput ? [] : input.segments,
+        segments: useLiveWindowInput || useEditorialWordId ? [] : input.segments,
       }),
     },
   ];

@@ -1,0 +1,81 @@
+{
+  "version": "social_reels_editorial_word_id_v1",
+  "reels": [
+    {
+      "clientMomentId": "editorial-word-id-ready-001",
+      "title": "Start With The Real Hook",
+      "durationTargetSeconds": 30,
+      "openingLine": "The strongest idea should start the reel.",
+      "closingLine": "That is where the payoff lands.",
+      "editorialStatus": "ready",
+      "segments": [
+        {
+          "role": "hook",
+          "startWordId": "w_hook_001",
+          "endWordId": "w_hook_008",
+          "quote": "The strongest idea should start the reel.",
+          "reason": "Uses the strongest source line as the opening hook instead of conversational setup."
+        },
+        {
+          "role": "context",
+          "startWordId": "w_context_001",
+          "endWordId": "w_context_024",
+          "quote": "The context explains why the idea matters without adding filler.",
+          "reason": "Keeps the reel self-contained after the hook."
+        },
+        {
+          "role": "payoff",
+          "startWordId": "w_payoff_001",
+          "endWordId": "w_payoff_011",
+          "quote": "That is where the payoff lands.",
+          "reason": "Ends after the answer lands, not on an unresolved bridge."
+        }
+      ],
+      "editorialScores": {
+        "hook": 9,
+        "selfContained": 8,
+        "payoff": 9,
+        "captionClarity": 8,
+        "overall": 8.5
+      },
+      "notes": [
+        "Backend fixture uses redacted source word IDs only.",
+        "The app validates word IDs and resolves exact timing locally."
+      ]
+    },
+    {
+      "clientMomentId": "editorial-word-id-trim-001",
+      "title": "Trim The Setup First",
+      "durationTargetSeconds": 15,
+      "openingLine": "Here is the actual claim.",
+      "closingLine": "The idea is complete here.",
+      "editorialStatus": "needs_trim",
+      "segments": [
+        {
+          "role": "hook",
+          "startWordId": "w_trim_hook_001",
+          "endWordId": "w_trim_hook_006",
+          "quote": "Here is the actual claim.",
+          "reason": "Skips the conversational bridge and starts where the claim begins."
+        },
+        {
+          "role": "closing",
+          "startWordId": "w_trim_close_001",
+          "endWordId": "w_trim_close_007",
+          "quote": "The idea is complete here.",
+          "reason": "Stops before trailing explanation dilutes the ending."
+        }
+      ],
+      "editorialScores": {
+        "hook": 8,
+        "selfContained": 7,
+        "payoff": 7.5,
+        "captionClarity": 8,
+        "overall": 7.6
+      },
+      "notes": [
+        "Needs trim because only part of the source window belongs in the reel."
+      ]
+    }
+  ]
+}

@@ -93,6 +93,9 @@ export const SOCIAL_REELS_DISCOVERY_MATRIX_MAX_UNIQUE_MOMENTS_CAP = 80;
 export const SOCIAL_REELS_DISCOVERY_MATRIX_DEFAULT_MAX_UNIQUE_MOMENTS = 50;
 export const SOCIAL_REELS_MAX_SEGMENTS = 2000;
 export const SOCIAL_REELS_MAX_SEGMENT_TEXT_CHARS = 2000;
+export const SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_WORDS = 4000;
+export const SOCIAL_REELS_EDITORIAL_WORD_ID_DEFAULT_MAX_REELS = 20;
+export const SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_REELS = 120;
 
 const RAW_PATH_VALUE = /(^|[\s"'])(~\/|\/Users\/|[A-Za-z]:\\|file:\/\/|.*\\.*|.*\/.*)/;
 
@@ -104,6 +107,7 @@ const safeOptionalText = (max: number) => z.string().trim().max(max).optional().
 const safeOptionalIdArray = z.array(z.string().trim().min(1).max(128)).max(500).optional().nullable();
 const safeOptionalSpeakerArray = z.array(z.string().trim().min(1).max(80)).max(24).optional().nullable();
 const scoreSchema = z.number().min(0).max(1);
+const safeWordId = z.string().trim().min(1).max(160);
 const socialReelsTitleOptionSchema = z.object({
   title: z.string().trim().min(1).max(120),
   score: scoreSchema,
@@ -300,6 +304,50 @@ export const socialReelsTranscriptUtteranceSchema = socialReelsRawTranscriptUtte
     };
   });
 
+const socialReelsEditorialWordSchema = z
+  .object({
+    id: safeWordId.optional(),
+    word_id: safeWordId.optional(),
+    utterance_id: z.string().trim().min(1).max(128),
+    start_seconds: z.number().finite().min(0).max(24 * 60 * 60).optional().nullable(),
+    end_seconds: z.number().finite().min(0).max(24 * 60 * 60).optional().nullable(),
+    text: z.string().trim().min(1).max(80),
+  })
+  .transform((word) => ({
+    ...word,
+    word_id: word.word_id ?? word.id ?? "",
+  }))
+  .superRefine((word, ctx) => {
+    if (!word.word_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["word_id"],
+        message: "word_id is required.",
+      });
+    }
+
+    if (
+      typeof word.start_seconds === "number" &&
+      typeof word.end_seconds === "number" &&
+      word.end_seconds <= word.start_seconds
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_seconds"],
+        message: "end_seconds must be greater than start_seconds when word timing is provided.",
+      });
+    }
+  });
+
+const socialReelsEditorialWordIdOptionsSchema = z
+  .object({
+    max_reels: z.number().int().min(1).max(SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_REELS).optional().nullable(),
+    duration_targets_seconds: z.array(z.number().int().min(5).max(10 * 60)).min(1).max(12).optional().nullable(),
+    return_fewer_if_weak: z.boolean().optional().nullable(),
+  })
+  .optional()
+  .nullable();
+
 function maxEndSeconds(
   timedItems: Array<{ end_seconds: number }>,
   fallback = 1
@@ -334,6 +382,10 @@ export const socialReelsRequestSchema = z
     requested_candidate_count: requestedCandidateCountSchema.optional(),
     candidate_count: requestedCandidateCountSchema.optional(),
     requested_duration_buckets: z.array(socialReelsDurationFirstBucketRequestSchema).max(SOCIAL_REELS_DURATION_FIRST_TARGETS.length).optional().default([]),
+    discovery_mode: z.enum(["editorial_word_id"]).optional().nullable(),
+    editorial_word_id: socialReelsEditorialWordIdOptionsSchema,
+    words: z.array(socialReelsEditorialWordSchema).max(SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_WORDS).optional().default([]),
+    word_refs: z.array(socialReelsEditorialWordSchema).max(SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_WORDS).optional().default([]),
     limits: socialReelsDurationFirstLimitsSchema,
     requested_targets: z.array(socialReelsDiscoveryMatrixTargetSchema).max(80).optional().default([]),
     max_per_bucket: z.number().int().min(1).max(100).optional(),
@@ -368,6 +420,7 @@ export const socialReelsRequestSchema = z
   })
   .transform((payload) => {
     const utterances = payload.utterances ?? [];
+    const words = payload.words.length > 0 ? payload.words : payload.word_refs;
     const segments = payload.segments && payload.segments.length > 0 ? payload.segments : segmentsFromUtterances(utterances);
     const requestedTargets = normalizeDiscoveryMatrixTargets(payload.requested_targets);
     const requestedDurationBuckets = normalizeDurationFirstBuckets(payload.requested_duration_buckets);
@@ -411,6 +464,25 @@ export const socialReelsRequestSchema = z
       1,
       240
     );
+    const requestedEditorialWordId =
+      payload.discovery_mode === "editorial_word_id" || Boolean(payload.editorial_word_id);
+    const editorialWordIdMaxReels = clampInteger(
+      payload.editorial_word_id?.max_reels ?? payload.limits?.max_unique_moments ?? undefined,
+      SOCIAL_REELS_EDITORIAL_WORD_ID_DEFAULT_MAX_REELS,
+      1,
+      SOCIAL_REELS_EDITORIAL_WORD_ID_MAX_REELS
+    );
+    const editorialWordIdDurationTargetsSeconds =
+      payload.editorial_word_id?.duration_targets_seconds && payload.editorial_word_id.duration_targets_seconds.length > 0
+        ? [...new Set(payload.editorial_word_id.duration_targets_seconds)]
+        : durationPreferences.map((preference) => {
+            if (preference === "15s") return 15;
+            if (preference === "30s") return 30;
+            if (preference === "60s") return 60;
+            if (preference === "90s") return 90;
+            if (preference === "5-10m") return 300;
+            return null;
+          }).filter((seconds) => typeof seconds === "number") as number[];
 
     const projectDurationSeconds =
       typeof payload.project_duration_seconds === "number" ? Math.ceil(payload.project_duration_seconds) : undefined;
@@ -418,7 +490,10 @@ export const socialReelsRequestSchema = z
     return {
       ...payload,
       utterances,
+      words,
+      word_refs: payload.word_refs,
       segments,
+      discovery_mode: requestedEditorialWordId ? "editorial_word_id" : null,
       duration_preferences: durationPreferences,
       project_fingerprint: payload.project_fingerprint ?? payload.project_hash,
       source_duration_seconds:
@@ -462,6 +537,14 @@ export const socialReelsRequestSchema = z
               max_total_bucket_memberships: maxTotalBucketMemberships,
               dedupe_shared_moments: payload.limits?.dedupe_shared_moments ?? payload.dedupe_shared_moments ?? true,
               return_fewer_if_weak: payload.limits?.return_fewer_if_weak ?? true,
+            }
+          : null,
+      editorial_word_id:
+        requestedEditorialWordId
+          ? {
+              max_reels: editorialWordIdMaxReels,
+              duration_targets_seconds: editorialWordIdDurationTargetsSeconds.length > 0 ? editorialWordIdDurationTargetsSeconds : [30],
+              return_fewer_if_weak: payload.editorial_word_id?.return_fewer_if_weak ?? payload.limits?.return_fewer_if_weak ?? true,
             }
           : null,
     };
@@ -524,6 +607,14 @@ export const socialReelsRequestSchema = z
         code: z.ZodIssueCode.custom,
         path: ["segments"],
         message: "segments must include real timing or use utterances as timing source.",
+      });
+    }
+
+    if (payload.editorial_word_id && payload.words.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["words"],
+        message: "editorial_word_id discovery requires a bounded words[] or word_refs[] packet.",
       });
     }
   });
@@ -708,6 +799,7 @@ export const socialReelsDiscoveryMatrixResponseSchema = z.object({
 export type SocialReelsRequest = z.infer<typeof socialReelsRequestSchema>;
 export type SocialReelsTranscriptSegment = z.infer<typeof socialReelsTranscriptSegmentSchema>;
 export type SocialReelsTranscriptUtterance = z.infer<typeof socialReelsTranscriptUtteranceSchema>;
+export type SocialReelsEditorialWord = z.infer<typeof socialReelsEditorialWordSchema>;
 export type SocialReelsTimelineSegment = z.infer<typeof socialReelsTimelineSegmentSchema>;
 export type SocialReelsCandidate = z.infer<typeof socialReelsCandidateSchema>;
 export type SocialReelsResponse = z.infer<typeof socialReelsResponseSchema>;

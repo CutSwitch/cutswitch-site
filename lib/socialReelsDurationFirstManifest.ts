@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   SOCIAL_REELS_COMPOSITION_TYPES,
+  SOCIAL_REELS_CONTINUITY_RISKS,
   SOCIAL_REELS_EDIT_MODES,
   SOCIAL_REELS_TIMELINE_SEGMENT_ROLES,
 } from "./socialReelsSchema";
@@ -153,6 +154,8 @@ export const socialReelsDurationFirstMomentSchema = z
     opening_hook: safeText(240),
     closing_line: safeText(240),
     score: manifestScoreSchema,
+    coherence_score: z.number().finite().min(0).max(1),
+    continuity_risk: z.enum(SOCIAL_REELS_CONTINUITY_RISKS),
     duration_seconds: z
       .number()
       .finite()
@@ -162,10 +165,15 @@ export const socialReelsDurationFirstMomentSchema = z
       .array(socialReelsDurationFirstMembershipSchema)
       .min(1)
       .max(SOCIAL_REELS_DURATION_FIRST_TARGETS.length),
+    bucket_memberships: z
+      .array(socialReelsDurationFirstMembershipSchema)
+      .min(1)
+      .max(SOCIAL_REELS_DURATION_FIRST_TARGETS.length),
     generated_tags: z
       .array(socialReelsDurationFirstGeneratedTagSchema)
       .min(1)
       .max(SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS.length),
+    topic_tags: z.array(z.string().trim().min(1).max(80)).min(1).max(12),
     primary_speakers: z.array(z.string().trim().min(1).max(80)).min(1).max(24),
     timeline_segments: z
       .array(socialReelsDurationFirstTimelineSegmentSchema)
@@ -224,6 +232,18 @@ export const socialReelsDurationFirstMomentSchema = z
         path: ["duration_seconds"],
         message:
           "duration_seconds must match timeline segment duration within two seconds.",
+      });
+    }
+
+    if (
+      JSON.stringify(moment.bucket_memberships) !==
+      JSON.stringify(moment.duration_bucket_memberships)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["bucket_memberships"],
+        message:
+          "bucket_memberships must mirror duration_bucket_memberships for app compatibility.",
       });
     }
   });
@@ -495,9 +515,13 @@ export function openAISocialReelsDurationFirstManifestResponseFormat(
               "opening_hook",
               "closing_line",
               "score",
+              "coherence_score",
+              "continuity_risk",
               "duration_seconds",
               "duration_bucket_memberships",
+              "bucket_memberships",
               "generated_tags",
+              "topic_tags",
               "primary_speakers",
               "timeline_segments",
               "reason_it_works",
@@ -515,8 +539,51 @@ export function openAISocialReelsDurationFirstManifestResponseFormat(
               opening_hook: { type: "string", minLength: 1, maxLength: 240 },
               closing_line: { type: "string", minLength: 1, maxLength: 240 },
               score: { type: "number", minimum: 0, maximum: 100 },
+              coherence_score: { type: "number", minimum: 0, maximum: 1 },
+              continuity_risk: {
+                type: "string",
+                enum: SOCIAL_REELS_CONTINUITY_RISKS,
+              },
               duration_seconds: { type: "number", minimum: 5, maximum: 1200 },
               duration_bucket_memberships: {
+                type: "array",
+                minItems: 1,
+                maxItems: SOCIAL_REELS_DURATION_FIRST_TARGETS.length,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: [
+                    "bucket_id",
+                    "duration_target",
+                    "rank",
+                    "bucket_score",
+                    "why_it_fits",
+                  ],
+                  properties: {
+                    bucket_id: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 160,
+                    },
+                    duration_target: {
+                      type: "string",
+                      enum: SOCIAL_REELS_DURATION_FIRST_TARGETS,
+                    },
+                    rank: {
+                      type: "integer",
+                      minimum: 1,
+                      maximum: boundedMaxPerDurationBucket,
+                    },
+                    bucket_score: { type: "number", minimum: 0, maximum: 100 },
+                    why_it_fits: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 360,
+                    },
+                  },
+                },
+              },
+              bucket_memberships: {
                 type: "array",
                 minItems: 1,
                 maxItems: SOCIAL_REELS_DURATION_FIRST_TARGETS.length,
@@ -562,6 +629,12 @@ export function openAISocialReelsDurationFirstManifestResponseFormat(
                   type: "string",
                   enum: SOCIAL_REELS_DURATION_FIRST_GENERATED_TAGS,
                 },
+              },
+              topic_tags: {
+                type: "array",
+                minItems: 1,
+                maxItems: 12,
+                items: { type: "string", minLength: 1, maxLength: 80 },
               },
               primary_speakers: {
                 type: "array",

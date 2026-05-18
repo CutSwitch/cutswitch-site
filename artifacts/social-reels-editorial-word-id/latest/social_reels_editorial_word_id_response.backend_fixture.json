@@ -76,6 +76,81 @@
       "notes": [
         "Needs trim because only part of the source window belongs in the reel."
       ]
+    },
+    {
+      "clientMomentId": "editorial-word-id-extension-001",
+      "title": "The Question Needs The Answer",
+      "durationTargetSeconds": 30,
+      "openingLine": "What changes when the answer is missing?",
+      "closingLine": "The answer needs the next source words.",
+      "editorialStatus": "needs_extension",
+      "segments": [
+        {
+          "role": "hook",
+          "startWordId": "w_question_001",
+          "endWordId": "w_question_009",
+          "quote": "What changes when the answer is missing?",
+          "reason": "The hook is clear, but the selected words do not yet include the answer."
+        },
+        {
+          "role": "context",
+          "startWordId": "w_question_context_001",
+          "endWordId": "w_question_context_010",
+          "quote": "The setup creates curiosity but stops before resolution.",
+          "reason": "Marks the current selection as incomplete instead of pretending it is ready."
+        }
+      ],
+      "editorialScores": {
+        "hook": 7.5,
+        "selfContained": 5,
+        "payoff": 3,
+        "captionClarity": 6,
+        "overall": 5.2
+      },
+      "notes": [
+        "Needs extension because the question is not answered inside the selected words."
+      ]
+    },
+    {
+      "clientMomentId": "editorial-word-id-client-specific-001",
+      "title": "A Specific Client Moment Can Still Work",
+      "durationTargetSeconds": 30,
+      "openingLine": "This client moment is direct and specific.",
+      "closingLine": "The lesson lands without changing the meaning.",
+      "editorialStatus": "ready",
+      "segments": [
+        {
+          "role": "hook",
+          "startWordId": "w_client_hook_001",
+          "endWordId": "w_client_hook_009",
+          "quote": "This client moment is direct and specific.",
+          "reason": "Specific language can be editorially strong when it is source-true."
+        },
+        {
+          "role": "context",
+          "startWordId": "w_client_context_001",
+          "endWordId": "w_client_context_018",
+          "quote": "The context makes the example understandable without extra setup.",
+          "reason": "Provides enough context for a viewer who has not heard the episode."
+        },
+        {
+          "role": "payoff",
+          "startWordId": "w_client_payoff_001",
+          "endWordId": "w_client_payoff_010",
+          "quote": "The lesson lands without changing the meaning.",
+          "reason": "Ends on a clean lesson from the same source idea."
+        }
+      ],
+      "editorialScores": {
+        "hook": 8,
+        "selfContained": 8,
+        "payoff": 8,
+        "captionClarity": 8.5,
+        "overall": 8.1
+      },
+      "notes": [
+        "Direct client-specific material is evaluated for editorial shape, not rejected by topic."
+      ]
     }
   ]
 }

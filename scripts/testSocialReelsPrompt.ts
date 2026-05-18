@@ -30,6 +30,7 @@ import {
   SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
   openAISocialReelsEditorialWordIdResponseFormat,
   socialReelsEditorialWordIdResponseSchema,
+  validateSocialReelsEditorialWordIdResponseWordIds,
 } from "../lib/socialReelsEditorialWordId";
 import {
   SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
@@ -1300,6 +1301,82 @@ assert(
   editorialWordIdFixture.reels.every((reel) => reel.segments.every((segment) => segment.startWordId && segment.endWordId)),
   "Editorial word-ID fixture should return word-ID segment plans."
 );
+const editorialWordIdKnownWords = editorialWordIdFixture.reels.flatMap((reel) =>
+  reel.segments.flatMap((segment) => [
+    { word_id: segment.startWordId },
+    { word_id: segment.endWordId },
+  ])
+);
+assert(
+  validateSocialReelsEditorialWordIdResponseWordIds(editorialWordIdFixture, editorialWordIdKnownWords).reels.length === editorialWordIdFixture.reels.length,
+  "Editorial word-ID fixture should validate against provided source word IDs."
+);
+const bridgeTrimmedReel = editorialWordIdFixture.reels.find((reel) => reel.clientMomentId === "editorial-word-id-trim-001");
+assert(
+  bridgeTrimmedReel?.editorialStatus === "needs_trim" &&
+    bridgeTrimmedReel.segments[0]?.role === "hook" &&
+    !/^(so|yeah|well|um|uh)\\b/i.test(bridgeTrimmedReel.segments[0]?.quote ?? ""),
+  "Editorial word-ID bridge-start fixture should trim to a better hook."
+);
+const cleanPayoffReel = editorialWordIdFixture.reels.find((reel) => reel.clientMomentId === "editorial-word-id-ready-001");
+assert(
+  cleanPayoffReel?.editorialStatus === "ready" &&
+    cleanPayoffReel.segments.some((segment) => segment.role === "payoff") &&
+    /payoff|lands|answer/i.test(cleanPayoffReel.closingLine),
+  "Editorial word-ID clean-payoff fixture should end after an answer or payoff lands."
+);
+const unansweredQuestionReel = editorialWordIdFixture.reels.find((reel) => reel.clientMomentId === "editorial-word-id-extension-001");
+assert(
+  unansweredQuestionReel &&
+    ["needs_extension", "weak_shape"].includes(unansweredQuestionReel.editorialStatus) &&
+    unansweredQuestionReel.editorialScores.payoff < 5,
+  "Editorial word-ID unanswered-question fixture should be needs_extension or weak_shape."
+);
+const clientSpecificReel = editorialWordIdFixture.reels.find((reel) => reel.clientMomentId === "editorial-word-id-client-specific-001");
+assert(
+  clientSpecificReel?.editorialStatus === "ready" && clientSpecificReel.editorialScores.overall >= 8,
+  "Editorial word-ID direct client-specific fixture should not be rejected by topic."
+);
+const inventedWordIdResult = (() => {
+  try {
+    validateSocialReelsEditorialWordIdResponseWordIds(editorialWordIdFixture, [{ word_id: "known-but-not-used" }]);
+    return true;
+  } catch {
+    return false;
+  }
+})();
+assert(!inventedWordIdResult, "Editorial word-ID validator should reject invented or unknown word IDs.");
+const timestampOnlyEditorialWordIdResult = socialReelsEditorialWordIdResponseSchema.safeParse({
+  version: SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
+  reels: [
+    {
+      clientMomentId: "timestamp-only-001",
+      title: "Timestamp Only Should Fail",
+      durationTargetSeconds: 30,
+      openingLine: "This lacks word IDs.",
+      closingLine: "This should not parse.",
+      editorialStatus: "ready",
+      segments: [
+        {
+          role: "hook",
+          start_seconds: 10,
+          end_seconds: 20,
+          quote: "This lacks word IDs.",
+          reason: "Timestamp-only output is not edit-ready for this contract.",
+        },
+      ],
+      editorialScores: {
+        hook: 7,
+        selfContained: 7,
+        payoff: 7,
+        captionClarity: 7,
+        overall: 7,
+      },
+      notes: ["Should fail because word IDs are required."],
+    },
+  ],
+});
+assert(!timestampOnlyEditorialWordIdResult.success, "Editorial word-ID schema should reject timestamp-only provider output.");
 const editorialWordIdArtifactText = [
   editorialWordIdFixtureText,
   readFileSync(resolve(process.cwd(), "artifacts/social-reels-editorial-word-id/latest/social_reels_editorial_word_id_response.backend_fixture.json"), "utf8"),

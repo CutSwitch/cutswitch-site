@@ -61,6 +61,42 @@ export const socialReelsEditorialWordIdResponseSchema = z
 
 export type SocialReelsEditorialWordIdResponse = z.infer<typeof socialReelsEditorialWordIdResponseSchema>;
 
+export function validateSocialReelsEditorialWordIdResponseWordIds(
+  response: unknown,
+  words: Array<{ id?: string | null; word_id?: string | null }>
+) {
+  const parsed = socialReelsEditorialWordIdResponseSchema.parse(response);
+  const knownWordIds = new Set(
+    words
+      .map((word) => word.word_id ?? word.id ?? null)
+      .filter((wordId): wordId is string => Boolean(wordId))
+  );
+  const issues: z.ZodIssue[] = [];
+
+  parsed.reels.forEach((reel, reelIndex) => {
+    reel.segments.forEach((segment, segmentIndex) => {
+      if (!knownWordIds.has(segment.startWordId)) {
+        issues.push({
+          code: z.ZodIssueCode.custom,
+          path: ["reels", reelIndex, "segments", segmentIndex, "startWordId"],
+          message: "startWordId must reference a provided source word.",
+        });
+      }
+
+      if (!knownWordIds.has(segment.endWordId)) {
+        issues.push({
+          code: z.ZodIssueCode.custom,
+          path: ["reels", reelIndex, "segments", segmentIndex, "endWordId"],
+          message: "endWordId must reference a provided source word.",
+        });
+      }
+    });
+  });
+
+  if (issues.length > 0) throw new z.ZodError(issues);
+  return parsed;
+}
+
 export function openAISocialReelsEditorialWordIdResponseFormat(maxReels: number) {
   const boundedMaxReels = Math.min(120, Math.max(1, Math.round(maxReels)));
 

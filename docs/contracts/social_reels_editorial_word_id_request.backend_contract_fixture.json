@@ -1,0 +1,683 @@
+{
+  "project_hash": "editorial-word-id-contract-fixture",
+  "project_duration_seconds": 90,
+  "duration_preferences": [
+    "15s",
+    "30s"
+  ],
+  "requested_candidate_count": 30,
+  "discovery_mode": "editorial_word_id",
+  "editorial_word_id": {
+    "max_reels": 4,
+    "duration_targets_seconds": [
+      15,
+      30
+    ],
+    "return_fewer_if_weak": true
+  },
+  "utterances": [
+    {
+      "utterance_id": "utt_001",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 10.0,
+      "end_seconds": 12.8,
+      "start_timecode": "00:00:10:00",
+      "end_timecode": "00:00:12:00",
+      "text": "The strongest idea should start the reel."
+    },
+    {
+      "utterance_id": "utt_009",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 13.6,
+      "end_seconds": 17.45,
+      "start_timecode": "00:00:13:00",
+      "end_timecode": "00:00:17:00",
+      "text": "The context explains why the idea matters without adding filler."
+    },
+    {
+      "utterance_id": "utt_020",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 18.25,
+      "end_seconds": 20.7,
+      "start_timecode": "00:00:18:00",
+      "end_timecode": "00:00:20:00",
+      "text": "That is where the payoff lands."
+    },
+    {
+      "utterance_id": "utt_027",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 21.5,
+      "end_seconds": 23.6,
+      "start_timecode": "00:00:21:00",
+      "end_timecode": "00:00:23:00",
+      "text": "Here is the actual claim."
+    },
+    {
+      "utterance_id": "utt_033",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 24.4,
+      "end_seconds": 26.5,
+      "start_timecode": "00:00:24:00",
+      "end_timecode": "00:00:26:00",
+      "text": "The idea is complete here."
+    },
+    {
+      "utterance_id": "utt_039",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 27.3,
+      "end_seconds": 30.1,
+      "start_timecode": "00:00:27:00",
+      "end_timecode": "00:00:30:00",
+      "text": "What changes when the answer is missing?"
+    },
+    {
+      "utterance_id": "utt_047",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 30.9,
+      "end_seconds": 34.05,
+      "start_timecode": "00:00:30:00",
+      "end_timecode": "00:00:34:00",
+      "text": "The setup creates curiosity but stops before resolution."
+    },
+    {
+      "utterance_id": "utt_056",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 34.85,
+      "end_seconds": 37.65,
+      "start_timecode": "00:00:34:00",
+      "end_timecode": "00:00:37:00",
+      "text": "This client moment is direct and specific."
+    },
+    {
+      "utterance_id": "utt_064",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 38.45,
+      "end_seconds": 41.95,
+      "start_timecode": "00:00:38:00",
+      "end_timecode": "00:00:41:00",
+      "text": "The context makes the example understandable without extra setup."
+    },
+    {
+      "utterance_id": "utt_074",
+      "speaker_label": "Speaker 1",
+      "start_seconds": 42.75,
+      "end_seconds": 45.55,
+      "start_timecode": "00:00:42:00",
+      "end_timecode": "00:00:45:00",
+      "text": "The lesson lands without changing the meaning."
+    }
+  ],
+  "words": [
+    {
+      "word_id": "w001",
+      "utterance_id": "utt_001",
+      "start_seconds": 10.0,
+      "end_seconds": 10.25,
+      "text": "The"
+    },
+    {
+      "word_id": "w002",
+      "utterance_id": "utt_001",
+      "start_seconds": 10.35,
+      "end_seconds": 10.6,
+      "text": "strongest"
+    },
+    {
+      "word_id": "w003",
+      "utterance_id": "utt_001",
+      "start_seconds": 10.7,
+      "end_seconds": 10.95,
+      "text": "idea"
+    },
+    {
+      "word_id": "w004",
+      "utterance_id": "utt_001",
+      "start_seconds": 11.05,
+      "end_seconds": 11.3,
+      "text": "should"
+    },
+    {
+      "word_id": "w005",
+      "utterance_id": "utt_001",
+      "start_seconds": 11.4,
+      "end_seconds": 11.65,
+      "text": "start"
+    },
+    {
+      "word_id": "w006",
+      "utterance_id": "utt_001",
+      "start_seconds": 11.75,
+      "end_seconds": 12.0,
+      "text": "the"
+    },
+    {
+      "word_id": "w007",
+      "utterance_id": "utt_001",
+      "start_seconds": 12.1,
+      "end_seconds": 12.35,
+      "text": "reel"
+    },
+    {
+      "word_id": "w008",
+      "utterance_id": "utt_001",
+      "start_seconds": 12.45,
+      "end_seconds": 12.7,
+      "text": "."
+    },
+    {
+      "word_id": "w009",
+      "utterance_id": "utt_009",
+      "start_seconds": 13.6,
+      "end_seconds": 13.85,
+      "text": "The"
+    },
+    {
+      "word_id": "w010",
+      "utterance_id": "utt_009",
+      "start_seconds": 13.95,
+      "end_seconds": 14.2,
+      "text": "context"
+    },
+    {
+      "word_id": "w011",
+      "utterance_id": "utt_009",
+      "start_seconds": 14.3,
+      "end_seconds": 14.55,
+      "text": "explains"
+    },
+    {
+      "word_id": "w012",
+      "utterance_id": "utt_009",
+      "start_seconds": 14.65,
+      "end_seconds": 14.9,
+      "text": "why"
+    },
+    {
+      "word_id": "w013",
+      "utterance_id": "utt_009",
+      "start_seconds": 15.0,
+      "end_seconds": 15.25,
+      "text": "the"
+    },
+    {
+      "word_id": "w014",
+      "utterance_id": "utt_009",
+      "start_seconds": 15.35,
+      "end_seconds": 15.6,
+      "text": "idea"
+    },
+    {
+      "word_id": "w015",
+      "utterance_id": "utt_009",
+      "start_seconds": 15.7,
+      "end_seconds": 15.95,
+      "text": "matters"
+    },
+    {
+      "word_id": "w016",
+      "utterance_id": "utt_009",
+      "start_seconds": 16.05,
+      "end_seconds": 16.3,
+      "text": "without"
+    },
+    {
+      "word_id": "w017",
+      "utterance_id": "utt_009",
+      "start_seconds": 16.4,
+      "end_seconds": 16.65,
+      "text": "adding"
+    },
+    {
+      "word_id": "w018",
+      "utterance_id": "utt_009",
+      "start_seconds": 16.75,
+      "end_seconds": 17.0,
+      "text": "filler"
+    },
+    {
+      "word_id": "w019",
+      "utterance_id": "utt_009",
+      "start_seconds": 17.1,
+      "end_seconds": 17.35,
+      "text": "."
+    },
+    {
+      "word_id": "w020",
+      "utterance_id": "utt_020",
+      "start_seconds": 18.25,
+      "end_seconds": 18.5,
+      "text": "That"
+    },
+    {
+      "word_id": "w021",
+      "utterance_id": "utt_020",
+      "start_seconds": 18.6,
+      "end_seconds": 18.85,
+      "text": "is"
+    },
+    {
+      "word_id": "w022",
+      "utterance_id": "utt_020",
+      "start_seconds": 18.95,
+      "end_seconds": 19.2,
+      "text": "where"
+    },
+    {
+      "word_id": "w023",
+      "utterance_id": "utt_020",
+      "start_seconds": 19.3,
+      "end_seconds": 19.55,
+      "text": "the"
+    },
+    {
+      "word_id": "w024",
+      "utterance_id": "utt_020",
+      "start_seconds": 19.65,
+      "end_seconds": 19.9,
+      "text": "payoff"
+    },
+    {
+      "word_id": "w025",
+      "utterance_id": "utt_020",
+      "start_seconds": 20.0,
+      "end_seconds": 20.25,
+      "text": "lands"
+    },
+    {
+      "word_id": "w026",
+      "utterance_id": "utt_020",
+      "start_seconds": 20.35,
+      "end_seconds": 20.6,
+      "text": "."
+    },
+    {
+      "word_id": "w027",
+      "utterance_id": "utt_027",
+      "start_seconds": 21.5,
+      "end_seconds": 21.75,
+      "text": "Here"
+    },
+    {
+      "word_id": "w028",
+      "utterance_id": "utt_027",
+      "start_seconds": 21.85,
+      "end_seconds": 22.1,
+      "text": "is"
+    },
+    {
+      "word_id": "w029",
+      "utterance_id": "utt_027",
+      "start_seconds": 22.2,
+      "end_seconds": 22.45,
+      "text": "the"
+    },
+    {
+      "word_id": "w030",
+      "utterance_id": "utt_027",
+      "start_seconds": 22.55,
+      "end_seconds": 22.8,
+      "text": "actual"
+    },
+    {
+      "word_id": "w031",
+      "utterance_id": "utt_027",
+      "start_seconds": 22.9,
+      "end_seconds": 23.15,
+      "text": "claim"
+    },
+    {
+      "word_id": "w032",
+      "utterance_id": "utt_027",
+      "start_seconds": 23.25,
+      "end_seconds": 23.5,
+      "text": "."
+    },
+    {
+      "word_id": "w033",
+      "utterance_id": "utt_033",
+      "start_seconds": 24.4,
+      "end_seconds": 24.65,
+      "text": "The"
+    },
+    {
+      "word_id": "w034",
+      "utterance_id": "utt_033",
+      "start_seconds": 24.75,
+      "end_seconds": 25.0,
+      "text": "idea"
+    },
+    {
+      "word_id": "w035",
+      "utterance_id": "utt_033",
+      "start_seconds": 25.1,
+      "end_seconds": 25.35,
+      "text": "is"
+    },
+    {
+      "word_id": "w036",
+      "utterance_id": "utt_033",
+      "start_seconds": 25.45,
+      "end_seconds": 25.7,
+      "text": "complete"
+    },
+    {
+      "word_id": "w037",
+      "utterance_id": "utt_033",
+      "start_seconds": 25.8,
+      "end_seconds": 26.05,
+      "text": "here"
+    },
+    {
+      "word_id": "w038",
+      "utterance_id": "utt_033",
+      "start_seconds": 26.15,
+      "end_seconds": 26.4,
+      "text": "."
+    },
+    {
+      "word_id": "w039",
+      "utterance_id": "utt_039",
+      "start_seconds": 27.3,
+      "end_seconds": 27.55,
+      "text": "What"
+    },
+    {
+      "word_id": "w040",
+      "utterance_id": "utt_039",
+      "start_seconds": 27.65,
+      "end_seconds": 27.9,
+      "text": "changes"
+    },
+    {
+      "word_id": "w041",
+      "utterance_id": "utt_039",
+      "start_seconds": 28.0,
+      "end_seconds": 28.25,
+      "text": "when"
+    },
+    {
+      "word_id": "w042",
+      "utterance_id": "utt_039",
+      "start_seconds": 28.35,
+      "end_seconds": 28.6,
+      "text": "the"
+    },
+    {
+      "word_id": "w043",
+      "utterance_id": "utt_039",
+      "start_seconds": 28.7,
+      "end_seconds": 28.95,
+      "text": "answer"
+    },
+    {
+      "word_id": "w044",
+      "utterance_id": "utt_039",
+      "start_seconds": 29.05,
+      "end_seconds": 29.3,
+      "text": "is"
+    },
+    {
+      "word_id": "w045",
+      "utterance_id": "utt_039",
+      "start_seconds": 29.4,
+      "end_seconds": 29.65,
+      "text": "missing"
+    },
+    {
+      "word_id": "w046",
+      "utterance_id": "utt_039",
+      "start_seconds": 29.75,
+      "end_seconds": 30.0,
+      "text": "?"
+    },
+    {
+      "word_id": "w047",
+      "utterance_id": "utt_047",
+      "start_seconds": 30.9,
+      "end_seconds": 31.15,
+      "text": "The"
+    },
+    {
+      "word_id": "w048",
+      "utterance_id": "utt_047",
+      "start_seconds": 31.25,
+      "end_seconds": 31.5,
+      "text": "setup"
+    },
+    {
+      "word_id": "w049",
+      "utterance_id": "utt_047",
+      "start_seconds": 31.6,
+      "end_seconds": 31.85,
+      "text": "creates"
+    },
+    {
+      "word_id": "w050",
+      "utterance_id": "utt_047",
+      "start_seconds": 31.95,
+      "end_seconds": 32.2,
+      "text": "curiosity"
+    },
+    {
+      "word_id": "w051",
+      "utterance_id": "utt_047",
+      "start_seconds": 32.3,
+      "end_seconds": 32.55,
+      "text": "but"
+    },
+    {
+      "word_id": "w052",
+      "utterance_id": "utt_047",
+      "start_seconds": 32.65,
+      "end_seconds": 32.9,
+      "text": "stops"
+    },
+    {
+      "word_id": "w053",
+      "utterance_id": "utt_047",
+      "start_seconds": 33.0,
+      "end_seconds": 33.25,
+      "text": "before"
+    },
+    {
+      "word_id": "w054",
+      "utterance_id": "utt_047",
+      "start_seconds": 33.35,
+      "end_seconds": 33.6,
+      "text": "resolution"
+    },
+    {
+      "word_id": "w055",
+      "utterance_id": "utt_047",
+      "start_seconds": 33.7,
+      "end_seconds": 33.95,
+      "text": "."
+    },
+    {
+      "word_id": "w056",
+      "utterance_id": "utt_056",
+      "start_seconds": 34.85,
+      "end_seconds": 35.1,
+      "text": "This"
+    },
+    {
+      "word_id": "w057",
+      "utterance_id": "utt_056",
+      "start_seconds": 35.2,
+      "end_seconds": 35.45,
+      "text": "client"
+    },
+    {
+      "word_id": "w058",
+      "utterance_id": "utt_056",
+      "start_seconds": 35.55,
+      "end_seconds": 35.8,
+      "text": "moment"
+    },
+    {
+      "word_id": "w059",
+      "utterance_id": "utt_056",
+      "start_seconds": 35.9,
+      "end_seconds": 36.15,
+      "text": "is"
+    },
+    {
+      "word_id": "w060",
+      "utterance_id": "utt_056",
+      "start_seconds": 36.25,
+      "end_seconds": 36.5,
+      "text": "direct"
+    },
+    {
+      "word_id": "w061",
+      "utterance_id": "utt_056",
+      "start_seconds": 36.6,
+      "end_seconds": 36.85,
+      "text": "and"
+    },
+    {
+      "word_id": "w062",
+      "utterance_id": "utt_056",
+      "start_seconds": 36.95,
+      "end_seconds": 37.2,
+      "text": "specific"
+    },
+    {
+      "word_id": "w063",
+      "utterance_id": "utt_056",
+      "start_seconds": 37.3,
+      "end_seconds": 37.55,
+      "text": "."
+    },
+    {
+      "word_id": "w064",
+      "utterance_id": "utt_064",
+      "start_seconds": 38.45,
+      "end_seconds": 38.7,
+      "text": "The"
+    },
+    {
+      "word_id": "w065",
+      "utterance_id": "utt_064",
+      "start_seconds": 38.8,
+      "end_seconds": 39.05,
+      "text": "context"
+    },
+    {
+      "word_id": "w066",
+      "utterance_id": "utt_064",
+      "start_seconds": 39.15,
+      "end_seconds": 39.4,
+      "text": "makes"
+    },
+    {
+      "word_id": "w067",
+      "utterance_id": "utt_064",
+      "start_seconds": 39.5,
+      "end_seconds": 39.75,
+      "text": "the"
+    },
+    {
+      "word_id": "w068",
+      "utterance_id": "utt_064",
+      "start_seconds": 39.85,
+      "end_seconds": 40.1,
+      "text": "example"
+    },
+    {
+      "word_id": "w069",
+      "utterance_id": "utt_064",
+      "start_seconds": 40.2,
+      "end_seconds": 40.45,
+      "text": "understandable"
+    },
+    {
+      "word_id": "w070",
+      "utterance_id": "utt_064",
+      "start_seconds": 40.55,
+      "end_seconds": 40.8,
+      "text": "without"
+    },
+    {
+      "word_id": "w071",
+      "utterance_id": "utt_064",
+      "start_seconds": 40.9,
+      "end_seconds": 41.15,
+      "text": "extra"
+    },
+    {
+      "word_id": "w072",
+      "utterance_id": "utt_064",
+      "start_seconds": 41.25,
+      "end_seconds": 41.5,
+      "text": "setup"
+    },
+    {
+      "word_id": "w073",
+      "utterance_id": "utt_064",
+      "start_seconds": 41.6,
+      "end_seconds": 41.85,
+      "text": "."
+    },
+    {
+      "word_id": "w074",
+      "utterance_id": "utt_074",
+      "start_seconds": 42.75,
+      "end_seconds": 43.0,
+      "text": "The"
+    },
+    {
+      "word_id": "w075",
+      "utterance_id": "utt_074",
+      "start_seconds": 43.1,
+      "end_seconds": 43.35,
+      "text": "lesson"
+    },
+    {
+      "word_id": "w076",
+      "utterance_id": "utt_074",
+      "start_seconds": 43.45,
+      "end_seconds": 43.7,
+      "text": "lands"
+    },
+    {
+      "word_id": "w077",
+      "utterance_id": "utt_074",
+      "start_seconds": 43.8,
+      "end_seconds": 44.05,
+      "text": "without"
+    },
+    {
+      "word_id": "w078",
+      "utterance_id": "utt_074",
+      "start_seconds": 44.15,
+      "end_seconds": 44.4,
+      "text": "changing"
+    },
+    {
+      "word_id": "w079",
+      "utterance_id": "utt_074",
+      "start_seconds": 44.5,
+      "end_seconds": 44.75,
+      "text": "the"
+    },
+    {
+      "word_id": "w080",
+      "utterance_id": "utt_074",
+      "start_seconds": 44.85,
+      "end_seconds": 45.1,
+      "text": "meaning"
+    },
+    {
+      "word_id": "w081",
+      "utterance_id": "utt_074",
+      "start_seconds": 45.2,
+      "end_seconds": 45.45,
+      "text": "."
+    }
+  ],
+  "context": {
+    "platform": "social",
+    "content_notes": "Synthetic editorial word-ID contract fixture; no private transcript text."
+  }
+}

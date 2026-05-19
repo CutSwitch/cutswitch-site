@@ -11,22 +11,22 @@
       "segments": [
         {
           "role": "hook",
-          "startWordId": "w_hook_001",
-          "endWordId": "w_hook_008",
+          "startWordId": "w001",
+          "endWordId": "w008",
           "quote": "The strongest idea should start the reel.",
           "reason": "Uses the strongest source line as the opening hook instead of conversational setup."
         },
         {
           "role": "context",
-          "startWordId": "w_context_001",
-          "endWordId": "w_context_024",
+          "startWordId": "w009",
+          "endWordId": "w019",
           "quote": "The context explains why the idea matters without adding filler.",
           "reason": "Keeps the reel self-contained after the hook."
         },
         {
           "role": "payoff",
-          "startWordId": "w_payoff_001",
-          "endWordId": "w_payoff_011",
+          "startWordId": "w020",
+          "endWordId": "w026",
           "quote": "That is where the payoff lands.",
           "reason": "Ends after the answer lands, not on an unresolved bridge."
         }
@@ -53,15 +53,15 @@
       "segments": [
         {
           "role": "hook",
-          "startWordId": "w_trim_hook_001",
-          "endWordId": "w_trim_hook_006",
+          "startWordId": "w027",
+          "endWordId": "w032",
           "quote": "Here is the actual claim.",
           "reason": "Skips the conversational bridge and starts where the claim begins."
         },
         {
           "role": "closing",
-          "startWordId": "w_trim_close_001",
-          "endWordId": "w_trim_close_007",
+          "startWordId": "w033",
+          "endWordId": "w038",
           "quote": "The idea is complete here.",
           "reason": "Stops before trailing explanation dilutes the ending."
         }
@@ -87,15 +87,15 @@
       "segments": [
         {
           "role": "hook",
-          "startWordId": "w_question_001",
-          "endWordId": "w_question_009",
+          "startWordId": "w039",
+          "endWordId": "w046",
           "quote": "What changes when the answer is missing?",
           "reason": "The hook is clear, but the selected words do not yet include the answer."
         },
         {
           "role": "context",
-          "startWordId": "w_question_context_001",
-          "endWordId": "w_question_context_010",
+          "startWordId": "w047",
+          "endWordId": "w055",
           "quote": "The setup creates curiosity but stops before resolution.",
           "reason": "Marks the current selection as incomplete instead of pretending it is ready."
         }
@@ -121,22 +121,22 @@
       "segments": [
         {
           "role": "hook",
-          "startWordId": "w_client_hook_001",
-          "endWordId": "w_client_hook_009",
+          "startWordId": "w056",
+          "endWordId": "w063",
           "quote": "This client moment is direct and specific.",
           "reason": "Specific language can be editorially strong when it is source-true."
         },
         {
           "role": "context",
-          "startWordId": "w_client_context_001",
-          "endWordId": "w_client_context_018",
+          "startWordId": "w064",
+          "endWordId": "w073",
           "quote": "The context makes the example understandable without extra setup.",
           "reason": "Provides enough context for a viewer who has not heard the episode."
         },
         {
           "role": "payoff",
-          "startWordId": "w_client_payoff_001",
-          "endWordId": "w_client_payoff_010",
+          "startWordId": "w074",
+          "endWordId": "w081",
           "quote": "The lesson lands without changing the meaning.",
           "reason": "Ends on a clean lesson from the same source idea."
         }

@@ -15,7 +15,8 @@
     "render:social-reels-v2-fixture-review": "tsx scripts/renderSocialReelsV2FixtureReview.ts",
     "run:social-reels-v2-live-fixture": "tsx scripts/runSocialReelsV2LiveFixtureRoute.ts",
     "render:social-reels-matrix-contract": "tsx scripts/renderSocialReelsMatrixContractFixture.ts",
-    "test:social-reels-matrix-contract": "tsx scripts/testSocialReelsMatrixContract.ts"
+    "test:social-reels-matrix-contract": "tsx scripts/testSocialReelsMatrixContract.ts",
+    "test:social-reels-editorial-word-id-contract": "tsx scripts/testSocialReelsEditorialWordIdContract.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

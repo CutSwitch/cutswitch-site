@@ -33,11 +33,17 @@ import {
   validateSocialReelsEditorialWordIdResponseWordIds,
 } from "../lib/socialReelsEditorialWordId";
 import {
+  SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS,
+  SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES,
+  SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
   SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
   buildSocialReelsEditAssistantPromptInput,
   proposeSocialReelsEdit,
+  socialReelsAiEditorWordEditRequestSchema,
+  socialReelsAiEditorWordEditResponseSchema,
   socialReelsEditAssistantRequestSchema,
   socialReelsEditAssistantResponseSchema,
+  validateSocialReelsAiEditorWordEditResponseWordIds,
 } from "../lib/socialReelsEditAssistant";
 import {
   buildSocialReelsLiveDurationWindows,
@@ -66,6 +72,18 @@ function assert(condition: unknown, message: string) {
   if (condition) return;
   failed = true;
   console.error(`FAIL: ${message}`);
+}
+
+function safeValidateAiEditorWordEditResponse(
+  request: Parameters<typeof validateSocialReelsAiEditorWordEditResponseWordIds>[0],
+  response: unknown
+) {
+  try {
+    validateSocialReelsAiEditorWordEditResponseWordIds(request, response);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function candidate(index: number, includeViralMethodFields: boolean) {
@@ -586,6 +604,93 @@ socialReelsEditAssistantResponseSchema.parse(editAssistantFixture);
 const editAssistantFixtureJson = JSON.stringify(editAssistantFixture);
 for (const forbiddenLeak of ["wordAlignment", "whisper", "pyannote", "/Users/", "file://", "OPENAI_API_KEY", "Bearer "]) {
   assert(!editAssistantFixtureJson.includes(forbiddenLeak), `Edit assistant fixture should not include forbidden payload detail: ${forbiddenLeak}.`);
+}
+
+const aiEditorWordEditRequestFixture = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), "docs/contracts/social_reels_ai_editor_word_edit_request.backend_contract_fixture.json"),
+    "utf8"
+  )
+) as unknown;
+const aiEditorWordEditResponseFixture = JSON.parse(
+  readFileSync(resolve(process.cwd(), "docs/contracts/social_reels_ai_editor_word_edit_response.backend_fixture.json"), "utf8")
+) as unknown;
+const parsedAiEditorWordEditRequest = socialReelsAiEditorWordEditRequestSchema.parse(aiEditorWordEditRequestFixture);
+const parsedAiEditorWordEditResponse = socialReelsAiEditorWordEditResponseSchema.parse(aiEditorWordEditResponseFixture);
+validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorWordEditRequest, parsedAiEditorWordEditResponse);
+assert(
+  parsedAiEditorWordEditRequest.schemaVersion === SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION &&
+    parsedAiEditorWordEditResponse.schemaVersion === SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
+  "AI editor word-edit fixtures should use the v1 schema version."
+);
+for (const operationType of ["trimStart", "trimEnd", "extendStart", "extendEnd", "replaceSpanWithExistingSpan", "reorderExistingSegments", "removeFillerSubspan", "updateTitleSuggestion"]) {
+  assert(
+    SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES.includes(operationType as (typeof SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES)[number]),
+    `AI editor word-edit operation type should be registered: ${operationType}.`
+  );
+}
+assert(
+  parsedAiEditorWordEditResponse.operations.some((operation) => operation.type === "updateTitleSuggestion" && operation.titleText.length > 0),
+  "AI editor title operation should allow generated title display text."
+);
+assert(
+  parsedAiEditorWordEditResponse.operations
+    .filter((operation) => operation.type !== "updateTitleSuggestion")
+    .every((operation) => "sourceStartWordID" in operation && "sourceEndWordID" in operation),
+  "AI editor spoken operations should be anchored to source word IDs."
+);
+
+const unknownWordResponse = {
+  ...parsedAiEditorWordEditResponse,
+  operations: [{ ...parsedAiEditorWordEditResponse.operations[0], sourceStartWordID: "missing-word-id" }],
+};
+assert(
+  !safeValidateAiEditorWordEditResponse(parsedAiEditorWordEditRequest, unknownWordResponse),
+  "AI editor validator should reject operations that reference unknown word IDs."
+);
+const reversedSpanResponse = {
+  ...parsedAiEditorWordEditResponse,
+  operations: [{ ...parsedAiEditorWordEditResponse.operations[0], sourceStartWordID: "w006", sourceEndWordID: "w003" }],
+};
+assert(
+  !safeValidateAiEditorWordEditResponse(parsedAiEditorWordEditRequest, reversedSpanResponse),
+  "AI editor validator should reject reversed source word spans."
+);
+assert(
+  !socialReelsAiEditorWordEditResponseSchema.safeParse({
+    ...parsedAiEditorWordEditResponse,
+    operations: [{ ...parsedAiEditorWordEditResponse.operations[0], syntheticSpokenText: "Say this new line out loud." }],
+  }).success,
+  "AI editor response schema should reject synthetic spoken text fields."
+);
+for (const forbiddenRiskField of SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS) {
+  assert(
+    !socialReelsAiEditorWordEditResponseSchema.safeParse({
+      ...parsedAiEditorWordEditResponse,
+      [forbiddenRiskField]: "not allowed",
+    }).success,
+    `AI editor response schema should reject forbidden risk/content field: ${forbiddenRiskField}.`
+  );
+}
+assert(
+  socialReelsAiEditorWordEditResponseSchema.safeParse({
+    ...parsedAiEditorWordEditResponse,
+    operations: [
+      {
+        type: "updateTitleSuggestion",
+        targetRole: "title",
+        titleText: "Generated Display Title",
+        captionText: "Generated caption copy for display only.",
+        reason: "Display title copy is allowed and does not alter spoken content.",
+        previewLabel: "Update display title",
+      },
+    ],
+  }).success,
+  "AI editor updateTitleSuggestion should allow generated display title/caption text only."
+);
+const aiEditorFixtureText = `${JSON.stringify(aiEditorWordEditRequestFixture)}\n${JSON.stringify(aiEditorWordEditResponseFixture)}`;
+for (const forbiddenLeak of [...SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS, "syntheticSpokenText", "spokenText", "generatedAudio", "generatedVoice"]) {
+  assert(!aiEditorFixtureText.includes(forbiddenLeak), `AI editor fixtures should not include forbidden field or generated spoken content: ${forbiddenLeak}.`);
 }
 
 const shortlistRequest = socialReelsRequestSchema.parse({
@@ -1296,20 +1401,24 @@ const editorialWordIdFixtureText = readFileSync(
   "utf8"
 );
 const editorialWordIdFixture = socialReelsEditorialWordIdResponseSchema.parse(JSON.parse(editorialWordIdFixtureText) as unknown);
+const editorialWordIdRequestFixtureText = readFileSync(
+  resolve(process.cwd(), "docs/contracts/social_reels_editorial_word_id_request.backend_contract_fixture.json"),
+  "utf8"
+);
+const editorialWordIdRequestFixture = socialReelsRequestSchema.parse(JSON.parse(editorialWordIdRequestFixtureText) as unknown);
 assert(editorialWordIdFixture.version === SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION, "Editorial word-ID fixture should use the v1 version.");
 assert(
   editorialWordIdFixture.reels.every((reel) => reel.segments.every((segment) => segment.startWordId && segment.endWordId)),
   "Editorial word-ID fixture should return word-ID segment plans."
 );
-const editorialWordIdKnownWords = editorialWordIdFixture.reels.flatMap((reel) =>
-  reel.segments.flatMap((segment) => [
-    { word_id: segment.startWordId },
-    { word_id: segment.endWordId },
-  ])
+assert(
+  editorialWordIdRequestFixture.discovery_mode === "editorial_word_id" && editorialWordIdRequestFixture.words.length > 0,
+  "Editorial word-ID request fixture should provide a bounded source word packet."
 );
+const editorialWordIdKnownWords = editorialWordIdRequestFixture.words;
 assert(
   validateSocialReelsEditorialWordIdResponseWordIds(editorialWordIdFixture, editorialWordIdKnownWords).reels.length === editorialWordIdFixture.reels.length,
-  "Editorial word-ID fixture should validate against provided source word IDs."
+  "Editorial word-ID response fixture IDs should be a subset of the matching request fixture word IDs."
 );
 const bridgeTrimmedReel = editorialWordIdFixture.reels.find((reel) => reel.clientMomentId === "editorial-word-id-trim-001");
 assert(

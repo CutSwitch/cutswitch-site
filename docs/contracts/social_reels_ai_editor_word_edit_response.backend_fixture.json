@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "social_reels_ai_editor_word_edit_v1",
+  "requestID": "ai-editor-word-edit-request-001",
+  "candidateID": "candidate-word-edit-001",
+  "recipeRevisionHash": "recipe-revision-fixture-001",
+  "transcriptNormalizationHash": "transcript-normalization-fixture-001",
+  "targetSpanRole": "hook",
+  "operations": [
+    {
+      "type": "trimStart",
+      "sourceStartWordID": "w003",
+      "sourceEndWordID": "w006",
+      "targetRole": "hook",
+      "reason": "Starts the hook closer to the meaningful source phrase while preserving existing spoken words.",
+      "previewLabel": "Trim hook to the point"
+    },
+    {
+      "type": "replaceSpanWithExistingSpan",
+      "sourceStartWordID": "w011",
+      "sourceEndWordID": "w014",
+      "targetStartWordID": "w007",
+      "targetEndWordID": "w010",
+      "targetRole": "context",
+      "reason": "Uses a stronger existing source span instead of the weaker current setup.",
+      "previewLabel": "Replace setup with stronger source span"
+    },
+    {
+      "type": "updateTitleSuggestion",
+      "targetRole": "title",
+      "titleText": "The Real Hook Starts Here",
+      "captionText": "A tighter reel starts where the source finally gets specific.",
+      "reason": "Title text is display copy only and is not treated as spoken source material.",
+      "previewLabel": "Suggest stronger title"
+    }
+  ],
+  "draftSummary": "Trim the hook to an existing word boundary, replace the setup with a stronger existing source span, and update display title copy only.",
+  "previewLabels": [
+    "Trim hook to the point",
+    "Replace setup with stronger source span",
+    "Suggest stronger title"
+  ],
+  "confidence": 0.84,
+  "editorialWarnings": ["needsUserConfirmation", "wordBoundaryReviewNeeded"],
+  "needsNarrowerInstruction": false,
+  "needsUserConfirmation": true
+}

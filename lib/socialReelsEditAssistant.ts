@@ -54,10 +54,360 @@ export const SOCIAL_REELS_EDIT_ASSISTANT_WARNINGS = [
 const safeId = z.string().trim().min(1).max(160);
 const safeOptionalText = (max: number) => z.string().trim().max(max).optional().nullable();
 const scoreSchema = z.number().min(0).max(1);
+const safeLabel = z.string().trim().min(1).max(160);
+
+export const SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION = "social_reels_ai_editor_word_edit_v1";
+
+export const SOCIAL_REELS_AI_EDITOR_TARGET_SPAN_ROLES = [
+  "hook",
+  "setup",
+  "context",
+  "evidence",
+  "payoff",
+  "closing",
+  "bridge",
+  "selectedSpan",
+] as const;
+
+export const SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES = [
+  "trimStart",
+  "trimEnd",
+  "extendStart",
+  "extendEnd",
+  "replaceSpanWithExistingSpan",
+  "reorderExistingSegments",
+  "removeFillerSubspan",
+  "updateTitleSuggestion",
+] as const;
+
+export const SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS = [
+  "platformRisk",
+  "riskReason",
+  "highRiskHighReward",
+  "advertiserSafety",
+  "brandSafety",
+  "sexualRisk",
+  "controversyRisk",
+] as const;
+
+export const SOCIAL_REELS_AI_EDITOR_SYNTHETIC_SPOKEN_FIELDS = [
+  "syntheticSpokenText",
+  "spokenText",
+  "generatedSpokenText",
+  "fakeTranscriptText",
+  "generatedAudio",
+  "generatedVoice",
+  "voiceAudio",
+  "openAITimestamp",
+  "openaiTimestamp",
+  "startSeconds",
+  "endSeconds",
+] as const;
+
+const forbiddenAiEditorFieldNames = new Set<string>([
+  ...SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS,
+  ...SOCIAL_REELS_AI_EDITOR_SYNTHETIC_SPOKEN_FIELDS,
+]);
+
+function collectForbiddenAiEditorFields(value: unknown, path: Array<string | number> = [], issues: Array<{ path: string; key: string }> = []) {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectForbiddenAiEditorFields(entry, [...path, index], issues));
+    return issues;
+  }
+
+  if (!value || typeof value !== "object") return issues;
+
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (forbiddenAiEditorFieldNames.has(key)) {
+      issues.push({ path: [...path, key].map(String).join("."), key });
+    }
+    collectForbiddenAiEditorFields(entryValue, [...path, key], issues);
+  }
+
+  return issues;
+}
+
+function addForbiddenAiEditorFieldIssues(value: unknown, ctx: z.RefinementCtx) {
+  for (const issue of collectForbiddenAiEditorFields(value)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: issue.path ? issue.path.split(".") : [],
+      message: `${issue.key} is not allowed in the Social Reels AI editor word-edit contract.`,
+    });
+  }
+}
 
 function looksLikeRawPath(value: string | null | undefined) {
   if (!value) return false;
   return RAW_PATH_VALUE.test(value) || /\.fcpxml\b/i.test(value);
+}
+
+const socialReelsAiEditorTargetRoleSchema = z.enum(SOCIAL_REELS_AI_EDITOR_TARGET_SPAN_ROLES);
+
+export const socialReelsAiEditorBoundedWordSchema = z
+  .object({
+    wordID: safeId,
+    utteranceID: safeOptionalText(160),
+    segmentID: safeOptionalText(160),
+    speakerLabel: safeOptionalText(80),
+    text: z.string().trim().min(1).max(120),
+    normalizedText: safeOptionalText(120),
+    isFiller: z.boolean().optional().default(false),
+  })
+  .strict();
+
+export const socialReelsAiEditorCurrentSegmentSchema = z
+  .object({
+    segmentID: safeId,
+    targetRole: socialReelsAiEditorTargetRoleSchema,
+    sourceStartWordID: safeId,
+    sourceEndWordID: safeId,
+    order: z.number().int().min(0).max(1000).optional(),
+    label: safeOptionalText(160),
+  })
+  .strict();
+
+export const socialReelsAiEditorSelectedFormatSchema = z
+  .object({
+    formatID: safeOptionalText(160),
+    durationBucket: safeOptionalText(32),
+    aspectRatio: safeOptionalText(32),
+    captionStyle: safeOptionalText(80),
+    maxDurationSeconds: z.number().finite().min(1).max(10 * 60).optional(),
+  })
+  .strict();
+
+export const socialReelsAiEditorBoundedWordWindowSchema = z
+  .object({
+    windowID: safeId,
+    startWordID: safeId,
+    endWordID: safeId,
+    words: z.array(socialReelsAiEditorBoundedWordSchema).min(1).max(2000),
+  })
+  .strict();
+
+export const socialReelsAiEditorWordEditRequestSchema = z
+  .object({
+    schemaVersion: z.literal(SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION),
+    requestID: safeId,
+    candidateID: safeId,
+    momentID: safeOptionalText(160),
+    recipeRevisionHash: safeId,
+    transcriptNormalizationHash: safeId,
+    selectedFormat: socialReelsAiEditorSelectedFormatSchema,
+    targetSpanHint: socialReelsAiEditorTargetRoleSchema.default("hook"),
+    currentSegments: z.array(socialReelsAiEditorCurrentSegmentSchema).min(1).max(12),
+    boundedWordWindow: socialReelsAiEditorBoundedWordWindowSchema,
+    userInstruction: z.string().trim().min(1).max(2000),
+    supersedesRequestID: safeOptionalText(160),
+  })
+  .strict()
+  .superRefine((request, ctx) => {
+    addForbiddenAiEditorFieldIssues(request, ctx);
+
+    const wordOrder = getSocialReelsAiEditorWordOrder(request);
+    validateSocialReelsAiEditorSpan(
+      request.boundedWordWindow.startWordID,
+      request.boundedWordWindow.endWordID,
+      wordOrder,
+      ctx,
+      ["boundedWordWindow"]
+    );
+
+    request.currentSegments.forEach((segment, index) => {
+      validateSocialReelsAiEditorSpan(
+        segment.sourceStartWordID,
+        segment.sourceEndWordID,
+        wordOrder,
+        ctx,
+        ["currentSegments", index]
+      );
+    });
+  });
+
+const socialReelsAiEditorSpokenOperationBaseSchema = z.object({
+  sourceStartWordID: safeId,
+  sourceEndWordID: safeId,
+  targetRole: socialReelsAiEditorTargetRoleSchema,
+  reason: z.string().trim().min(1).max(360),
+  previewLabel: safeLabel,
+});
+
+const trimStartOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({ type: z.literal("trimStart") })
+  .strict();
+const trimEndOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({ type: z.literal("trimEnd") })
+  .strict();
+const extendStartOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({ type: z.literal("extendStart") })
+  .strict();
+const extendEndOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({ type: z.literal("extendEnd") })
+  .strict();
+const removeFillerSubspanOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({ type: z.literal("removeFillerSubspan") })
+  .strict();
+
+const socialReelsAiEditorReplacementOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({
+    type: z.literal("replaceSpanWithExistingSpan"),
+    targetStartWordID: safeId,
+    targetEndWordID: safeId,
+  })
+  .strict();
+
+const socialReelsAiEditorOrderedSpanSchema = z
+  .object({
+    sourceStartWordID: safeId,
+    sourceEndWordID: safeId,
+    targetRole: socialReelsAiEditorTargetRoleSchema,
+    previewLabel: safeLabel,
+  })
+  .strict();
+
+const socialReelsAiEditorReorderOperationSchema = socialReelsAiEditorSpokenOperationBaseSchema
+  .extend({
+    type: z.literal("reorderExistingSegments"),
+    orderedSpans: z.array(socialReelsAiEditorOrderedSpanSchema).min(2).max(8),
+  })
+  .strict();
+
+const socialReelsAiEditorTitleSuggestionOperationSchema = z
+  .object({
+    type: z.literal("updateTitleSuggestion"),
+    targetRole: z.literal("title"),
+    titleText: z.string().trim().min(1).max(120),
+    captionText: z.string().trim().max(240).optional(),
+    reason: z.string().trim().min(1).max(360),
+    previewLabel: safeLabel,
+  })
+  .strict();
+
+export const socialReelsAiEditorWordEditOperationSchema = z.discriminatedUnion("type", [
+  trimStartOperationSchema,
+  trimEndOperationSchema,
+  extendStartOperationSchema,
+  extendEndOperationSchema,
+  socialReelsAiEditorReplacementOperationSchema,
+  socialReelsAiEditorReorderOperationSchema,
+  removeFillerSubspanOperationSchema,
+  socialReelsAiEditorTitleSuggestionOperationSchema,
+]);
+
+export const socialReelsAiEditorWordEditResponseSchema = z
+  .object({
+    schemaVersion: z.literal(SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION),
+    requestID: safeId,
+    candidateID: safeId,
+    recipeRevisionHash: safeId,
+    transcriptNormalizationHash: safeId,
+    targetSpanRole: socialReelsAiEditorTargetRoleSchema,
+    operations: z.array(socialReelsAiEditorWordEditOperationSchema).min(1).max(24),
+    draftSummary: z.string().trim().min(1).max(600),
+    previewLabels: z.array(safeLabel).min(1).max(24),
+    confidence: scoreSchema,
+    editorialWarnings: z.array(z.enum(["needsUserConfirmation", "wordBoundaryReviewNeeded", "meaningRisk", "needsNarrowerInstruction"])).max(8),
+    needsNarrowerInstruction: z.boolean().optional(),
+    needsUserConfirmation: z.boolean(),
+  })
+  .strict()
+  .superRefine((response, ctx) => {
+    addForbiddenAiEditorFieldIssues(response, ctx);
+  });
+
+export type SocialReelsAiEditorWordEditRequest = z.infer<typeof socialReelsAiEditorWordEditRequestSchema>;
+export type SocialReelsAiEditorWordEditResponse = z.infer<typeof socialReelsAiEditorWordEditResponseSchema>;
+export type SocialReelsAiEditorWordEditOperation = z.infer<typeof socialReelsAiEditorWordEditOperationSchema>;
+
+function getSocialReelsAiEditorWordOrder(request: Pick<SocialReelsAiEditorWordEditRequest, "boundedWordWindow">) {
+  return new Map(request.boundedWordWindow.words.map((word, index) => [word.wordID, index]));
+}
+
+function validateSocialReelsAiEditorSpan(
+  sourceStartWordID: string,
+  sourceEndWordID: string,
+  wordOrder: Map<string, number>,
+  ctx: z.RefinementCtx,
+  path: Array<string | number>
+) {
+  const startIndex = wordOrder.get(sourceStartWordID);
+  const endIndex = wordOrder.get(sourceEndWordID);
+
+  if (startIndex === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...path, "sourceStartWordID"],
+      message: "sourceStartWordID must reference a provided bounded word.",
+    });
+  }
+  if (endIndex === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...path, "sourceEndWordID"],
+      message: "sourceEndWordID must reference a provided bounded word.",
+    });
+  }
+  if (startIndex !== undefined && endIndex !== undefined && endIndex < startIndex) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...path, "sourceEndWordID"],
+      message: "sourceEndWordID must not come before sourceStartWordID in boundedWordWindow.words.",
+    });
+  }
+}
+
+function validateSocialReelsAiEditorOperationWordIds(
+  operation: SocialReelsAiEditorWordEditOperation,
+  index: number,
+  wordOrder: Map<string, number>,
+  ctx: z.RefinementCtx
+) {
+  if (operation.type === "updateTitleSuggestion") return;
+
+  validateSocialReelsAiEditorSpan(operation.sourceStartWordID, operation.sourceEndWordID, wordOrder, ctx, ["operations", index]);
+
+  if (operation.type === "replaceSpanWithExistingSpan") {
+    validateSocialReelsAiEditorSpan(operation.targetStartWordID, operation.targetEndWordID, wordOrder, ctx, ["operations", index, "targetSpan"]);
+  }
+
+  if (operation.type === "reorderExistingSegments") {
+    operation.orderedSpans.forEach((span, spanIndex) => {
+      validateSocialReelsAiEditorSpan(span.sourceStartWordID, span.sourceEndWordID, wordOrder, ctx, ["operations", index, "orderedSpans", spanIndex]);
+    });
+  }
+}
+
+export function validateSocialReelsAiEditorWordEditResponseWordIds(
+  request: SocialReelsAiEditorWordEditRequest,
+  response: unknown
+) {
+  const parsedResponse = socialReelsAiEditorWordEditResponseSchema.parse(response);
+  const issues: z.ZodIssue[] = [];
+  const ctx: z.RefinementCtx = {
+    addIssue(issue) {
+      issues.push(issue as z.ZodIssue);
+    },
+    path: [],
+  };
+  const wordOrder = getSocialReelsAiEditorWordOrder(request);
+
+  for (const field of ["requestID", "candidateID", "recipeRevisionHash", "transcriptNormalizationHash"] as const) {
+    if (parsedResponse[field] !== request[field]) {
+      issues.push({
+        code: z.ZodIssueCode.custom,
+        path: [field],
+        message: `${field} must match the request.`,
+      });
+    }
+  }
+
+  parsedResponse.operations.forEach((operation, index) => {
+    validateSocialReelsAiEditorOperationWordIds(operation, index, wordOrder, ctx);
+  });
+
+  if (issues.length > 0) throw new z.ZodError(issues);
+  return parsedResponse;
 }
 
 export const socialReelsEditRelevantUtteranceSchema = z

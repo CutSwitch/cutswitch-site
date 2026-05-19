@@ -7,8 +7,11 @@ import { estimateSocialReelsDurationFirstCredits } from "../lib/socialReelsCredi
 import {
   buildSocialReelsEditAssistantPromptInput,
   proposeSocialReelsEdit,
+  socialReelsAiEditorWordEditRequestSchema,
+  socialReelsAiEditorWordEditResponseSchema,
   socialReelsEditAssistantRequestSchema,
   socialReelsEditAssistantResponseSchema,
+  validateSocialReelsAiEditorWordEditResponseWordIds,
 } from "../lib/socialReelsEditAssistant";
 import { runOpenAIProbeLadder } from "./openAIProbeLadder";
 
@@ -416,6 +419,51 @@ function validateSocialReelsEditAssistantContract() {
     if (promptText.includes(forbidden) || JSON.stringify(response).includes(forbidden)) {
       markFailed(`Social Reels edit assistant contract should not include private data: ${forbidden}.`);
     }
+  }
+
+  const aiEditorRequestFixture = JSON.parse(
+    readFileSync(resolve(process.cwd(), "docs/contracts/social_reels_ai_editor_word_edit_request.backend_contract_fixture.json"), "utf8")
+  ) as unknown;
+  const aiEditorResponseFixture = JSON.parse(
+    readFileSync(resolve(process.cwd(), "docs/contracts/social_reels_ai_editor_word_edit_response.backend_fixture.json"), "utf8")
+  ) as unknown;
+  const parsedAiEditorRequest = socialReelsAiEditorWordEditRequestSchema.parse(aiEditorRequestFixture);
+  const parsedAiEditorResponse = socialReelsAiEditorWordEditResponseSchema.parse(aiEditorResponseFixture);
+  validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, parsedAiEditorResponse);
+
+  const unknownWordResponse = {
+    ...parsedAiEditorResponse,
+    operations: [{ ...parsedAiEditorResponse.operations[0], sourceStartWordID: "missing-word-id" }],
+  };
+  try {
+    validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, unknownWordResponse);
+    markFailed("Social Reels AI editor word-edit validator should reject unknown word IDs.");
+  } catch {
+    // Expected.
+  }
+
+  const reversedSpanResponse = {
+    ...parsedAiEditorResponse,
+    operations: [{ ...parsedAiEditorResponse.operations[0], sourceStartWordID: "w006", sourceEndWordID: "w003" }],
+  };
+  try {
+    validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, reversedSpanResponse);
+    markFailed("Social Reels AI editor word-edit validator should reject reversed word spans.");
+  } catch {
+    // Expected.
+  }
+
+  if (
+    socialReelsAiEditorWordEditResponseSchema.safeParse({
+      ...parsedAiEditorResponse,
+      operations: [{ ...parsedAiEditorResponse.operations[0], spokenText: "New generated spoken line." }],
+    }).success
+  ) {
+    markFailed("Social Reels AI editor word-edit schema should reject synthetic spoken text fields.");
+  }
+
+  if (socialReelsAiEditorWordEditResponseSchema.safeParse({ ...parsedAiEditorResponse, platformRisk: "not_allowed" }).success) {
+    markFailed("Social Reels AI editor word-edit schema should reject platform/content risk fields.");
   }
 }
 

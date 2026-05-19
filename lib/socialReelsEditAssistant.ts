@@ -320,6 +320,35 @@ export type SocialReelsAiEditorWordEditRequest = z.infer<typeof socialReelsAiEdi
 export type SocialReelsAiEditorWordEditResponse = z.infer<typeof socialReelsAiEditorWordEditResponseSchema>;
 export type SocialReelsAiEditorWordEditOperation = z.infer<typeof socialReelsAiEditorWordEditOperationSchema>;
 
+export class SocialReelsAiEditorWordEditProviderError extends Error {
+  reasonCode: string;
+  retryAllowed: boolean;
+  issues: Array<{ path: string; code: string }>;
+
+  constructor(message: string, issues: Array<{ path: string; code: string }> = []) {
+    super(message);
+    this.name = "SocialReelsAiEditorWordEditProviderError";
+    this.reasonCode = "provider_output_invalid";
+    this.retryAllowed = true;
+    this.issues = issues;
+  }
+}
+
+export const SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT = [
+  "You are the CutSwitch Social Reels AI editor for one selected reel only.",
+  "The request targets one selected reel only; do not propose edits for other reels or discover new candidates.",
+  "Default target span is hook when targetSpanHint is absent or unclear.",
+  "All spoken edit operations must use existing word IDs from boundedWordWindow.words.",
+  "Do not invent spoken words, fake transcript text, speaker labels, word IDs, or replacement dialogue.",
+  "Do not generate voice/audio or imply generated spoken audio.",
+  "Do not return final timestamps as source of truth. CutSwitch app resolves final timing locally from word IDs.",
+  "Use boundedWordWindow only; do not require or assume a full transcript.",
+  "If the edit request is ambiguous, return needsNarrowerInstruction true.",
+  "Generated title suggestions are allowed only in updateTitleSuggestion and are not spoken source content.",
+  "Do not return platform/content-risk fields, platform-risk filtering, content-risk filtering, or content-topic rejection.",
+  "Return JSON matching social_reels_ai_editor_word_edit_v1 only.",
+].join(" ");
+
 function getSocialReelsAiEditorWordOrder(request: Pick<SocialReelsAiEditorWordEditRequest, "boundedWordWindow">) {
   return new Map(request.boundedWordWindow.words.map((word, index) => [word.wordID, index]));
 }
@@ -408,6 +437,149 @@ export function validateSocialReelsAiEditorWordEditResponseWordIds(
 
   if (issues.length > 0) throw new z.ZodError(issues);
   return parsedResponse;
+}
+
+export function getSafeSocialReelsAiEditorWordEditIssues(error: z.ZodError) {
+  return error.issues.slice(0, 20).map((issue) => ({
+    path: issue.path.map((part) => String(part)).join("."),
+    code: issue.code,
+  }));
+}
+
+export function buildSocialReelsAiEditorWordEditPromptInput(input: SocialReelsAiEditorWordEditRequest) {
+  return [
+    { role: "system", content: SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: JSON.stringify({
+        schemaVersion: SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
+        requestID: input.requestID,
+        candidateID: input.candidateID,
+        momentID: input.momentID,
+        recipeRevisionHash: input.recipeRevisionHash,
+        transcriptNormalizationHash: input.transcriptNormalizationHash,
+        selectedFormat: input.selectedFormat,
+        targetSpanHint: input.targetSpanHint ?? "hook",
+        currentSegments: input.currentSegments,
+        boundedWordWindow: input.boundedWordWindow,
+        userInstruction: input.userInstruction,
+        supersedesRequestID: input.supersedesRequestID,
+        outputContract: {
+          operations: SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES,
+          spokenOperationRule: "Every spoken edit operation must use sourceStartWordID/sourceEndWordID from boundedWordWindow.words.",
+          titleRule: "updateTitleSuggestion may include generated display title/caption text only; it is not spoken source content.",
+          timingRule: "Do not return timestamps as source of truth; CutSwitch app resolves timing locally.",
+          ambiguityRule: "Set needsNarrowerInstruction true when the user instruction is too broad to anchor to word IDs.",
+          forbiddenRule: "No synthetic spoken text, generated voice/audio, platform/content-risk fields, or content-topic rejection.",
+        },
+      }),
+    },
+  ];
+}
+
+function aiEditorWordIds(input: SocialReelsAiEditorWordEditRequest) {
+  return input.boundedWordWindow.words.map((word) => word.wordID);
+}
+
+function findCurrentSegment(input: SocialReelsAiEditorWordEditRequest, role: SocialReelsAiEditorWordEditResponse["targetSpanRole"]) {
+  return input.currentSegments.find((segment) => segment.targetRole === role) ?? input.currentSegments[0];
+}
+
+function nextWordId(input: SocialReelsAiEditorWordEditRequest, wordID: string) {
+  const wordIds = aiEditorWordIds(input);
+  const index = wordIds.indexOf(wordID);
+  return index >= 0 && index + 1 < wordIds.length ? wordIds[index + 1] : wordID;
+}
+
+function isAmbiguousAiEditorInstruction(instruction: string) {
+  const normalized = instruction.trim().toLowerCase();
+  return /^(change|fix|improve|refine|make better)(\s+(the\s+)?(hook|reel|clip|edit))?\.?$/.test(normalized);
+}
+
+export function buildMockSocialReelsAiEditorWordEditProviderOutput(input: SocialReelsAiEditorWordEditRequest): SocialReelsAiEditorWordEditResponse {
+  const targetRole = input.targetSpanHint ?? "hook";
+  if (isAmbiguousAiEditorInstruction(input.userInstruction)) {
+    return {
+      schemaVersion: SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
+      requestID: input.requestID,
+      candidateID: input.candidateID,
+      recipeRevisionHash: input.recipeRevisionHash,
+      transcriptNormalizationHash: input.transcriptNormalizationHash,
+      targetSpanRole: targetRole,
+      operations: [
+        {
+          type: "updateTitleSuggestion",
+          targetRole: "title",
+          titleText: "Clarify the Edit",
+          captionText: "Title suggestion only; no spoken source is changed.",
+          reason: "The instruction is too broad to safely anchor a spoken edit to existing word IDs.",
+          previewLabel: "Needs narrower instruction",
+        },
+      ],
+      draftSummary: "The edit request needs a narrower instruction before changing spoken word spans.",
+      previewLabels: ["Needs narrower instruction"],
+      confidence: 0.4,
+      editorialWarnings: ["needsNarrowerInstruction"],
+      needsNarrowerInstruction: true,
+      needsUserConfirmation: true,
+    };
+  }
+
+  const targetSegment = findCurrentSegment(input, targetRole);
+  const trimStartWordID = nextWordId(input, targetSegment.sourceStartWordID);
+
+  return {
+    schemaVersion: SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
+    requestID: input.requestID,
+    candidateID: input.candidateID,
+    recipeRevisionHash: input.recipeRevisionHash,
+    transcriptNormalizationHash: input.transcriptNormalizationHash,
+    targetSpanRole: targetRole,
+    operations: [
+      {
+        type: "trimStart",
+        sourceStartWordID: trimStartWordID,
+        sourceEndWordID: targetSegment.sourceEndWordID,
+        targetRole,
+        reason: "Mock provider trims the selected span to an existing word boundary for preview.",
+        previewLabel: "Trim selected span start",
+      },
+      {
+        type: "updateTitleSuggestion",
+        targetRole: "title",
+        titleText: "Tighter Reel Preview",
+        captionText: "Display title suggestion only; spoken content remains source-bound.",
+        reason: "Title copy is display metadata and does not alter spoken source material.",
+        previewLabel: "Suggest tighter title",
+      },
+    ],
+    draftSummary: "Mock word-edit proposal anchored to existing word IDs.",
+    previewLabels: ["Trim selected span start", "Suggest tighter title"],
+    confidence: 0.74,
+    editorialWarnings: ["needsUserConfirmation", "wordBoundaryReviewNeeded"],
+    needsNarrowerInstruction: false,
+    needsUserConfirmation: true,
+  };
+}
+
+export function proposeSocialReelsAiEditorWordEdit(
+  input: SocialReelsAiEditorWordEditRequest,
+  options: { providerOutput?: unknown } = {}
+) {
+  buildSocialReelsAiEditorWordEditPromptInput(input);
+  const providerOutput = options.providerOutput ?? buildMockSocialReelsAiEditorWordEditProviderOutput(input);
+
+  try {
+    return validateSocialReelsAiEditorWordEditResponseWordIds(input, providerOutput);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new SocialReelsAiEditorWordEditProviderError(
+        "Social reels AI editor provider output was invalid.",
+        getSafeSocialReelsAiEditorWordEditIssues(error)
+      );
+    }
+    throw error;
+  }
 }
 
 export const socialReelsEditRelevantUtteranceSchema = z

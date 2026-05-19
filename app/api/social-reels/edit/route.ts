@@ -4,8 +4,13 @@ import { getUserFromBearerToken } from "@/lib/auth";
 import { readJsonBody } from "@/lib/request";
 import { enforceRateLimit, noStoreJson } from "@/lib/security";
 import {
+  SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
+  SocialReelsAiEditorWordEditProviderError,
+  getSafeSocialReelsAiEditorWordEditIssues,
   getSafeSocialReelsEditIssues,
+  proposeSocialReelsAiEditorWordEdit,
   proposeSocialReelsEdit,
+  socialReelsAiEditorWordEditRequestSchema,
   socialReelsEditAssistantRequestSchema,
 } from "@/lib/socialReelsEditAssistant";
 
@@ -19,13 +24,23 @@ function safeEditPayloadShape(value: unknown) {
   const record = value as Record<string, unknown>;
   return {
     utterance_count: Array.isArray(record.relevant_utterances) ? record.relevant_utterances.length : null,
+    current_segment_count: Array.isArray(record.currentSegments) ? record.currentSegments.length : null,
     word_count: Array.isArray(record.relevant_words)
       ? record.relevant_words.length
       : Array.isArray(record.relevant_word_refs)
         ? record.relevant_word_refs.length
-        : null,
+        : record.boundedWordWindow &&
+            typeof record.boundedWordWindow === "object" &&
+            Array.isArray((record.boundedWordWindow as Record<string, unknown>).words)
+          ? ((record.boundedWordWindow as Record<string, unknown>).words as unknown[]).length
+          : null,
     history_count: Array.isArray(record.edit_history) ? record.edit_history.length : null,
-    instruction_length: typeof record.user_instruction === "string" ? record.user_instruction.length : null,
+    instruction_length:
+      typeof record.user_instruction === "string"
+        ? record.user_instruction.length
+        : typeof record.userInstruction === "string"
+          ? record.userInstruction.length
+          : null,
   };
 }
 
@@ -48,6 +63,54 @@ export async function POST(req: Request) {
   const parsedBody = await readJsonBody(req, MAX_BODY_BYTES);
   if (!parsedBody.ok) {
     return noStoreJson({ error: parsedBody.message || "Invalid request.", request_id: requestId }, parsedBody.status);
+  }
+
+  if (
+    parsedBody.data &&
+    typeof parsedBody.data === "object" &&
+    (parsedBody.data as Record<string, unknown>).schemaVersion === SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION
+  ) {
+    const parsedWordEdit = socialReelsAiEditorWordEditRequestSchema.safeParse(parsedBody.data);
+    if (!parsedWordEdit.success) {
+      const issues = getSafeSocialReelsAiEditorWordEditIssues(parsedWordEdit.error);
+      console.warn("[social-reels-edit] invalid word-edit payload", {
+        request_id: requestId,
+        issues,
+        shape: safeEditPayloadShape(parsedBody.data),
+      });
+      return noStoreJson({ error: "Invalid social reels AI editor word-edit payload", issues, request_id: requestId }, 400);
+    }
+
+    try {
+      const response = proposeSocialReelsAiEditorWordEdit(parsedWordEdit.data);
+      console.info("[social-reels-edit] word-edit proposal generated", {
+        request_id: requestId,
+        shape: safeEditPayloadShape(parsedWordEdit.data),
+        operation_count: response.operations.length,
+        needs_narrower_instruction: response.needsNarrowerInstruction === true,
+      });
+
+      return noStoreJson({ ok: true, request_id: requestId, ...response });
+    } catch (error) {
+      if (error instanceof SocialReelsAiEditorWordEditProviderError) {
+        console.warn("[social-reels-edit] word-edit provider output invalid", {
+          request_id: requestId,
+          reason_code: error.reasonCode,
+          issues: error.issues,
+        });
+        return noStoreJson(
+          {
+            error: "Social reels AI editor provider output was invalid.",
+            request_id: requestId,
+            reason_code: error.reasonCode,
+            retry_allowed: error.retryAllowed,
+            issues: error.issues,
+          },
+          502
+        );
+      }
+      throw error;
+    }
   }
 
   const parsed = socialReelsEditAssistantRequestSchema.safeParse(parsedBody.data);

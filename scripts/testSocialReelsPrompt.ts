@@ -34,10 +34,14 @@ import {
 } from "../lib/socialReelsEditorialWordId";
 import {
   SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS,
+  SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT,
   SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES,
   SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
   SOCIAL_REELS_EDIT_ASSISTANT_SYSTEM_PROMPT,
+  SocialReelsAiEditorWordEditProviderError,
+  buildSocialReelsAiEditorWordEditPromptInput,
   buildSocialReelsEditAssistantPromptInput,
+  proposeSocialReelsAiEditorWordEdit,
   proposeSocialReelsEdit,
   socialReelsAiEditorWordEditRequestSchema,
   socialReelsAiEditorWordEditResponseSchema,
@@ -83,6 +87,15 @@ function safeValidateAiEditorWordEditResponse(
     return true;
   } catch {
     return false;
+  }
+}
+
+function catchesAiEditorProviderError(fn: () => unknown) {
+  try {
+    fn();
+    return false;
+  } catch (error) {
+    return error instanceof SocialReelsAiEditorWordEditProviderError && error.retryAllowed === true;
   }
 }
 
@@ -152,6 +165,7 @@ const promptSource = [
   readFileSync(resolve(process.cwd(), "lib/socialReelsEditAssistant.ts"), "utf8"),
 ].join("\n");
 const discoverRouteSource = readFileSync(resolve(process.cwd(), "app/api/social-reels/discover/route.ts"), "utf8");
+const editRouteSource = readFileSync(resolve(process.cwd(), "app/api/social-reels/edit/route.ts"), "utf8");
 
 assert(promptSource.includes("Question -> Tension -> Answer -> Reframe"), "Prompt is missing the viral reel story arc.");
 for (const atom of SOCIAL_REELS_VIRAL_ATOMS) {
@@ -618,11 +632,39 @@ const aiEditorWordEditResponseFixture = JSON.parse(
 const parsedAiEditorWordEditRequest = socialReelsAiEditorWordEditRequestSchema.parse(aiEditorWordEditRequestFixture);
 const parsedAiEditorWordEditResponse = socialReelsAiEditorWordEditResponseSchema.parse(aiEditorWordEditResponseFixture);
 validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorWordEditRequest, parsedAiEditorWordEditResponse);
+const aiEditorPrompt = buildSocialReelsAiEditorWordEditPromptInput(parsedAiEditorWordEditRequest);
+const aiEditorPromptText = JSON.stringify(aiEditorPrompt);
+const aiEditorUserPrompt = String(aiEditorPrompt[1].content);
 assert(
   parsedAiEditorWordEditRequest.schemaVersion === SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION &&
     parsedAiEditorWordEditResponse.schemaVersion === SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION,
   "AI editor word-edit fixtures should use the v1 schema version."
 );
+assert(
+  editRouteSource.includes("socialReelsAiEditorWordEditRequestSchema.safeParse") &&
+    editRouteSource.includes("proposeSocialReelsAiEditorWordEdit") &&
+    editRouteSource.includes("SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SCHEMA_VERSION"),
+  "Social reels edit route should branch to the v1 word-edit contract."
+);
+for (const requiredPromptRule of [
+  "one selected reel only",
+  "Default target span is hook",
+  "All spoken edit operations must use existing word IDs",
+  "Do not invent spoken words",
+  "Do not generate voice/audio",
+  "Do not return final timestamps as source of truth",
+  "CutSwitch app resolves final timing locally",
+  "needsNarrowerInstruction true",
+  "Generated title suggestions are allowed only in updateTitleSuggestion",
+  "Do not return platform/content-risk fields",
+  "content-topic rejection",
+]) {
+  assert(SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT.includes(requiredPromptRule), `AI editor word-edit prompt is missing rule: ${requiredPromptRule}.`);
+}
+assert(aiEditorUserPrompt.includes('"boundedWordWindow"'), "AI editor prompt should include boundedWordWindow.");
+assert(aiEditorUserPrompt.includes('"wordID":"w001"'), "AI editor prompt should include stable word IDs.");
+assert(!aiEditorUserPrompt.includes("relevant_utterances"), "AI editor prompt should not include legacy full transcript utterances.");
+assert(!aiEditorUserPrompt.includes("fullTranscript"), "AI editor prompt should not include full transcript payloads.");
 for (const operationType of ["trimStart", "trimEnd", "extendStart", "extendEnd", "replaceSpanWithExistingSpan", "reorderExistingSegments", "removeFillerSubspan", "updateTitleSuggestion"]) {
   assert(
     SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES.includes(operationType as (typeof SOCIAL_REELS_AI_EDITOR_WORD_EDIT_OPERATION_TYPES)[number]),
@@ -639,6 +681,10 @@ assert(
     .every((operation) => "sourceStartWordID" in operation && "sourceEndWordID" in operation),
   "AI editor spoken operations should be anchored to source word IDs."
 );
+const validMockAiEditorResponse = proposeSocialReelsAiEditorWordEdit(parsedAiEditorWordEditRequest, {
+  providerOutput: parsedAiEditorWordEditResponse,
+});
+assert(validMockAiEditorResponse.operations.length === parsedAiEditorWordEditResponse.operations.length, "AI editor route/provider path should accept valid provider output.");
 
 const unknownWordResponse = {
   ...parsedAiEditorWordEditResponse,
@@ -647,6 +693,10 @@ const unknownWordResponse = {
 assert(
   !safeValidateAiEditorWordEditResponse(parsedAiEditorWordEditRequest, unknownWordResponse),
   "AI editor validator should reject operations that reference unknown word IDs."
+);
+assert(
+  catchesAiEditorProviderError(() => proposeSocialReelsAiEditorWordEdit(parsedAiEditorWordEditRequest, { providerOutput: unknownWordResponse })),
+  "AI editor provider path should convert unknown word IDs into a recoverable provider error."
 );
 const reversedSpanResponse = {
   ...parsedAiEditorWordEditResponse,
@@ -657,6 +707,10 @@ assert(
   "AI editor validator should reject reversed source word spans."
 );
 assert(
+  catchesAiEditorProviderError(() => proposeSocialReelsAiEditorWordEdit(parsedAiEditorWordEditRequest, { providerOutput: reversedSpanResponse })),
+  "AI editor provider path should convert reversed spans into a recoverable provider error."
+);
+assert(
   !socialReelsAiEditorWordEditResponseSchema.safeParse({
     ...parsedAiEditorWordEditResponse,
     operations: [{ ...parsedAiEditorWordEditResponse.operations[0], syntheticSpokenText: "Say this new line out loud." }],
@@ -664,12 +718,17 @@ assert(
   "AI editor response schema should reject synthetic spoken text fields."
 );
 for (const forbiddenRiskField of SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS) {
+  const riskFieldResponse = {
+    ...parsedAiEditorWordEditResponse,
+    [forbiddenRiskField]: "not allowed",
+  };
   assert(
-    !socialReelsAiEditorWordEditResponseSchema.safeParse({
-      ...parsedAiEditorWordEditResponse,
-      [forbiddenRiskField]: "not allowed",
-    }).success,
+    !socialReelsAiEditorWordEditResponseSchema.safeParse(riskFieldResponse).success,
     `AI editor response schema should reject forbidden risk/content field: ${forbiddenRiskField}.`
+  );
+  assert(
+    catchesAiEditorProviderError(() => proposeSocialReelsAiEditorWordEdit(parsedAiEditorWordEditRequest, { providerOutput: riskFieldResponse })),
+    `AI editor provider path should reject forbidden risk/content field: ${forbiddenRiskField}.`
   );
 }
 assert(
@@ -687,6 +746,17 @@ assert(
     ],
   }).success,
   "AI editor updateTitleSuggestion should allow generated display title/caption text only."
+);
+const ambiguousAiEditorRequest = socialReelsAiEditorWordEditRequestSchema.parse({
+  ...parsedAiEditorWordEditRequest,
+  requestID: "ai-editor-word-edit-ambiguous-001",
+  userInstruction: "change the hook",
+});
+const ambiguousAiEditorResponse = proposeSocialReelsAiEditorWordEdit(ambiguousAiEditorRequest);
+assert(ambiguousAiEditorResponse.needsNarrowerInstruction === true, "AI editor ambiguous instruction should return needsNarrowerInstruction.");
+assert(
+  ambiguousAiEditorResponse.operations.every((operation) => operation.type === "updateTitleSuggestion"),
+  "AI editor ambiguous instruction should not fabricate spoken source operations."
 );
 const aiEditorFixtureText = `${JSON.stringify(aiEditorWordEditRequestFixture)}\n${JSON.stringify(aiEditorWordEditResponseFixture)}`;
 for (const forbiddenLeak of [...SOCIAL_REELS_AI_EDITOR_FORBIDDEN_FIELDS, "syntheticSpokenText", "spokenText", "generatedAudio", "generatedVoice"]) {

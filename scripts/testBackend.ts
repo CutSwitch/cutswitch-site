@@ -5,8 +5,12 @@ import { socialReelsRequestSchema } from "../lib/socialReelsSchema";
 import { buildSocialReelsLiveDurationWindows } from "../lib/socialReelsDurationWindows";
 import { estimateSocialReelsDurationFirstCredits } from "../lib/socialReelsCreditEstimator";
 import {
+  SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT,
   buildSocialReelsEditAssistantPromptInput,
+  buildSocialReelsAiEditorWordEditPromptInput,
   proposeSocialReelsEdit,
+  proposeSocialReelsAiEditorWordEdit,
+  SocialReelsAiEditorWordEditProviderError,
   socialReelsAiEditorWordEditRequestSchema,
   socialReelsAiEditorWordEditResponseSchema,
   socialReelsEditAssistantRequestSchema,
@@ -430,15 +434,38 @@ function validateSocialReelsEditAssistantContract() {
   const parsedAiEditorRequest = socialReelsAiEditorWordEditRequestSchema.parse(aiEditorRequestFixture);
   const parsedAiEditorResponse = socialReelsAiEditorWordEditResponseSchema.parse(aiEditorResponseFixture);
   validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, parsedAiEditorResponse);
+  const aiEditorPromptText = JSON.stringify(buildSocialReelsAiEditorWordEditPromptInput(parsedAiEditorRequest));
+  for (const required of [
+    "one selected reel only",
+    "existing word IDs",
+    "Do not invent spoken words",
+    "Do not generate voice/audio",
+    "CutSwitch app resolves final timing locally",
+    "Do not return platform/content-risk fields",
+  ]) {
+    if (!aiEditorPromptText.includes(required) && !SOCIAL_REELS_AI_EDITOR_WORD_EDIT_SYSTEM_PROMPT.includes(required)) {
+      markFailed(`Social Reels AI editor word-edit prompt should include ${required}.`);
+    }
+  }
+  if (aiEditorPromptText.includes("relevant_utterances") || aiEditorPromptText.includes("fullTranscript")) {
+    markFailed("Social Reels AI editor word-edit prompt should include boundedWordWindow only, not full transcript payloads.");
+  }
+  const validAiEditorProposal = proposeSocialReelsAiEditorWordEdit(parsedAiEditorRequest, { providerOutput: parsedAiEditorResponse });
+  if (validAiEditorProposal.operations.length !== parsedAiEditorResponse.operations.length) {
+    markFailed("Social Reels AI editor word-edit route/provider path should accept valid provider output.");
+  }
 
   const unknownWordResponse = {
     ...parsedAiEditorResponse,
     operations: [{ ...parsedAiEditorResponse.operations[0], sourceStartWordID: "missing-word-id" }],
   };
   try {
-    validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, unknownWordResponse);
-    markFailed("Social Reels AI editor word-edit validator should reject unknown word IDs.");
-  } catch {
+    proposeSocialReelsAiEditorWordEdit(parsedAiEditorRequest, { providerOutput: unknownWordResponse });
+    markFailed("Social Reels AI editor word-edit provider path should reject unknown word IDs.");
+  } catch (error) {
+    if (!(error instanceof SocialReelsAiEditorWordEditProviderError)) {
+      markFailed("Social Reels AI editor word-edit unknown word failure should be recoverable provider error.");
+    }
     // Expected.
   }
 
@@ -447,9 +474,12 @@ function validateSocialReelsEditAssistantContract() {
     operations: [{ ...parsedAiEditorResponse.operations[0], sourceStartWordID: "w006", sourceEndWordID: "w003" }],
   };
   try {
-    validateSocialReelsAiEditorWordEditResponseWordIds(parsedAiEditorRequest, reversedSpanResponse);
-    markFailed("Social Reels AI editor word-edit validator should reject reversed word spans.");
-  } catch {
+    proposeSocialReelsAiEditorWordEdit(parsedAiEditorRequest, { providerOutput: reversedSpanResponse });
+    markFailed("Social Reels AI editor word-edit provider path should reject reversed word spans.");
+  } catch (error) {
+    if (!(error instanceof SocialReelsAiEditorWordEditProviderError)) {
+      markFailed("Social Reels AI editor word-edit reversed span failure should be recoverable provider error.");
+    }
     // Expected.
   }
 
@@ -464,6 +494,16 @@ function validateSocialReelsEditAssistantContract() {
 
   if (socialReelsAiEditorWordEditResponseSchema.safeParse({ ...parsedAiEditorResponse, platformRisk: "not_allowed" }).success) {
     markFailed("Social Reels AI editor word-edit schema should reject platform/content risk fields.");
+  }
+
+  const ambiguousAiEditorRequest = socialReelsAiEditorWordEditRequestSchema.parse({
+    ...parsedAiEditorRequest,
+    requestID: "ai-editor-backend-ambiguous",
+    userInstruction: "change the hook",
+  });
+  const ambiguousAiEditorResponse = proposeSocialReelsAiEditorWordEdit(ambiguousAiEditorRequest);
+  if (!ambiguousAiEditorResponse.needsNarrowerInstruction) {
+    markFailed("Social Reels AI editor word-edit ambiguous instruction should return needsNarrowerInstruction.");
   }
 }
 

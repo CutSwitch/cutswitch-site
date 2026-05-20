@@ -1,0 +1,127 @@
+{
+  "ok": true,
+  "request_id": "req_social_reels_credit_success_001",
+  "jobId": "job_social_reels_credit_success_001",
+  "status": "succeeded",
+  "candidates": [
+    {
+      "candidate_id": "candidate_15s_001",
+      "duration_bucket": "15s",
+      "title": "The Claim Lands Fast",
+      "hook": "The strongest clip starts with a clear claim.",
+      "summary": "A short self-contained moment with a direct hook and clean payoff.",
+      "start_seconds": 10,
+      "end_seconds": 25,
+      "duration_seconds": 15,
+      "source_start_word_id": "w_0010",
+      "source_end_word_id": "w_0064",
+      "score": 0.88,
+      "transcript_excerpt": "The strongest clip starts with a clear claim, builds tension, and lands a payoff the viewer can understand.",
+      "suggested_caption": "Start with the claim. Land the payoff.",
+      "platform_tags": ["instagram_reels", "tiktok"]
+    },
+    {
+      "candidate_id": "candidate_30s_001",
+      "duration_bucket": "30s",
+      "title": "The Setup And Payoff",
+      "hook": "Build tension before the answer lands.",
+      "summary": "A longer clip that includes tension, explanation, and payoff.",
+      "start_seconds": 30,
+      "end_seconds": 60,
+      "duration_seconds": 30,
+      "source_start_word_id": "w_0080",
+      "source_end_word_id": "w_0186",
+      "score": 0.91,
+      "transcript_excerpt": "Build tension before the answer lands, then make sure the ending resolves the idea.",
+      "suggested_caption": "The payoff matters as much as the hook.",
+      "platform_tags": ["youtube_shorts", "social"]
+    }
+  ],
+  "groups": [
+    {
+      "durationBucket": "15s",
+      "candidates": [
+        {
+          "candidate_id": "candidate_15s_001",
+          "duration_bucket": "15s",
+          "title": "The Claim Lands Fast",
+          "hook": "The strongest clip starts with a clear claim.",
+          "summary": "A short self-contained moment with a direct hook and clean payoff.",
+          "start_seconds": 10,
+          "end_seconds": 25,
+          "duration_seconds": 15,
+          "source_start_word_id": "w_0010",
+          "source_end_word_id": "w_0064",
+          "score": 0.88,
+          "transcript_excerpt": "The strongest clip starts with a clear claim, builds tension, and lands a payoff the viewer can understand.",
+          "suggested_caption": "Start with the claim. Land the payoff.",
+          "platform_tags": ["instagram_reels", "tiktok"]
+        }
+      ]
+    },
+    {
+      "durationBucket": "30s",
+      "candidates": [
+        {
+          "candidate_id": "candidate_30s_001",
+          "duration_bucket": "30s",
+          "title": "The Setup And Payoff",
+          "hook": "Build tension before the answer lands.",
+          "summary": "A longer clip that includes tension, explanation, and payoff.",
+          "start_seconds": 30,
+          "end_seconds": 60,
+          "duration_seconds": 30,
+          "source_start_word_id": "w_0080",
+          "source_end_word_id": "w_0186",
+          "score": 0.91,
+          "transcript_excerpt": "Build tension before the answer lands, then make sure the ending resolves the idea.",
+          "suggested_caption": "The payoff matters as much as the hook.",
+          "platform_tags": ["youtube_shorts", "social"]
+        }
+      ]
+    }
+  ],
+  "modelNotes": null,
+  "response_schema": "candidates",
+  "usage": null,
+  "providerResponseId": null,
+  "requested_candidate_count": 30,
+  "effective_candidate_count": 30,
+  "returned_candidate_count": 2,
+  "filtered_candidate_count": 0,
+  "discovery_mode": "mock_full_pool",
+  "provider": "mock",
+  "model": "mock",
+  "mock": true,
+  "billing": {
+    "creditUnit": "source_media_minute",
+    "creditsRequired": 2,
+    "creditsRequiredForFullRun": 2,
+    "creditsReserved": 2,
+    "creditsCharged": 2,
+    "creditsRefunded": 0,
+    "cacheStatus": "miss",
+    "noFullSourceMinuteCharge": false,
+    "idempotent": false,
+    "creditAccountId": "credit_account_fixture_001",
+    "reservationLedgerEntryId": "ledger_reserve_fixture_001",
+    "captureLedgerEntryId": "ledger_capture_fixture_001",
+    "availableCreditsAfter": 118,
+    "reservedCreditsAfter": 0,
+    "regenerationPolicy": "full_source_minute_charge"
+  },
+  "entitlement": {
+    "status": "active",
+    "plan": "studio",
+    "remainingSeconds": 414000
+  },
+  "diagnostics": {
+    "request_id": "req_social_reels_credit_success_001",
+    "mode": "mock",
+    "provider": "mock",
+    "model": "mock",
+    "returned_candidate_count": 2,
+    "filtered_candidate_count": 0,
+    "discovery_mode": "mock_full_pool"
+  }
+}

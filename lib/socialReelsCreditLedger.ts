@@ -175,6 +175,7 @@ export type SocialReelsCreditStore = {
     promptVersion: string;
     schemaVersion: string;
     durationBuckets: SocialReelsCreditDurationBucket[];
+    sourceDurationSeconds?: number;
   }): Promise<AnalysisCacheEntryRow | null>;
   upsertAnalysisCacheEntry?(input: AnalysisCacheEntryInsert): Promise<AnalysisCacheEntryRow>;
   touchAnalysisCacheEntry?(cacheEntryId: string): Promise<void>;
@@ -1055,7 +1056,7 @@ export function createSupabaseSocialReelsCreditStore(): SocialReelsCreditStore {
     },
     async findAnalysisCacheEntry(input) {
       const supabase = await client();
-      const { data, error } = await supabase
+      let query = supabase
         .from("analysis_cache_entries")
         .select("*")
         .eq("credit_account_id", input.creditAccountId)
@@ -1068,8 +1069,11 @@ export function createSupabaseSocialReelsCreditStore(): SocialReelsCreditStore {
         .contains("duration_buckets", input.durationBuckets)
         .containedBy("duration_buckets", input.durationBuckets)
         .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      if (typeof input.sourceDurationSeconds === "number") {
+        query = query.eq("source_duration_seconds", input.sourceDurationSeconds);
+      }
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return (data as AnalysisCacheEntryRow | null) || null;
     },

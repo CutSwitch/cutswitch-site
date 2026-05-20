@@ -39,10 +39,11 @@ type DiscoverFn = (input: SocialReelsRequest) => Promise<DiscoverSocialReelsResu
 export type SocialReelsCreditBillingMetadata = {
   creditUnit: "source_media_minute";
   creditsRequired: number;
+  creditsRequiredForFullRun: number;
   creditsReserved: number;
   creditsCharged: number;
   creditsRefunded: number;
-  cacheStatus: "disabled" | "miss" | "hit" | "stored" | "idempotent_replay";
+  cacheStatus: "disabled" | "miss" | "stale" | "hit" | "idempotent_replay";
   noFullSourceMinuteCharge: boolean;
   idempotent: boolean;
   creditAccountId: string;
@@ -50,6 +51,7 @@ export type SocialReelsCreditBillingMetadata = {
   captureLedgerEntryId: string | null;
   availableCreditsAfter: number | null;
   reservedCreditsAfter: number | null;
+  regenerationPolicy: "full_source_minute_charge" | "free_cached_regeneration";
 };
 
 export type SocialReelsCandidateGroup = {
@@ -127,9 +129,15 @@ function readSourceFingerprint(rawPayload: RawDiscoverPayload, request: SocialRe
 }
 
 function readTranscriptNormalizationHash(rawPayload: RawDiscoverPayload, request: SocialReelsRequest) {
+  const transcriptHash = asString(rawPayload.transcriptHash);
+  const wordJsonHash = asString(rawPayload.wordJsonHash);
+  if (transcriptHash && wordJsonHash) {
+    return stableHash({ transcriptHash, wordJsonHash });
+  }
+
   return (
-    asString(rawPayload.transcriptHash) ||
-    asString(rawPayload.wordJsonHash) ||
+    transcriptHash ||
+    wordJsonHash ||
     stableHash({
       projectHash: request.project_hash,
       sourceFingerprint: request.project_fingerprint,
@@ -354,6 +362,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
   });
   const useCache = readUseCache(input.rawPayload);
   const schemaVersion = getDiscoverySchemaVersion(input.request);
+  let cacheStatusForRun: SocialReelsCreditBillingMetadata["cacheStatus"] = useCache ? "miss" : "disabled";
 
   const account = await getOrCreateCreditAccount({
     store,
@@ -374,6 +383,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
       promptVersion: SOCIAL_REELS_DISCOVER_CREDIT_PROMPT_VERSION,
       schemaVersion,
       durationBuckets,
+      sourceDurationSeconds: Math.ceil(sourceDurationSeconds),
     });
 
     if (cacheEntry) {
@@ -391,6 +401,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
           billing: {
             creditUnit: "source_media_minute",
             creditsRequired: cacheUsage.creditsRequired,
+            creditsRequiredForFullRun: cacheUsage.creditsRequired,
             creditsReserved: 0,
             creditsCharged: 0,
             creditsRefunded: 0,
@@ -400,10 +411,12 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
             creditAccountId: account.id,
             reservationLedgerEntryId: null,
             captureLedgerEntryId: null,
+            regenerationPolicy: "free_cached_regeneration",
             ...balanceFields(balance),
           },
         };
       }
+      cacheStatusForRun = "stale";
     }
   }
 
@@ -440,6 +453,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
         billing: {
           creditUnit: "source_media_minute",
           creditsRequired,
+          creditsRequiredForFullRun: creditsRequired,
           creditsReserved: 0,
           creditsCharged: 0,
           creditsRefunded: 0,
@@ -449,6 +463,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
           creditAccountId: account.id,
           reservationLedgerEntryId: job.job.reservation_ledger_entry_id,
           captureLedgerEntryId: job.job.capture_ledger_entry_id,
+          regenerationPolicy: "free_cached_regeneration",
           ...balanceFields(balance),
         },
       };
@@ -523,6 +538,8 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
         latest_source_analysis_job_id: succeededJob.id,
         metadata_json: sanitizeCreditMetadata({
           cache_policy: "source_fingerprint_transcript_hash_prompt_schema_duration_buckets",
+          cache_key_includes_source_duration: true,
+          cache_key_includes_word_hash_when_provided: true,
           discovery_mode: discoverResult.discoveryMode,
         }),
         last_used_at: new Date().toISOString(),
@@ -538,15 +555,17 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
       billing: {
         creditUnit: "source_media_minute",
         creditsRequired,
+        creditsRequiredForFullRun: creditsRequired,
         creditsReserved: reservation.idempotent ? 0 : creditsRequired,
         creditsCharged: capture.idempotent ? 0 : creditsRequired,
         creditsRefunded: 0,
-        cacheStatus: useCache ? "stored" : "disabled",
+        cacheStatus: cacheStatusForRun,
         noFullSourceMinuteCharge: false,
         idempotent: job.idempotent || reservation.idempotent || capture.idempotent,
         creditAccountId: account.id,
         reservationLedgerEntryId: reservationEntryId,
         captureLedgerEntryId: captureEntryId,
+        regenerationPolicy: "full_source_minute_charge",
         ...balanceFields(capture.balance),
       },
     };

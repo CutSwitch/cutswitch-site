@@ -1,0 +1,6 @@
+{
+  "error": "insufficient_credits",
+  "reason_code": "insufficient_credits",
+  "request_id": "req_social_reels_credit_insufficient_001",
+  "retry_allowed": true
+}

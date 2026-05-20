@@ -129,6 +129,18 @@ Cached regeneration rules:
 - Same source with changed transcript normalization hash: new analysis charge is allowed because the analyzed input changed.
 - Prompt version changes: product decision. Recommended default is no full re-charge for minor prompt changes if the cached source analysis is still valid; charge only if the source must be reprocessed or a new provider run is required.
 
+Runtime cache status values for the feature-flagged credit-aware `/api/social-reels/discover` path:
+
+- `hit`: ready cache entry with stored candidates; no full source-minute charge.
+- `miss`: no matching ready cache entry; reserve/capture the full source-minute charge after successful provider work.
+- `stale`: a matching cache row exists but cannot serve candidates; regenerate and charge a full source-minute run.
+- `disabled`: cache lookup was bypassed.
+- `idempotent_replay`: same successful job idempotency key replayed; no duplicate charge.
+
+Runtime cache identity is scoped by credit account id and includes source media fingerprint, rounded source duration seconds, transcript normalization hash, optional word hash when provided, canonicalized duration buckets, analysis mode, prompt version, and response schema version. Duration buckets are sorted and deduped in this order: `15s,30s,60s,90s,mixed`.
+
+Current regeneration policy is free cached regeneration. A cache hit returns stored candidates with `creditsCharged = 0`, `noFullSourceMinuteCharge = true`, and `creditsRequiredForFullRun` set to the source-minute charge that would have applied to a full run. Future discounted regeneration can be added as a new `regenerationPolicy`, but v1 uses only `free_cached_regeneration` and `full_source_minute_charge`.
+
 ## Edge Cases
 
 ### Source duration is missing

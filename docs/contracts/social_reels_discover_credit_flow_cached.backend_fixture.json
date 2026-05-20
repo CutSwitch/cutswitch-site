@@ -1,0 +1,100 @@
+{
+  "ok": true,
+  "request_id": "req_social_reels_credit_cached_001",
+  "jobId": "job_social_reels_credit_success_001",
+  "status": "cached",
+  "candidates": [
+    {
+      "candidate_id": "candidate_15s_001",
+      "duration_bucket": "15s",
+      "title": "The Claim Lands Fast",
+      "summary": "A short self-contained moment with a direct hook and clean payoff.",
+      "source_start_word_id": "w_0010",
+      "source_end_word_id": "w_0064",
+      "metadata": {
+        "discovery_mode": "mock_full_pool",
+        "score": 0.88
+      }
+    },
+    {
+      "candidate_id": "candidate_30s_001",
+      "duration_bucket": "30s",
+      "title": "The Setup And Payoff",
+      "summary": "A longer clip that includes tension, explanation, and payoff.",
+      "source_start_word_id": "w_0080",
+      "source_end_word_id": "w_0186",
+      "metadata": {
+        "discovery_mode": "mock_full_pool",
+        "score": 0.91
+      }
+    }
+  ],
+  "groups": [
+    {
+      "durationBucket": "15s",
+      "candidates": [
+        {
+          "candidate_id": "candidate_15s_001",
+          "duration_bucket": "15s",
+          "title": "The Claim Lands Fast",
+          "summary": "A short self-contained moment with a direct hook and clean payoff.",
+          "source_start_word_id": "w_0010",
+          "source_end_word_id": "w_0064",
+          "metadata": {
+            "discovery_mode": "mock_full_pool",
+            "score": 0.88
+          }
+        }
+      ]
+    },
+    {
+      "durationBucket": "30s",
+      "candidates": [
+        {
+          "candidate_id": "candidate_30s_001",
+          "duration_bucket": "30s",
+          "title": "The Setup And Payoff",
+          "summary": "A longer clip that includes tension, explanation, and payoff.",
+          "source_start_word_id": "w_0080",
+          "source_end_word_id": "w_0186",
+          "metadata": {
+            "discovery_mode": "mock_full_pool",
+            "score": 0.91
+          }
+        }
+      ]
+    }
+  ],
+  "billing": {
+    "creditUnit": "source_media_minute",
+    "creditsRequired": 2,
+    "creditsRequiredForFullRun": 2,
+    "creditsReserved": 0,
+    "creditsCharged": 0,
+    "creditsRefunded": 0,
+    "cacheStatus": "hit",
+    "noFullSourceMinuteCharge": true,
+    "idempotent": false,
+    "creditAccountId": "credit_account_fixture_001",
+    "reservationLedgerEntryId": null,
+    "captureLedgerEntryId": null,
+    "availableCreditsAfter": 118,
+    "reservedCreditsAfter": 0,
+    "regenerationPolicy": "free_cached_regeneration"
+  },
+  "response_schema": "cached_candidates",
+  "entitlement": {
+    "status": "active",
+    "plan": "studio",
+    "remainingSeconds": 414000
+  },
+  "diagnostics": {
+    "request_id": "req_social_reels_credit_cached_001",
+    "mode": "mock",
+    "provider": "mock",
+    "model": null,
+    "returned_candidate_count": 2,
+    "filtered_candidate_count": 0,
+    "discovery_mode": "cached"
+  }
+}

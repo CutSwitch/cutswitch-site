@@ -1,0 +1,240 @@
+{
+  "contractVersion": "social_reels_discover_credit_flow_v1",
+  "featureFlag": "ENABLE_SOCIAL_REELS_DISCOVER_CREDITS",
+  "cacheKeyRules": {
+    "scope": "creditAccountId",
+    "fields": [
+      "sourceMediaFingerprint",
+      "sourceDurationSeconds",
+      "transcriptHash",
+      "wordJsonHashWhenProvided",
+      "durationBucketsCanonicalized",
+      "promptVersion",
+      "schemaVersion",
+      "analysisMode"
+    ],
+    "durationBucketCanonicalization": ["15s", "30s", "60s", "90s", "mixed"],
+    "noCrossUserCacheReuse": true
+  },
+  "examples": {
+    "cacheMissCharged": {
+      "ok": true,
+      "request_id": "req-credit-flow-cache-miss",
+      "jobId": "job-cache-miss-001",
+      "status": "succeeded",
+      "response_schema": "social_reels_candidates_v1",
+      "billing": {
+        "creditUnit": "source_media_minute",
+        "creditsRequired": 2,
+        "creditsRequiredForFullRun": 2,
+        "creditsReserved": 2,
+        "creditsCharged": 2,
+        "creditsRefunded": 0,
+        "cacheStatus": "miss",
+        "noFullSourceMinuteCharge": false,
+        "idempotent": false,
+        "creditAccountId": "credit-account-fixture-001",
+        "reservationLedgerEntryId": "ledger-reserve-fixture-001",
+        "captureLedgerEntryId": "ledger-capture-fixture-001",
+        "availableCreditsAfter": 118,
+        "reservedCreditsAfter": 0,
+        "regenerationPolicy": "full_source_minute_charge"
+      },
+      "groups": [
+        {
+          "durationBucket": "15s",
+          "candidates": [
+            {
+              "candidate_id": "fixture-15s-001",
+              "duration_bucket": "15s",
+              "title": "The Claim Lands Fast",
+              "summary": "A short self-contained moment with a direct hook and clean payoff.",
+              "source_start_word_id": "w-0010",
+              "source_end_word_id": "w-0064",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.88
+              }
+            }
+          ]
+        },
+        {
+          "durationBucket": "30s",
+          "candidates": [
+            {
+              "candidate_id": "fixture-30s-001",
+              "duration_bucket": "30s",
+              "title": "The Setup And Payoff",
+              "summary": "A fuller clip that includes the tension, explanation, and ending.",
+              "source_start_word_id": "w-0080",
+              "source_end_word_id": "w-0186",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.91
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cacheHitNoCharge": {
+      "ok": true,
+      "request_id": "req-credit-flow-cache-hit",
+      "jobId": "job-cache-miss-001",
+      "status": "cached",
+      "response_schema": "cached_candidates",
+      "billing": {
+        "creditUnit": "source_media_minute",
+        "creditsRequired": 2,
+        "creditsRequiredForFullRun": 2,
+        "creditsReserved": 0,
+        "creditsCharged": 0,
+        "creditsRefunded": 0,
+        "cacheStatus": "hit",
+        "noFullSourceMinuteCharge": true,
+        "idempotent": false,
+        "creditAccountId": "credit-account-fixture-001",
+        "reservationLedgerEntryId": null,
+        "captureLedgerEntryId": null,
+        "availableCreditsAfter": 118,
+        "reservedCreditsAfter": 0,
+        "regenerationPolicy": "free_cached_regeneration"
+      },
+      "groups": [
+        {
+          "durationBucket": "15s",
+          "candidates": [
+            {
+              "candidate_id": "fixture-15s-001",
+              "duration_bucket": "15s",
+              "title": "The Claim Lands Fast",
+              "summary": "A short self-contained moment with a direct hook and clean payoff.",
+              "source_start_word_id": "w-0010",
+              "source_end_word_id": "w-0064",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.88
+              }
+            }
+          ]
+        },
+        {
+          "durationBucket": "30s",
+          "candidates": [
+            {
+              "candidate_id": "fixture-30s-001",
+              "duration_bucket": "30s",
+              "title": "The Setup And Payoff",
+              "summary": "A fuller clip that includes the tension, explanation, and ending.",
+              "source_start_word_id": "w-0080",
+              "source_end_word_id": "w-0186",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.91
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "staleCacheRegenerated": {
+      "ok": true,
+      "request_id": "req-credit-flow-stale-cache",
+      "jobId": "job-stale-regenerated-001",
+      "status": "succeeded",
+      "response_schema": "social_reels_candidates_v1",
+      "billing": {
+        "creditUnit": "source_media_minute",
+        "creditsRequired": 2,
+        "creditsRequiredForFullRun": 2,
+        "creditsReserved": 2,
+        "creditsCharged": 2,
+        "creditsRefunded": 0,
+        "cacheStatus": "stale",
+        "noFullSourceMinuteCharge": false,
+        "idempotent": false,
+        "creditAccountId": "credit-account-fixture-001",
+        "reservationLedgerEntryId": "ledger-reserve-fixture-002",
+        "captureLedgerEntryId": "ledger-capture-fixture-002",
+        "availableCreditsAfter": 116,
+        "reservedCreditsAfter": 0,
+        "regenerationPolicy": "full_source_minute_charge"
+      },
+      "groups": [
+        {
+          "durationBucket": "60s",
+          "candidates": [
+            {
+              "candidate_id": "fixture-60s-001",
+              "duration_bucket": "60s",
+              "title": "The Complete Takeaway",
+              "summary": "A longer self-contained clip selected after a stale cache entry could not provide candidates.",
+              "source_start_word_id": "w-0200",
+              "source_end_word_id": "w-0415",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.87
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "cacheDisabledCharged": {
+      "ok": true,
+      "request_id": "req-credit-flow-cache-disabled",
+      "jobId": "job-cache-disabled-001",
+      "status": "succeeded",
+      "response_schema": "social_reels_candidates_v1",
+      "billing": {
+        "creditUnit": "source_media_minute",
+        "creditsRequired": 2,
+        "creditsRequiredForFullRun": 2,
+        "creditsReserved": 2,
+        "creditsCharged": 2,
+        "creditsRefunded": 0,
+        "cacheStatus": "disabled",
+        "noFullSourceMinuteCharge": false,
+        "idempotent": false,
+        "creditAccountId": "credit-account-fixture-001",
+        "reservationLedgerEntryId": "ledger-reserve-fixture-003",
+        "captureLedgerEntryId": "ledger-capture-fixture-003",
+        "availableCreditsAfter": 114,
+        "reservedCreditsAfter": 0,
+        "regenerationPolicy": "full_source_minute_charge"
+      },
+      "groups": [
+        {
+          "durationBucket": "mixed",
+          "candidates": [
+            {
+              "candidate_id": "fixture-mixed-001",
+              "duration_bucket": "mixed",
+              "title": "A Useful Variant",
+              "summary": "A mixed-duration candidate returned while cache lookup was disabled by request.",
+              "source_start_word_id": "w-0500",
+              "source_end_word_id": "w-0630",
+              "metadata": {
+                "discovery_mode": "mock_full_pool",
+                "score": 0.84
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "failedReleasedInternalLedgerExample": {
+      "routeBillingMetadataAvailable": false,
+      "reason": "The current route returns an error for failed provider/schema work; release/refund is recorded in the ledger by the backend service.",
+      "ledgerOutcome": {
+        "jobStatus": "failed",
+        "reasonCode": "job_failed_schema",
+        "reservationEntryType": "reserve",
+        "compensatingEntryType": "release",
+        "creditsReserved": 2,
+        "creditsCharged": 0,
+        "creditsRefunded": 0
+      }
+    }
+  }
+}

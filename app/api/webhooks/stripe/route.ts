@@ -14,6 +14,7 @@ import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/env";
 import { emitLifecycleEvent } from "@/lib/lifecycle";
 import { planLabels, siteConfig, type PlanKey } from "@/lib/site";
+import { grantStripeSubscriptionCredits } from "@/lib/socialReelsStripeCredits";
 import { getAppPlanIdForPrice, isAppPlanId } from "@/lib/stripe";
 import {
   subscriptionRecordFromStripe,
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
         break;
 
       case "invoice.paid":
-        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        await handleInvoicePaid(event.id, event.data.object as Stripe.Invoice);
         break;
 
       case "invoice.payment_failed":
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
 
       case "customer.subscription.created":
       case "customer.subscription.updated":
-        await handleSubscriptionUpsert(event.data.object as Stripe.Subscription);
+        await handleSubscriptionUpsert(event.id, event.data.object as Stripe.Subscription);
         break;
 
       case "customer.subscription.deleted":
@@ -497,11 +498,13 @@ function getKeygenPolicyId(planKey: PlanKey | "unknown"): string | null {
   return fallback;
 }
 
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
+async function handleInvoicePaid(eventId: string, invoice: Stripe.Invoice) {
   const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : null;
   if (!subscriptionId) return;
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  await maybeGrantSubscriptionCredits(eventId, subscription);
+
   const licenseId = subscription.metadata?.keygen_license_id;
   if (!licenseId) return;
 
@@ -521,22 +524,40 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   await suspendLicense(licenseId);
 }
 
-async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpsert(eventId: string, subscription: Stripe.Subscription) {
   const record = subscriptionRecordFromStripe(subscription);
   if (!record) return;
 
   await upsertSubscriptionRecord(record);
   await emitSubscriptionLifecycle(record);
+  await maybeGrantSubscriptionCredits(eventId, subscription);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  await handleSubscriptionUpsert(subscription);
+  await handleSubscriptionUpsert(`subscription_deleted:${subscription.id}`, subscription);
 
   const licenseId = subscription.metadata?.keygen_license_id;
   if (!licenseId) return;
 
   console.log("[stripe] subscription.deleted -> suspend license", { licenseLast6: licenseId.slice(-6) });
   await suspendLicense(licenseId);
+}
+
+async function maybeGrantSubscriptionCredits(eventId: string, subscription: Stripe.Subscription) {
+  const result = await grantStripeSubscriptionCredits({ stripeEventId: eventId, subscription });
+  if (!result.granted) {
+    if (result.reason !== "subscription_status_no_credit_grant" && result.reason !== "subscription_not_account_backed") {
+      console.warn("[stripe] social reels credit grant skipped", { reason: result.reason });
+    }
+    return;
+  }
+
+  console.log("[stripe] social reels credits granted", {
+    kind: result.kind,
+    credits: result.credits,
+    idempotent: result.idempotent,
+    creditAccountIdPresent: Boolean(result.creditAccountId),
+  });
 }
 
 async function emitSubscriptionLifecycle(record: SubscriptionRecord) {

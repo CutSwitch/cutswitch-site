@@ -5,6 +5,7 @@ export const SOCIAL_REELS_CREDIT_REASON_CODES = [
   "insufficient_credits",
   "credit_account_missing",
   "credit_reservation_failed",
+  "credit_grant_failed",
   "credit_capture_failed",
   "credit_release_failed",
   "credit_refund_failed",
@@ -16,6 +17,7 @@ export const SOCIAL_REELS_CREDIT_REASON_CODES = [
   "invalid_source_duration",
   "invalid_duration_bucket",
   "unsafe_metadata",
+  "unknown_stripe_price",
 ] as const;
 
 export const SOCIAL_REELS_CREDIT_DURATION_BUCKETS = ["15s", "30s", "60s", "90s", "mixed"] as const;
@@ -368,6 +370,53 @@ export async function reserveCredits(input: {
     reservation_entry_id: null,
     idempotency_key: input.idempotencyKey,
     source: input.source || "social_reels_source_analysis",
+    metadata_json: { ...metadata, payload_hash: payloadHash },
+  });
+
+  return { entry, balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }), idempotent: false };
+}
+
+export async function grantCredits(input: {
+  store?: SocialReelsCreditStore;
+  creditAccountId: string;
+  userId?: string | null;
+  credits: number;
+  idempotencyKey: string;
+  source?: string;
+  metadata?: Record<string, unknown>;
+  idempotencyMetadata?: Record<string, unknown>;
+}): Promise<{ entry: CreditLedgerEntryRow; balance: CreditBalance; idempotent: boolean }> {
+  const store = input.store || createSupabaseSocialReelsCreditStore();
+  const metadata = sanitizeCreditMetadata(input.metadata || {});
+  const idempotencyMetadata = sanitizeCreditMetadata(input.idempotencyMetadata || input.metadata || {});
+  const payloadHash = entryPayloadHash({
+    operation: "grant",
+    creditAccountId: input.creditAccountId,
+    userId: input.userId ?? null,
+    credits: input.credits,
+    source: input.source || "social_reels_credit_grant",
+    metadata: idempotencyMetadata,
+  });
+  const existing = await store.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
+  if (existing) {
+    assertIdempotentPayload(existing, payloadHash);
+    return { entry: existing, balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }), idempotent: true };
+  }
+
+  if (!Number.isInteger(input.credits) || input.credits <= 0) {
+    throw new SocialReelsCreditLedgerError("credit_grant_failed", "Grant credits must be a positive integer.", 400);
+  }
+
+  const entry = await store.insertLedgerEntry({
+    credit_account_id: input.creditAccountId,
+    user_id: input.userId ?? null,
+    source_analysis_job_id: null,
+    entry_type: "grant",
+    credits: input.credits,
+    balance_effect: "increase_available",
+    reservation_entry_id: null,
+    idempotency_key: input.idempotencyKey,
+    source: input.source || "social_reels_credit_grant",
     metadata_json: { ...metadata, payload_hash: payloadHash },
   });
 

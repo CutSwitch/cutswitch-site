@@ -82,7 +82,7 @@
     }
   ],
   "modelNotes": null,
-  "response_schema": "candidates",
+  "response_schema": "social_reels_candidates_v1",
   "usage": null,
   "providerResponseId": null,
   "requested_candidate_count": 30,
@@ -95,6 +95,7 @@
   "mock": true,
   "billing": {
     "creditUnit": "source_media_minute",
+    "sourceDurationSeconds": 120,
     "creditsRequired": 2,
     "creditsRequiredForFullRun": 2,
     "creditsReserved": 2,

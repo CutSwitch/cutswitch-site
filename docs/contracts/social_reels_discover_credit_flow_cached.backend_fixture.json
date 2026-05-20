@@ -67,6 +67,7 @@
   ],
   "billing": {
     "creditUnit": "source_media_minute",
+    "sourceDurationSeconds": 120,
     "creditsRequired": 2,
     "creditsRequiredForFullRun": 2,
     "creditsReserved": 0,

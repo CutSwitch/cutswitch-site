@@ -356,7 +356,9 @@ function assertCanonicalSuccessEnvelope(fixture: Record<string, unknown>, expect
   const billing = fixture.billing as Record<string, unknown>;
   assert.equal(billing.cacheStatus, expectedCacheStatus);
   assert.equal(billing.creditUnit, "source_media_minute");
+  assert.equal(typeof billing.sourceDurationSeconds, "number");
   assert.equal(typeof billing.creditsRequiredForFullRun, "number");
+  assert.equal(billing.credits_required, undefined, "Billing should keep current camelCase field names.");
 
   const candidates = fixture.candidates as Array<Record<string, unknown>>;
   assert(candidates.length > 0, "Canonical fixture should include at least one candidate.");
@@ -364,6 +366,7 @@ function assertCanonicalSuccessEnvelope(fixture: Record<string, unknown>, expect
     assert.equal(typeof candidate.candidate_id, "string", "Candidate ids should be snake_case candidate_id.");
     assert.equal(candidate.candidateId, undefined, "Canonical backend fixture should not use candidateId.");
     assert.equal(typeof candidate.duration_bucket, "string", "Duration bucket should be snake_case duration_bucket.");
+    assert.notEqual(candidate.duration_bucket, "mixed", "Canonical candidates should use concrete duration buckets.");
     assert.equal(candidate.durationBucket, undefined, "Candidate duration field should not be camelCase.");
     if ("source_start_word_id" in candidate || "source_end_word_id" in candidate) {
       assert.equal(typeof candidate.source_start_word_id, "string");
@@ -418,6 +421,7 @@ async function main() {
       },
     });
     assert.equal(discoverCalls, 1);
+    assert.equal(outcome.billing.sourceDurationSeconds, 120);
     assert.equal(outcome.billing.creditsRequired, 2);
     assert.equal(outcome.billing.creditsRequiredForFullRun, 2);
     assert.equal(outcome.billing.creditsCharged, 2);
@@ -696,7 +700,7 @@ async function main() {
   {
     const successFixture = loadJsonFixture(CANONICAL_FIXTURE_PATHS.success);
     assertCanonicalSuccessEnvelope(successFixture, "miss");
-    assert.equal(successFixture.response_schema, "candidates");
+    assert.equal(successFixture.response_schema, "social_reels_candidates_v1");
     assertNoForbiddenContractFields(successFixture, CANONICAL_FIXTURE_PATHS.success);
 
     const cachedFixture = loadJsonFixture(CANONICAL_FIXTURE_PATHS.cached);
@@ -709,12 +713,14 @@ async function main() {
     const insufficientFixture = loadJsonFixture(CANONICAL_FIXTURE_PATHS.insufficient);
     assert.equal(insufficientFixture.error, "insufficient_credits");
     assert.equal(insufficientFixture.reason_code, "insufficient_credits");
+    assert.equal(insufficientFixture.response_schema, "social_reels_error_v1");
     assert.equal(insufficientFixture.billing, undefined, "Insufficient-credit errors use the route error envelope, not success billing.");
     assert.equal(insufficientFixture.groups, undefined, "Insufficient-credit errors do not include grouped candidates.");
     assertNoForbiddenContractFields(insufficientFixture, CANONICAL_FIXTURE_PATHS.insufficient);
 
     const failedReleasedFixture = loadJsonFixture(CANONICAL_FIXTURE_PATHS.failedReleased);
     assert.equal(failedReleasedFixture.code, "schema_mismatch");
+    assert.equal(failedReleasedFixture.response_schema, "social_reels_error_v1");
     assert.equal(failedReleasedFixture.stage, "openai_invalid_response");
     assert.equal(failedReleasedFixture.groups, undefined, "Failed provider/schema responses do not include grouped candidates.");
     assertNoForbiddenContractFields(failedReleasedFixture, CANONICAL_FIXTURE_PATHS.failedReleased);

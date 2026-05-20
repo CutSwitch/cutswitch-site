@@ -38,6 +38,7 @@ type DiscoverFn = (input: SocialReelsRequest) => Promise<DiscoverSocialReelsResu
 
 export type SocialReelsCreditBillingMetadata = {
   creditUnit: "source_media_minute";
+  sourceDurationSeconds: number;
   creditsRequired: number;
   creditsRequiredForFullRun: number;
   creditsReserved: number;
@@ -400,6 +401,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
           groups: groupByDurationBucket(cachedCandidates),
           billing: {
             creditUnit: "source_media_minute",
+            sourceDurationSeconds: Math.ceil(sourceDurationSeconds),
             creditsRequired: cacheUsage.creditsRequired,
             creditsRequiredForFullRun: cacheUsage.creditsRequired,
             creditsReserved: 0,
@@ -452,6 +454,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
         groups: groupByDurationBucket(cachedCandidates),
         billing: {
           creditUnit: "source_media_minute",
+          sourceDurationSeconds: Math.ceil(sourceDurationSeconds),
           creditsRequired,
           creditsRequiredForFullRun: creditsRequired,
           creditsReserved: 0,
@@ -554,6 +557,7 @@ export async function runCreditAwareSocialReelsDiscovery(input: {
       groups: buildSocialReelsCandidateGroups(discoverResult),
       billing: {
         creditUnit: "source_media_minute",
+        sourceDurationSeconds: Math.ceil(sourceDurationSeconds),
         creditsRequired,
         creditsRequiredForFullRun: creditsRequired,
         creditsReserved: reservation.idempotent ? 0 : creditsRequired,

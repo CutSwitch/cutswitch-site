@@ -21,6 +21,8 @@ import { TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const SOCIAL_REELS_CREDIT_SUCCESS_RESPONSE_SCHEMA = "social_reels_candidates_v1";
+const SOCIAL_REELS_ERROR_RESPONSE_SCHEMA = "social_reels_error_v1";
 
 type UsageEvent = {
   billable_seconds: number | null;
@@ -235,11 +237,17 @@ export async function POST(req: Request) {
   const { user, error: authError } = await getUserFromBearerToken(req);
 
   if (authError === "missing_token") {
-    return noStoreJson({ error: "Missing Authorization bearer token" }, 401);
+    return noStoreJson(
+      { error: "Missing Authorization bearer token", reason_code: "auth_required", response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+      401
+    );
   }
 
   if (authError || !user) {
-    return noStoreJson({ error: "Invalid or expired token" }, 401);
+    return noStoreJson(
+      { error: "Invalid or expired token", reason_code: "auth_required", response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+      401
+    );
   }
 
   const userRateLimited = await enforceRateLimit(req, [user.id], 30, 60 * 60, "social_reels_discover_user");
@@ -260,7 +268,15 @@ export async function POST(req: Request) {
       timeoutStage: "route_before_openai",
     });
     console.warn("[social-reels] body parse failed", diagnostics);
-    return noStoreJson({ error: parsedBody.message || "Invalid request.", request_id: requestId }, parsedBody.status);
+    return noStoreJson(
+      {
+        error: parsedBody.message || "Invalid request.",
+        reason_code: "invalid_request",
+        request_id: requestId,
+        response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
+      },
+      parsedBody.status
+    );
   }
 
   payloadShape = safePayloadShape(parsedBody.data);
@@ -280,7 +296,10 @@ export async function POST(req: Request) {
       timeoutStage: "route_before_openai",
     });
     console.warn("[social-reels] invalid payload", { issues, diagnostics });
-    return noStoreJson({ error: "Invalid social reels payload", issues, request_id: requestId }, 400);
+    return noStoreJson(
+      { error: "Invalid social reels payload", reason_code: "invalid_request", issues, request_id: requestId, response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+      400
+    );
   }
   payloadShape = safePayloadShape(parsed.data);
 
@@ -300,15 +319,24 @@ export async function POST(req: Request) {
         timeoutStage: "route_before_openai",
       }),
     });
-    return noStoreJson({ error: "Entitlement lookup failed.", request_id: requestId }, 500);
+    return noStoreJson(
+      { error: "Entitlement lookup failed.", reason_code: "entitlement_lookup_failed", request_id: requestId, response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+      500
+    );
   }
 
   if (!entitlement.allowed) {
     if (entitlement.reason === "trial_exhausted") {
-      return noStoreJson({ error: "Trial editing time exhausted" }, 402);
+      return noStoreJson(
+        { error: "Trial editing time exhausted", reason_code: "trial_exhausted", response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+        402
+      );
     }
 
-    return noStoreJson({ error: "Active plan required." }, 403);
+    return noStoreJson(
+      { error: "Active plan required.", reason_code: "active_plan_required", response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA },
+      403
+    );
   }
 
   try {
@@ -421,7 +449,15 @@ export async function POST(req: Request) {
       duration_buckets: result.durationFirstManifest?.duration_buckets,
       duration_first_moments: result.durationFirstManifest?.moments,
       modelNotes: result.matrixResponse?.model_notes ?? result.response?.model_notes ?? null,
-      response_schema: result.editorialWordIdResponse ? "editorial_word_id" : result.durationFirstManifest ? "duration_first_manifest" : result.matrixResponse ? "discovery_matrix" : "candidates",
+      response_schema: result.editorialWordIdResponse
+        ? "editorial_word_id"
+        : result.durationFirstManifest
+          ? "duration_first_manifest"
+          : result.matrixResponse
+            ? "discovery_matrix"
+            : creditAwareOutcome
+              ? SOCIAL_REELS_CREDIT_SUCCESS_RESPONSE_SCHEMA
+              : "candidates",
       usage: result.usage,
       providerResponseId: result.providerResponseId,
       requested_candidate_count: result.requestedCandidateCount,
@@ -474,6 +510,7 @@ export async function POST(req: Request) {
           error: error.code,
           reason_code: error.code,
           request_id: requestId,
+          response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
           retry_allowed: error.code !== "idempotency_key_conflict",
         },
         error.status
@@ -518,6 +555,7 @@ export async function POST(req: Request) {
       return noStoreJson(
         {
           error: "Social reels discovery timed out",
+          response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
           stage,
           request_id: requestId,
           elapsed_ms: diagnostics.openai_elapsed_ms ?? diagnostics.total_elapsed_ms,
@@ -530,6 +568,8 @@ export async function POST(req: Request) {
       return noStoreJson(
         {
           error: "cloud_unavailable_after_auth",
+          reason_code: "cloud_unavailable_after_auth",
+          response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
           stage,
           request_id: requestId,
         },
@@ -543,6 +583,7 @@ export async function POST(req: Request) {
         {
           error: "Social reels provider returned an invalid response.",
           code: "schema_mismatch",
+          response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
           stage,
           reason_code: reasonCode,
           request_id: requestId,
@@ -556,6 +597,7 @@ export async function POST(req: Request) {
     return noStoreJson(
       {
         error: "Unable to discover social reel candidates.",
+        response_schema: SOCIAL_REELS_ERROR_RESPONSE_SCHEMA,
         stage,
         request_id: requestId,
       },

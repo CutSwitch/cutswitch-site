@@ -1,6 +1,7 @@
 {
   "error": "Social reels provider returned an invalid response.",
   "code": "schema_mismatch",
+  "response_schema": "social_reels_error_v1",
   "stage": "openai_invalid_response",
   "reason_code": "unsupported_shape",
   "request_id": "req_social_reels_credit_failed_released_001",

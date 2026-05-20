@@ -116,6 +116,11 @@ export type SourceAnalysisCandidateInsert = {
   metadata_json?: Record<string, JsonSafeValue>;
 };
 
+export type AtomicCreditLedgerMutationResult = {
+  entry: CreditLedgerEntryRow;
+  idempotent: boolean;
+};
+
 export type SocialReelsCreditStore = {
   findCreditAccountByUserId(userId: string): Promise<CreditAccountRow | null>;
   createCreditAccount(input: {
@@ -133,6 +138,40 @@ export type SocialReelsCreditStore = {
   insertSourceAnalysisJob(input: Omit<SourceAnalysisJobRow, "id" | "created_at" | "updated_at">): Promise<SourceAnalysisJobRow>;
   updateSourceAnalysisJob(jobId: string, patch: Partial<Omit<SourceAnalysisJobRow, "id" | "created_at">>): Promise<SourceAnalysisJobRow>;
   insertSourceAnalysisCandidates(input: SourceAnalysisCandidateInsert[]): Promise<void>;
+  reserveCreditsAtomically?(input: {
+    creditAccountId: string;
+    userId: string | null;
+    sourceAnalysisJobId: string | null;
+    credits: number;
+    idempotencyKey: string;
+    source: string;
+    metadataJson: Record<string, JsonSafeValue>;
+    payloadHash: string;
+  }): Promise<AtomicCreditLedgerMutationResult>;
+  captureReservedCreditsAtomically?(input: {
+    creditAccountId: string;
+    reservationEntryId: string;
+    credits: number | null;
+    idempotencyKey: string;
+    metadataJson: Record<string, JsonSafeValue>;
+    payloadHash: string;
+  }): Promise<AtomicCreditLedgerMutationResult>;
+  releaseReservedCreditsAtomically?(input: {
+    creditAccountId: string;
+    reservationEntryId: string;
+    idempotencyKey: string;
+    reasonCode: SocialReelsCreditReasonCode;
+    metadataJson: Record<string, JsonSafeValue>;
+    payloadHash: string;
+  }): Promise<AtomicCreditLedgerMutationResult>;
+  refundCreditsAtomically?(input: {
+    creditAccountId: string;
+    captureEntryId: string;
+    idempotencyKey: string;
+    reasonCode: SocialReelsCreditReasonCode;
+    metadataJson: Record<string, JsonSafeValue>;
+    payloadHash: string;
+  }): Promise<AtomicCreditLedgerMutationResult>;
 };
 
 export type CreditBalance = {
@@ -342,6 +381,28 @@ export async function reserveCredits(input: {
     source: input.source || "social_reels_source_analysis",
     metadata,
   });
+
+  if (store.reserveCreditsAtomically) {
+    if (!Number.isInteger(input.credits) || input.credits <= 0) {
+      throw new SocialReelsCreditLedgerError("credit_reservation_failed", "Reservation credits must be a positive integer.", 400);
+    }
+    const result = await store.reserveCreditsAtomically({
+      creditAccountId: input.creditAccountId,
+      userId: input.userId ?? null,
+      sourceAnalysisJobId: input.sourceAnalysisJobId ?? null,
+      credits: input.credits,
+      idempotencyKey: input.idempotencyKey,
+      source: input.source || "social_reels_source_analysis",
+      metadataJson: metadata,
+      payloadHash,
+    });
+    return {
+      entry: result.entry,
+      balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }),
+      idempotent: result.idempotent,
+    };
+  }
+
   const existing = await store.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
   if (existing) {
     assertIdempotentPayload(existing, payloadHash);
@@ -440,6 +501,23 @@ export async function captureReservedCredits(input: {
   const credits = input.credits ?? reservation.credits;
   const metadata = sanitizeCreditMetadata(input.metadata || {});
   const payloadHash = entryPayloadHash({ operation: "capture", creditAccountId: input.creditAccountId, reservationEntryId: input.reservationEntryId, credits, metadata });
+
+  if (store.captureReservedCreditsAtomically) {
+    const result = await store.captureReservedCreditsAtomically({
+      creditAccountId: input.creditAccountId,
+      reservationEntryId: input.reservationEntryId,
+      credits,
+      idempotencyKey: input.idempotencyKey,
+      metadataJson: metadata,
+      payloadHash,
+    });
+    return {
+      entry: result.entry,
+      balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }),
+      idempotent: result.idempotent,
+    };
+  }
+
   const existing = await store.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
   if (existing) {
     assertIdempotentPayload(existing, payloadHash);
@@ -496,6 +574,23 @@ export async function releaseReservedCredits(input: {
     reasonCode: input.reasonCode || "job_failed_schema",
     metadata,
   });
+
+  if (store.releaseReservedCreditsAtomically) {
+    const result = await store.releaseReservedCreditsAtomically({
+      creditAccountId: input.creditAccountId,
+      reservationEntryId: input.reservationEntryId,
+      idempotencyKey: input.idempotencyKey,
+      reasonCode: input.reasonCode || "job_failed_schema",
+      metadataJson: metadata,
+      payloadHash,
+    });
+    return {
+      entry: result.entry,
+      balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }),
+      idempotent: result.idempotent,
+    };
+  }
+
   const existing = await store.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
   if (existing) {
     assertIdempotentPayload(existing, payloadHash);
@@ -549,6 +644,23 @@ export async function refundCredits(input: {
     reasonCode: input.reasonCode || "job_failed_schema",
     metadata,
   });
+
+  if (store.refundCreditsAtomically) {
+    const result = await store.refundCreditsAtomically({
+      creditAccountId: input.creditAccountId,
+      captureEntryId: input.captureEntryId,
+      idempotencyKey: input.idempotencyKey,
+      reasonCode: input.reasonCode || "job_failed_schema",
+      metadataJson: metadata,
+      payloadHash,
+    });
+    return {
+      entry: result.entry,
+      balance: await getCreditBalance({ store, creditAccountId: input.creditAccountId }),
+      idempotent: result.idempotent,
+    };
+  }
+
   const existing = await store.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
   if (existing) {
     assertIdempotentPayload(existing, payloadHash);
@@ -748,6 +860,36 @@ export function buildCacheHitNoChargeUsageMetadata(input: { sourceDurationSecond
   };
 }
 
+type CreditLedgerRpcRow = CreditLedgerEntryRow & {
+  idempotent?: boolean;
+};
+
+function rpcRowToMutationResult(row: CreditLedgerRpcRow): AtomicCreditLedgerMutationResult {
+  return {
+    entry: {
+      id: row.id,
+      credit_account_id: row.credit_account_id,
+      user_id: row.user_id,
+      source_analysis_job_id: row.source_analysis_job_id,
+      entry_type: row.entry_type,
+      credits: row.credits,
+      balance_effect: row.balance_effect,
+      reservation_entry_id: row.reservation_entry_id,
+      idempotency_key: row.idempotency_key,
+      source: row.source,
+      metadata_json: row.metadata_json || {},
+      created_at: row.created_at,
+    },
+    idempotent: Boolean(row.idempotent),
+  };
+}
+
+function mapCreditRpcError(error: unknown, fallbackCode: SocialReelsCreditReasonCode): SocialReelsCreditLedgerError {
+  const message = error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message || "") : String(error || "");
+  const knownCode = SOCIAL_REELS_CREDIT_REASON_CODES.find((code) => message.includes(code));
+  return new SocialReelsCreditLedgerError(knownCode || fallbackCode, knownCode || "Credit ledger RPC failed.", knownCode === "insufficient_credits" ? 402 : knownCode === "idempotency_key_conflict" ? 409 : 500);
+}
+
 export function createSupabaseSocialReelsCreditStore(): SocialReelsCreditStore {
   async function client() {
     const { supabaseAdmin } = await import("@/lib/supabaseAdmin");
@@ -859,6 +1001,72 @@ export function createSupabaseSocialReelsCreditStore(): SocialReelsCreditStore {
       const supabase = await client();
       const { error } = await supabase.from("source_analysis_job_candidates").insert(input);
       if (error) throw error;
+    },
+    async reserveCreditsAtomically(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .rpc("social_reels_credit_reserve_v1", {
+          p_credit_account_id: input.creditAccountId,
+          p_credits: input.credits,
+          p_idempotency_key: input.idempotencyKey,
+          p_payload_hash: input.payloadHash,
+          p_user_id: input.userId,
+          p_source_analysis_job_id: input.sourceAnalysisJobId,
+          p_source: input.source,
+          p_metadata_json: input.metadataJson,
+        })
+        .single();
+      if (error) throw mapCreditRpcError(error, "credit_reservation_failed");
+      if (!data) throw new SocialReelsCreditLedgerError("credit_reservation_failed", "Credit reservation RPC returned no row.", 500);
+      return rpcRowToMutationResult(data as CreditLedgerRpcRow);
+    },
+    async captureReservedCreditsAtomically(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .rpc("social_reels_credit_capture_v1", {
+          p_credit_account_id: input.creditAccountId,
+          p_reservation_entry_id: input.reservationEntryId,
+          p_idempotency_key: input.idempotencyKey,
+          p_payload_hash: input.payloadHash,
+          p_credits: input.credits,
+          p_metadata_json: input.metadataJson,
+        })
+        .single();
+      if (error) throw mapCreditRpcError(error, "credit_capture_failed");
+      if (!data) throw new SocialReelsCreditLedgerError("credit_capture_failed", "Credit capture RPC returned no row.", 500);
+      return rpcRowToMutationResult(data as CreditLedgerRpcRow);
+    },
+    async releaseReservedCreditsAtomically(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .rpc("social_reels_credit_release_v1", {
+          p_credit_account_id: input.creditAccountId,
+          p_reservation_entry_id: input.reservationEntryId,
+          p_idempotency_key: input.idempotencyKey,
+          p_payload_hash: input.payloadHash,
+          p_reason_code: input.reasonCode,
+          p_metadata_json: input.metadataJson,
+        })
+        .single();
+      if (error) throw mapCreditRpcError(error, "credit_release_failed");
+      if (!data) throw new SocialReelsCreditLedgerError("credit_release_failed", "Credit release RPC returned no row.", 500);
+      return rpcRowToMutationResult(data as CreditLedgerRpcRow);
+    },
+    async refundCreditsAtomically(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .rpc("social_reels_credit_refund_v1", {
+          p_credit_account_id: input.creditAccountId,
+          p_capture_entry_id: input.captureEntryId,
+          p_idempotency_key: input.idempotencyKey,
+          p_payload_hash: input.payloadHash,
+          p_reason_code: input.reasonCode,
+          p_metadata_json: input.metadataJson,
+        })
+        .single();
+      if (error) throw mapCreditRpcError(error, "credit_refund_failed");
+      if (!data) throw new SocialReelsCreditLedgerError("credit_refund_failed", "Credit refund RPC returned no row.", 500);
+      return rpcRowToMutationResult(data as CreditLedgerRpcRow);
     },
   };
 }

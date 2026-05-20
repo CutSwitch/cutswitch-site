@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   buildCacheHitNoChargeUsageMetadata,
@@ -136,6 +138,60 @@ class InMemoryCreditStore implements SocialReelsCreditStore {
   }
 }
 
+class LockedAtomicInMemoryCreditStore extends InMemoryCreditStore {
+  private lock: Promise<void> = Promise.resolve();
+
+  private withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.lock.then(fn, fn);
+    this.lock = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  }
+
+  async reserveCreditsAtomically(input: {
+    creditAccountId: string;
+    userId: string | null;
+    sourceAnalysisJobId: string | null;
+    credits: number;
+    idempotencyKey: string;
+    source: string;
+    metadataJson: Record<string, JsonSafeValue>;
+    payloadHash: string;
+  }) {
+    return this.withLock(async () => {
+      const existing = await this.findLedgerEntryByIdempotencyKey(input.creditAccountId, input.idempotencyKey);
+      if (existing) {
+        if (existing.metadata_json.payload_hash !== input.payloadHash) {
+          throw new SocialReelsCreditLedgerError("idempotency_key_conflict", "Idempotency key was reused with different credit operation details.", 409);
+        }
+        return { entry: existing, idempotent: true };
+      }
+
+      const balance = calculateCreditBalance(await this.listLedgerEntries(input.creditAccountId));
+      if (balance.availableCredits < input.credits) {
+        throw new SocialReelsCreditLedgerError("insufficient_credits", "Not enough credits for source analysis.", 402);
+      }
+
+      const entry = await this.insertLedgerEntry({
+        credit_account_id: input.creditAccountId,
+        user_id: input.userId,
+        source_analysis_job_id: input.sourceAnalysisJobId,
+        entry_type: "reserve",
+        credits: input.credits,
+        balance_effect: "decrease_available",
+        reservation_entry_id: null,
+        idempotency_key: input.idempotencyKey,
+        source: input.source,
+        metadata_json: { ...input.metadataJson, payload_hash: input.payloadHash },
+      });
+
+      return { entry, idempotent: false };
+    });
+  }
+}
+
 function expectCreditError(code: string, fn: () => Promise<unknown> | unknown) {
   return Promise.resolve()
     .then(fn)
@@ -151,6 +207,19 @@ function expectCreditError(code: string, fn: () => Promise<unknown> | unknown) {
 }
 
 async function main() {
+  const rpcSql = readFileSync(resolve(process.cwd(), "supabase/migrations/20260519093000_social_reels_credit_atomic_rpcs.sql"), "utf8");
+  for (const functionName of [
+    "social_reels_credit_reserve_v1",
+    "social_reels_credit_capture_v1",
+    "social_reels_credit_release_v1",
+    "social_reels_credit_refund_v1",
+  ]) {
+    assert(rpcSql.includes(functionName), `${functionName} should be defined in the atomic credit RPC migration.`);
+  }
+  assert.match(rpcSql, /for update/i, "Atomic credit RPCs should lock credit account rows.");
+  assert.match(rpcSql, /v_available < p_credits/i, "Reserve RPC should prevent overspending before insert.");
+  assert.match(rpcSql, /balance_effect[\s\S]*decrease_available/i, "Reserve RPC should use positive credits plus decrease_available.");
+
   assert.equal(estimateCreditsForSource(60 * 60), 60, "60 minutes should cost 60 credits.");
   assert.equal(estimateCreditsForSource(60 * 60 + 1), 61, "60 minutes and 1 second should round up to 61 credits.");
   assert.equal(estimateCreditsForSource(1), 1, "Any nonzero source under one minute should cost 1 credit.");
@@ -395,6 +464,62 @@ async function main() {
   assert.equal(failedResult.job.status, "failed");
   assert.equal(failedResult.ledgerEntry?.entry_type, "release");
   assert.equal(failedResult.balance.availableCredits, 60);
+
+  const atomicStore = new LockedAtomicInMemoryCreditStore();
+  const atomicAccount = await getOrCreateCreditAccount({ store: atomicStore, userId: "user_atomic", planId: "studio" });
+  await atomicStore.grant(atomicAccount.id, 50, "grant:atomic");
+  const concurrentReservations = await Promise.allSettled([
+    reserveCredits({
+      store: atomicStore,
+      creditAccountId: atomicAccount.id,
+      userId: "user_atomic",
+      credits: 40,
+      idempotencyKey: "reserve:atomic:a",
+      metadata: { request_kind: "source_analysis" },
+    }),
+    reserveCredits({
+      store: atomicStore,
+      creditAccountId: atomicAccount.id,
+      userId: "user_atomic",
+      credits: 40,
+      idempotencyKey: "reserve:atomic:b",
+      metadata: { request_kind: "source_analysis" },
+    }),
+  ]);
+  assert.equal(concurrentReservations.filter((result) => result.status === "fulfilled").length, 1, "Atomic reservation path should allow only one concurrent overspending reservation.");
+  assert.equal(concurrentReservations.filter((result) => result.status === "rejected").length, 1, "Atomic reservation path should reject the concurrent overspend.");
+  const rejectedAtomicReservation = concurrentReservations.find((result) => result.status === "rejected");
+  assert(rejectedAtomicReservation && rejectedAtomicReservation.status === "rejected");
+  assert(rejectedAtomicReservation.reason instanceof SocialReelsCreditLedgerError);
+  assert.equal(rejectedAtomicReservation.reason.code, "insufficient_credits");
+  assert.deepEqual(await getCreditBalance({ store: atomicStore, creditAccountId: atomicAccount.id }), {
+    availableCredits: 10,
+    reservedCredits: 40,
+    consumedCredits: 0,
+    grantedCredits: 50,
+    ledgerEntryCount: 2,
+  });
+  const fulfilledAtomicReservation = concurrentReservations.find((result) => result.status === "fulfilled");
+  assert(fulfilledAtomicReservation && fulfilledAtomicReservation.status === "fulfilled");
+  const atomicRetry = await reserveCredits({
+    store: atomicStore,
+    creditAccountId: atomicAccount.id,
+    userId: "user_atomic",
+    credits: 40,
+    idempotencyKey: fulfilledAtomicReservation.value.entry.idempotency_key,
+    metadata: { request_kind: "source_analysis" },
+  });
+  assert.equal(atomicRetry.idempotent, true, "Atomic reservation path should preserve idempotent retry behavior.");
+  await expectCreditError("idempotency_key_conflict", () =>
+    reserveCredits({
+      store: atomicStore,
+      creditAccountId: atomicAccount.id,
+      userId: "user_atomic",
+      credits: 41,
+      idempotencyKey: fulfilledAtomicReservation.value.entry.idempotency_key,
+      metadata: { request_kind: "source_analysis" },
+    })
+  );
 
   const cached = buildCacheHitNoChargeUsageMetadata({ sourceDurationSeconds: 3600, durationBuckets: ["30s", "15s"] });
   assert.equal(cached.reasonCode, "cache_hit_no_charge");

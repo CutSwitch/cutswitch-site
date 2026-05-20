@@ -10,6 +10,12 @@ import {
 } from "@/lib/openaiSocialReels";
 import { readJsonBody } from "@/lib/request";
 import { enforceRateLimit, noStoreJson } from "@/lib/security";
+import {
+  isSocialReelsDiscoverCreditsEnabled,
+  runCreditAwareSocialReelsDiscovery,
+  type SocialReelsCreditAwareDiscoverOutcome,
+} from "@/lib/socialReelsDiscoverCredits";
+import { SocialReelsCreditLedgerError } from "@/lib/socialReelsCreditLedger";
 import { getSafeSocialReelsIssues, socialReelsRequestSchema } from "@/lib/socialReelsSchema";
 import { TRIAL_EDITING_SECONDS } from "@/lib/subscriptions";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -306,7 +312,66 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await discoverSocialReelsCandidates(parsed.data);
+    const creditAwareOutcome: SocialReelsCreditAwareDiscoverOutcome | null = isSocialReelsDiscoverCreditsEnabled()
+      ? await runCreditAwareSocialReelsDiscovery({
+          rawPayload: parsedBody.data && typeof parsedBody.data === "object" && !Array.isArray(parsedBody.data) ? parsedBody.data as Record<string, unknown> : {},
+          request: parsed.data,
+          userId: user.id,
+          planId: entitlement.plan,
+          discover: discoverSocialReelsCandidates,
+        })
+      : null;
+    const result = creditAwareOutcome?.discoverResult ?? (creditAwareOutcome ? null : await discoverSocialReelsCandidates(parsed.data));
+
+    if (!result && creditAwareOutcome) {
+      const diagnostics = createDiagnostics({
+        requestId,
+        mode,
+        requestReceivedAt,
+        routeStartedMs,
+        payloadParseMs,
+        schemaValidationMs,
+        shape: payloadShape,
+        provider: "mock",
+        model: null,
+        returnedCandidateCount: creditAwareOutcome.cachedCandidates?.length ?? 0,
+        filteredCandidateCount: 0,
+        discoveryMode: "cached",
+      });
+
+      console.info("[social-reels] discovery cache served", {
+        ...diagnostics,
+        billing: {
+          credits_required: creditAwareOutcome.billing.creditsRequired,
+          credits_charged: creditAwareOutcome.billing.creditsCharged,
+          cache_status: creditAwareOutcome.billing.cacheStatus,
+        },
+      });
+
+      return noStoreJson({
+        ok: true,
+        request_id: requestId,
+        jobId: creditAwareOutcome.jobId,
+        status: creditAwareOutcome.status,
+        candidates: creditAwareOutcome.cachedCandidates ?? [],
+        groups: creditAwareOutcome.groups,
+        billing: creditAwareOutcome.billing,
+        response_schema: "cached_candidates",
+        entitlement: {
+          status: entitlement.status,
+          plan: entitlement.plan,
+          remainingSeconds: entitlement.remainingSeconds,
+        },
+        diagnostics,
+      });
+    }
+
+    if (!result) {
+      throw new SocialReelsDiscoveryError("Social reels discovery did not return a result.", {
+        stage: "unknown",
+      });
+    }
+
     const diagnostics = createDiagnostics({
       requestId,
       mode: result.diagnostics.mode,
@@ -343,7 +408,10 @@ export async function POST(req: Request) {
     return noStoreJson({
       ok: true,
       request_id: requestId,
+      jobId: creditAwareOutcome?.jobId ?? null,
+      status: creditAwareOutcome?.status ?? "succeeded",
       candidates: result.response?.candidates ?? [],
+      groups: creditAwareOutcome?.groups,
       moments: result.matrixResponse?.moments,
       buckets: result.matrixResponse?.buckets,
       schema_version: result.durationFirstManifest?.schema_version,
@@ -376,6 +444,7 @@ export async function POST(req: Request) {
       provider: result.diagnostics.provider,
       model: result.model,
       mock: result.mock,
+      billing: creditAwareOutcome?.billing,
       entitlement: {
         status: entitlement.status,
         plan: entitlement.plan,
@@ -384,6 +453,33 @@ export async function POST(req: Request) {
       diagnostics,
     });
   } catch (error) {
+    if (error instanceof SocialReelsCreditLedgerError) {
+      const diagnostics = createDiagnostics({
+        requestId,
+        mode,
+        requestReceivedAt,
+        routeStartedMs,
+        payloadParseMs,
+        schemaValidationMs,
+        shape: payloadShape,
+        timeoutStage: "route_before_openai",
+        provider: mode === "live" ? "openai" : "mock",
+      });
+      console.warn("[social-reels] credit-aware discovery rejected", {
+        reason_code: error.code,
+        diagnostics,
+      });
+      return noStoreJson(
+        {
+          error: error.code,
+          reason_code: error.code,
+          request_id: requestId,
+          retry_allowed: error.code !== "idempotency_key_conflict",
+        },
+        error.status
+      );
+    }
+
     const stage = error instanceof SocialReelsDiscoveryError ? error.stage : "unknown";
     const elapsedMs = error instanceof SocialReelsDiscoveryError ? error.elapsedMs : null;
     const invalidResponseDiagnostics = error instanceof SocialReelsDiscoveryError ? error.safeDiagnostics : null;
@@ -430,11 +526,23 @@ export async function POST(req: Request) {
       );
     }
 
+    if (stage === "route_before_openai") {
+      return noStoreJson(
+        {
+          error: "cloud_unavailable_after_auth",
+          stage,
+          request_id: requestId,
+        },
+        503
+      );
+    }
+
     if (stage === "openai_invalid_response") {
       const reasonCode = invalidResponseDiagnostics?.reason_code ?? "unsupported_shape";
       return noStoreJson(
         {
           error: "Social reels provider returned an invalid response.",
+          code: "schema_mismatch",
           stage,
           reason_code: reasonCode,
           request_id: requestId,

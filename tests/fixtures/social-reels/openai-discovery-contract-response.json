@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "cutswitch.social_reels.openai_discovery.v1",
+  "candidates": [
+    {
+      "candidateId": "openai-discovery-15s-hook-001",
+      "durationBucket": "15s",
+      "startTime": 84.2,
+      "endTime": 99.2,
+      "duration": 15,
+      "title": "The Moment Everything Changed",
+      "hook": "I immediately thought, who is that?",
+      "summary": "A guest recalls the instant a routine setup turned into a life-changing first impression.",
+      "reasonSelected": "The clip trims past setup chatter and opens on the emotional jolt, then lands a clean explanation.",
+      "score": 91,
+      "confidence": 0.88,
+      "transcriptExcerpt": "I hear them start checking vocals, no big deal. And then you start singing, and I immediately was like, who is that?",
+      "suggestedCaption": "One ordinary soundcheck changed the whole story.",
+      "platformTags": ["hook", "story", "relationship"],
+      "speakerInfo": {
+        "speakerLabels": ["Voice 2"],
+        "primarySpeakerLabel": "Voice 2"
+      },
+      "startWordId": "w_0084_01",
+      "endWordId": "w_0099_12",
+      "openingLine": "I hear them start checking vocals, no big deal.",
+      "closingLine": "I immediately was like, who is that?",
+      "scoring": {
+        "hookScore": 94,
+        "clarityScore": 86,
+        "emotionalScore": 90,
+        "retentionScore": 92,
+        "platformScore": 89,
+        "overallScore": 91
+      }
+    },
+    {
+      "candidateId": "openai-discovery-30s-bridge-trim-001",
+      "durationBucket": "30s",
+      "startTime": 297.6,
+      "endTime": 328.6,
+      "duration": 31,
+      "title": "We Didn't Sign Up For This",
+      "hook": "As soon as we got married, it got hard.",
+      "summary": "A strong relationship clip skips the conversational bridge and starts on the real tension.",
+      "reasonSelected": "The opening avoids a soft bridge start and reaches the strongest idea quickly, with a clear payoff about conflict.",
+      "score": 93,
+      "confidence": 0.9,
+      "transcriptExcerpt": "As soon as we got married, it got hard. The beginning was very blissful. Imagine my shock after we got married, and then all of the conflict came out.",
+      "suggestedCaption": "The first conflict can tell you more than the honeymoon phase.",
+      "platformTags": ["relationship", "tension", "payoff"],
+      "speakerInfo": {
+        "speakerLabels": ["Voice 2", "Voice 3"],
+        "primarySpeakerLabel": "Voice 2"
+      },
+      "startWordId": "w_0297_03",
+      "endWordId": "w_0328_09",
+      "openingLine": "As soon as we got married, it got hard.",
+      "closingLine": "I was like, what is this? I didn't sign up for this.",
+      "scoring": {
+        "hookScore": 96,
+        "clarityScore": 91,
+        "emotionalScore": 92,
+        "retentionScore": 94,
+        "platformScore": 91,
+        "overallScore": 93
+      }
+    },
+    {
+      "candidateId": "openai-discovery-60s-answer-included-001",
+      "durationBucket": "60s",
+      "startTime": 618.4,
+      "endTime": 678.4,
+      "duration": 60,
+      "title": "The Question That Finally Got Answered",
+      "hook": "Why did the same argument keep coming back?",
+      "summary": "A question-answer reel keeps the question and the answer together instead of ending unresolved.",
+      "reasonSelected": "The candidate contains the question, tension, and answer in one self-contained span with a clean closing line.",
+      "score": 89,
+      "confidence": 0.84,
+      "transcriptExcerpt": "Why did the same argument keep coming back? We realized it was never about the dishes. It was about whether either of us felt heard.",
+      "suggestedCaption": "Sometimes the argument is just the surface.",
+      "platformTags": ["question", "answer", "takeaway"],
+      "speakerInfo": {
+        "speakerLabels": ["Voice 1", "Voice 3"],
+        "primarySpeakerLabel": "Voice 3"
+      },
+      "startWordId": "w_0618_04",
+      "endWordId": "w_0678_10",
+      "openingLine": "Why did the same argument keep coming back?",
+      "closingLine": "It was about whether either of us felt heard.",
+      "scoring": {
+        "hookScore": 88,
+        "clarityScore": 91,
+        "emotionalScore": 86,
+        "retentionScore": 88,
+        "platformScore": 90,
+        "overallScore": 89
+      }
+    },
+    {
+      "candidateId": "openai-discovery-90s-client-specific-001",
+      "durationBucket": "90s",
+      "startTime": 1195.9,
+      "endTime": 1286.9,
+      "duration": 91,
+      "title": "The Client Story That Made The Lesson Obvious",
+      "hook": "My client thought the offer was too specific.",
+      "summary": "A client-specific business story becomes a useful reel because it has a concrete problem, reversal, and takeaway.",
+      "reasonSelected": "The topic is client-specific, but the editorial arc is strong and self-contained, so it should not be rejected by topic.",
+      "score": 87,
+      "confidence": 0.82,
+      "transcriptExcerpt": "My client thought the offer was too specific. But the specificity was the reason people trusted it, because they could finally see themselves in the problem.",
+      "suggestedCaption": "Specific beats generic when the right viewer can recognize themselves.",
+      "platformTags": ["business", "client-story", "takeaway"],
+      "speakerInfo": {
+        "speakerLabels": ["Host"],
+        "primarySpeakerLabel": "Host"
+      },
+      "startWordId": "w_1195_02",
+      "endWordId": "w_1286_18",
+      "openingLine": "My client thought the offer was too specific.",
+      "closingLine": "They could finally see themselves in the problem.",
+      "scoring": {
+        "hookScore": 86,
+        "clarityScore": 89,
+        "emotionalScore": 78,
+        "retentionScore": 87,
+        "platformScore": 88,
+        "overallScore": 87
+      }
+    },
+    {
+      "candidateId": "openai-discovery-mixed-variant-001",
+      "durationBucket": "mixed",
+      "startTime": 1850.3,
+      "endTime": 1904.3,
+      "duration": 54,
+      "title": "The Reframe That Makes The Clip Work",
+      "hook": "The problem was not that the idea was too personal.",
+      "summary": "A mixed-duration candidate captures the strongest reframe without forcing it into a fixed bucket.",
+      "reasonSelected": "This is not a duplicate of another bucket; it is a tighter variant that preserves the payoff while cutting extra setup.",
+      "score": 90,
+      "confidence": 0.86,
+      "transcriptExcerpt": "The problem was not that the idea was too personal. The problem was that we kept hiding the useful part behind safe language.",
+      "suggestedCaption": "The useful part is usually the part you are tempted to soften.",
+      "platformTags": ["reframe", "creator", "retention"],
+      "speakerInfo": {
+        "speakerLabels": ["Host"],
+        "primarySpeakerLabel": "Host"
+      },
+      "startWordId": "w_1850_05",
+      "endWordId": "w_1904_08",
+      "openingLine": "The problem was not that the idea was too personal.",
+      "closingLine": "We kept hiding the useful part behind safe language.",
+      "scoring": {
+        "hookScore": 91,
+        "clarityScore": 90,
+        "emotionalScore": 84,
+        "retentionScore": 90,
+        "platformScore": 91,
+        "overallScore": 90
+      }
+    }
+  ],
+  "modelNotes": "Mocked fixture for schema and prompt regression tests only; no live OpenAI call."
+}

@@ -12,6 +12,7 @@
     "lint": "next lint",
     "test:social-reels-golden": "tsx scripts/testSocialReelsGolden.ts",
     "test:social-reels-credit-ledger": "tsx scripts/testSocialReelsCreditLedger.ts",
+    "test:social-reels-discover-credits": "tsx scripts/testSocialReelsDiscoverCredits.ts",
     "test:social-reels-stripe-credits": "tsx scripts/testSocialReelsStripeCredits.ts",
     "test:social-reels-v2-app-fixture": "tsx scripts/testSocialReelsV2AppFixture.ts",
     "render:social-reels-v2-fixture-review": "tsx scripts/renderSocialReelsV2FixtureReview.ts",

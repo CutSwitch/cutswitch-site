@@ -27,6 +27,14 @@ import {
   socialReelsDurationFirstManifestSchema,
 } from "../lib/socialReelsDurationFirstManifest";
 import {
+  SOCIAL_REELS_OPENAI_DISCOVERY_CONTRACT_VERSION,
+  SOCIAL_REELS_OPENAI_DISCOVERY_DURATION_BUCKETS,
+  SOCIAL_REELS_OPENAI_DISCOVERY_FORBIDDEN_FIELDS,
+  findForbiddenSocialReelsOpenAIContractFields,
+  openAISocialReelsDiscoveryContractResponseFormat,
+  socialReelsOpenAIDiscoveryResponseSchema,
+} from "../lib/socialReelsOpenAIContract";
+import {
   SOCIAL_REELS_EDITORIAL_WORD_ID_VERSION,
   openAISocialReelsEditorialWordIdResponseFormat,
   socialReelsEditorialWordIdResponseSchema,
@@ -219,9 +227,9 @@ for (const durationFirstGuidance of [
 for (const editorialMetadataGuidance of [
   "context_dependency",
   "sensitivity_level",
-  "sensitive_topic",
-  "unsafe_or_policy_risk",
-  "Sexual wellness",
+  "neutral compatibility fields",
+  "Do not return platform/content-risk",
+  "Do not reject explicit/client-specific topics by topic",
   "promotional housekeeping",
 ]) {
   assert(promptSource.includes(editorialMetadataGuidance), `Prompt is missing compact editorial metadata guidance: ${editorialMetadataGuidance}.`);
@@ -1742,6 +1750,131 @@ assert(
   socialReelsCandidateSchema.safeParse(candidate(9, true)).success,
   "Legacy compact candidate response should remain compatible after adding duration-first manifest contract."
 );
+
+const openAIDiscoveryFixture = socialReelsOpenAIDiscoveryResponseSchema.parse(
+  JSON.parse(readFileSync(resolve(process.cwd(), "tests/fixtures/social-reels/openai-discovery-contract-response.json"), "utf8")) as unknown
+);
+assert(
+  openAIDiscoveryFixture.schemaVersion === SOCIAL_REELS_OPENAI_DISCOVERY_CONTRACT_VERSION,
+  "OpenAI discovery contract fixture should use the v1 contract version."
+);
+for (const durationBucket of SOCIAL_REELS_OPENAI_DISCOVERY_DURATION_BUCKETS) {
+  assert(
+    openAIDiscoveryFixture.candidates.some((candidate) => candidate.durationBucket === durationBucket),
+    `OpenAI discovery contract fixture should include ${durationBucket}.`
+  );
+}
+assert(
+  openAIDiscoveryFixture.candidates.every((candidate) => candidate.endTime > candidate.startTime && Math.abs(candidate.duration - (candidate.endTime - candidate.startTime)) <= 2),
+  "OpenAI discovery candidates should use coherent timing boundaries."
+);
+assert(
+  openAIDiscoveryFixture.candidates.some((candidate) => candidate.startTime !== 0 && candidate.startTime % 30 !== 0),
+  "OpenAI discovery fixture should show intelligent boundaries instead of fixed transcript chopping."
+);
+assert(
+  !/^\s*(yeah|so|anyway|right|i think)\b/i.test(openAIDiscoveryFixture.candidates.find((candidate) => candidate.candidateId === "openai-discovery-30s-bridge-trim-001")?.openingLine ?? ""),
+  "Bridge-start fixture should trim to the stronger hook."
+);
+assert(
+  openAIDiscoveryFixture.candidates.some((candidate) =>
+    candidate.candidateId === "openai-discovery-60s-answer-included-001" &&
+    /heard/i.test(candidate.closingLine ?? "") &&
+    /why/i.test(candidate.openingLine ?? "")
+  ),
+  "Unanswered-question fixture should include the answer in the same candidate."
+);
+assert(
+  openAIDiscoveryFixture.candidates.some((candidate) => /client/i.test(candidate.reasonSelected) && candidate.score >= 80),
+  "Explicit client-specific content should be allowed when editorially strong."
+);
+assert(
+  findForbiddenSocialReelsOpenAIContractFields(openAIDiscoveryFixture).length === 0,
+  "OpenAI discovery fixture should not include forbidden platform/content-risk or synthetic spoken fields."
+);
+const missingRequiredOpenAIContractResult = socialReelsOpenAIDiscoveryResponseSchema.safeParse({
+  schemaVersion: SOCIAL_REELS_OPENAI_DISCOVERY_CONTRACT_VERSION,
+  candidates: [
+    {
+      candidateId: "missing-required-001",
+      durationBucket: "30s",
+      startTime: 10,
+      endTime: 40,
+      duration: 30,
+      title: "Missing Hook",
+      summary: "Missing hook should fail.",
+      reasonSelected: "Required field smoke.",
+      score: 80,
+      confidence: 0.8,
+      transcriptExcerpt: "This is a test.",
+      suggestedCaption: "Test",
+      platformTags: ["test"],
+      scoring: {
+        hookScore: 80,
+        clarityScore: 80,
+        emotionalScore: 80,
+        retentionScore: 80,
+        platformScore: 80,
+        overallScore: 80,
+      },
+    },
+  ],
+  modelNotes: null,
+});
+assert(!missingRequiredOpenAIContractResult.success, "OpenAI discovery schema should fail when a required candidate field is missing.");
+for (const forbiddenField of SOCIAL_REELS_OPENAI_DISCOVERY_FORBIDDEN_FIELDS) {
+  const forbiddenResult = socialReelsOpenAIDiscoveryResponseSchema.safeParse({
+    ...openAIDiscoveryFixture,
+    candidates: [
+      {
+        ...openAIDiscoveryFixture.candidates[0],
+        [forbiddenField]: "must fail",
+      },
+    ],
+  });
+  assert(!forbiddenResult.success, `OpenAI discovery schema should reject forbidden field ${forbiddenField}.`);
+}
+const openAIDiscoveryResponseFormat = openAISocialReelsDiscoveryContractResponseFormat(80);
+const openAIDiscoverySchemaText = JSON.stringify(openAIDiscoveryResponseFormat.schema);
+assert(openAIDiscoveryResponseFormat.strict === true, "OpenAI discovery response format should use strict Structured Outputs.");
+assert(openAIDiscoveryResponseFormat.schema.properties.candidates.maxItems === 80, "OpenAI discovery response format should support up to 80 candidates.");
+for (const requiredField of [
+  "candidateId",
+  "durationBucket",
+  "startTime",
+  "endTime",
+  "duration",
+  "title",
+  "hook",
+  "summary",
+  "reasonSelected",
+  "score",
+  "confidence",
+  "transcriptExcerpt",
+  "suggestedCaption",
+  "platformTags",
+  "scoring",
+]) {
+  assert(openAIDiscoverySchemaText.includes(requiredField), `OpenAI discovery response format should define ${requiredField}.`);
+}
+for (const forbiddenField of SOCIAL_REELS_OPENAI_DISCOVERY_FORBIDDEN_FIELDS) {
+  assert(!openAIDiscoverySchemaText.includes(forbiddenField), `OpenAI discovery response format should not define ${forbiddenField}.`);
+}
+for (const expectedPromptText of [
+  "expert short-form social video editor",
+  "Do not mechanically chop the transcript every 30 seconds",
+  "Avoid conversational bridge starts",
+  "Require clean endings and payoffs",
+  "Do not end on an unanswered question unless the answer is included",
+  "return multiple candidates per selected duration bucket",
+  "Do not reject a candidate by content topic",
+  "Do not return platform/content-risk filtering fields",
+]) {
+  assert(
+    durationFirstUserPrompt.includes(expectedPromptText) || String(durationFirstPromptInput[0].content).includes(expectedPromptText),
+    `OpenAI discovery prompt should include: ${expectedPromptText}.`
+  );
+}
 
 if (!failed) {
   console.log("PASS: social reels prompt/schema smoke passed without a live OpenAI call.");

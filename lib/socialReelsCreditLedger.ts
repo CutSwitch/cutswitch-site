@@ -116,6 +116,34 @@ export type SourceAnalysisCandidateInsert = {
   metadata_json?: Record<string, JsonSafeValue>;
 };
 
+export type SourceAnalysisCandidateRow = SourceAnalysisCandidateInsert & {
+  id: string;
+  created_at?: string;
+};
+
+export type AnalysisCacheEntryRow = {
+  id: string;
+  credit_account_id: string;
+  source_fingerprint: string;
+  transcript_normalization_hash: string;
+  analysis_mode: string;
+  prompt_version: string;
+  schema_version: string;
+  duration_buckets: SocialReelsCreditDurationBucket[];
+  source_duration_seconds: number;
+  candidate_count: number;
+  status: "ready" | "stale" | "invalidated";
+  latest_source_analysis_job_id: string | null;
+  metadata_json: Record<string, JsonSafeValue>;
+  created_at?: string;
+  updated_at?: string;
+  last_used_at?: string | null;
+};
+
+export type AnalysisCacheEntryInsert = Omit<AnalysisCacheEntryRow, "id" | "created_at" | "updated_at" | "last_used_at"> & {
+  last_used_at?: string | null;
+};
+
 export type AtomicCreditLedgerMutationResult = {
   entry: CreditLedgerEntryRow;
   idempotent: boolean;
@@ -138,6 +166,18 @@ export type SocialReelsCreditStore = {
   insertSourceAnalysisJob(input: Omit<SourceAnalysisJobRow, "id" | "created_at" | "updated_at">): Promise<SourceAnalysisJobRow>;
   updateSourceAnalysisJob(jobId: string, patch: Partial<Omit<SourceAnalysisJobRow, "id" | "created_at">>): Promise<SourceAnalysisJobRow>;
   insertSourceAnalysisCandidates(input: SourceAnalysisCandidateInsert[]): Promise<void>;
+  listSourceAnalysisCandidates?(sourceAnalysisJobId: string): Promise<SourceAnalysisCandidateRow[]>;
+  findAnalysisCacheEntry?(input: {
+    creditAccountId: string;
+    sourceFingerprint: string;
+    transcriptNormalizationHash: string;
+    analysisMode: string;
+    promptVersion: string;
+    schemaVersion: string;
+    durationBuckets: SocialReelsCreditDurationBucket[];
+  }): Promise<AnalysisCacheEntryRow | null>;
+  upsertAnalysisCacheEntry?(input: AnalysisCacheEntryInsert): Promise<AnalysisCacheEntryRow>;
+  touchAnalysisCacheEntry?(cacheEntryId: string): Promise<void>;
   reserveCreditsAtomically?(input: {
     creditAccountId: string;
     userId: string | null;
@@ -1000,6 +1040,66 @@ export function createSupabaseSocialReelsCreditStore(): SocialReelsCreditStore {
       if (input.length === 0) return;
       const supabase = await client();
       const { error } = await supabase.from("source_analysis_job_candidates").insert(input);
+      if (error) throw error;
+    },
+    async listSourceAnalysisCandidates(sourceAnalysisJobId) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .from("source_analysis_job_candidates")
+        .select("*")
+        .eq("source_analysis_job_id", sourceAnalysisJobId)
+        .order("rank", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []) as SourceAnalysisCandidateRow[];
+    },
+    async findAnalysisCacheEntry(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .from("analysis_cache_entries")
+        .select("*")
+        .eq("credit_account_id", input.creditAccountId)
+        .eq("source_fingerprint", input.sourceFingerprint)
+        .eq("transcript_normalization_hash", input.transcriptNormalizationHash)
+        .eq("analysis_mode", input.analysisMode)
+        .eq("prompt_version", input.promptVersion)
+        .eq("schema_version", input.schemaVersion)
+        .eq("status", "ready")
+        .contains("duration_buckets", input.durationBuckets)
+        .containedBy("duration_buckets", input.durationBuckets)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as AnalysisCacheEntryRow | null) || null;
+    },
+    async upsertAnalysisCacheEntry(input) {
+      const supabase = await client();
+      const { data, error } = await supabase
+        .from("analysis_cache_entries")
+        .upsert(
+          {
+            ...input,
+            metadata_json: input.metadata_json || {},
+            last_used_at: input.last_used_at ?? nowIso(),
+            updated_at: nowIso(),
+          },
+          {
+            onConflict:
+              "credit_account_id,source_fingerprint,transcript_normalization_hash,analysis_mode,prompt_version,schema_version,duration_buckets",
+          }
+        )
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as AnalysisCacheEntryRow;
+    },
+    async touchAnalysisCacheEntry(cacheEntryId) {
+      const supabase = await client();
+      const { error } = await supabase
+        .from("analysis_cache_entries")
+        .update({ last_used_at: nowIso(), updated_at: nowIso() })
+        .eq("id", cacheEntryId);
       if (error) throw error;
     },
     async reserveCreditsAtomically(input) {
